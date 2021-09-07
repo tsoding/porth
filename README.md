@@ -5,7 +5,7 @@ It's like Forth but in Python. But I don't actually know since I never programme
 ## Quick Start
 
 ```console
-$ ./porth.py sim
-$ ./porth.py com
+$ ./porth.py sim ./examples/test.porth
+$ ./porth.py com ./examples/test.porth
 $ ./output
 ```
