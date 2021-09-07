@@ -116,39 +116,59 @@ def compile_program(program, out_file_path):
         out.write("    mov rdi, 0\n")
         out.write("    syscall\n")
 
-# TODO: unhardcode program
-program=[
-    push(34),
-    push(35),
-    plus(),
-    dump(),
-    push(500),
-    push(80),
-    minus(),
-    dump(),
-]
+def parse_word_as_op(word):
+    assert COUNT_OPS == 4, "Exhaustive op handling in parse_word_as_op"
+    if word == '+':
+        return plus()
+    elif word == '-':
+        return minus()
+    elif word == '.':
+        return dump()
+    else:
+        return push(int(word))
 
-def usage():
-    print("Usage: porth <SUBCOMMAND> [ARGS]")
+def load_program_from_file(file_path):
+    with open(file_path, "r") as f:
+        return [parse_word_as_op(word) for word in f.read().split()]
+
+def usage(program):
+    print("Usage: %s <SUBCOMMAND> [ARGS]", program)
     print("SUBCOMMANDS:")
-    print("    sim        Simulate the program")
-    print("    com        Compile the program")
+    print("    sim <file>       Simulate the program")
+    print("    com <file>       Compile the program")
 
 def call_cmd(cmd):
     print(cmd)
     subprocess.call(cmd)
 
+def uncons(xs):
+    return (xs[0], xs[1:])
+
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        usage()
+    argv = sys.argv
+    assert len(argv) >= 1
+    (program_name, argv) = uncons(argv)
+    if len(argv) < 1:
+        usage(program_name)
         print("ERROR: no subcommand is provided")
         exit(1)
-
-    subcommand = sys.argv[1]
+    (subcommand, argv) = uncons(argv)
 
     if subcommand == "sim":
+        if len(argv) < 1:
+            usage(program_name)
+            print("ERROR: no input file is provided for the simulation")
+            exit(1)
+        (program_path, argv) = uncons(argv)
+        program = load_program_from_file(program_path);
         simulate_program(program)
     elif subcommand == "com":
+        if len(argv) < 1:
+            usage(program_name)
+            print("ERROR: no input file is provided for the compilation")
+            exit(1)
+        (program_path, argv) = uncons(argv)
+        program = load_program_from_file(program_path);
         compile_program(program, "output.asm")
         call_cmd(["nasm", "-felf64", "output.asm"])
         call_cmd(["ld", "-o", "output", "output.o"])
