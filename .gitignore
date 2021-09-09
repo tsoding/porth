@@ -1,2 +1,5 @@
-output*
+output
+test
 __pycache__/
+*.asm
+*.o

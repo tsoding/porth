@@ -143,25 +143,22 @@ def usage(compiler_name):
     print("    com <file>       Compile the program")
     print("    help             Print this help to stdout and exit with 0 code")
 
-def uncons(xs):
-    return (xs[0], xs[1:])
-
 if __name__ == '__main__':
     argv = sys.argv
     assert len(argv) >= 1
-    (compiler_name, argv) = uncons(argv)
+    compiler_name, *argv = argv
     if len(argv) < 1:
         usage(compiler_name)
         print("ERROR: no subcommand is provided")
         exit(1)
-    (subcommand, argv) = uncons(argv)
+    subcommand, *argv = argv
 
     if subcommand == "sim":
         if len(argv) < 1:
             usage(compiler_name)
             print("ERROR: no input file is provided for the simulation")
             exit(1)
-        (program_path, argv) = uncons(argv)
+        program_path, *argv = argv
         program = load_program_from_file(program_path);
         simulate_program(program)
     elif subcommand == "com":
@@ -169,7 +166,7 @@ if __name__ == '__main__':
             usage(compiler_name)
             print("ERROR: no input file is provided for the compilation")
             exit(1)
-        (program_path, argv) = uncons(argv)
+        program_path, *argv = argv
         program = load_program_from_file(program_path);
         porth_ext = '.porth'
         basename = path.basename(program_path)
