@@ -118,8 +118,9 @@ def compile_program(program, out_file_path):
         out.write("    mov rdi, 0\n")
         out.write("    syscall\n")
 
-def parse_word_as_op(word):
-    assert COUNT_OPS == 4, "Exhaustive op handling in parse_word_as_op"
+def parse_token_as_op(token):
+    (file_path, row, col, word) = token
+    assert COUNT_OPS == 4, "Exhaustive op handling in parse_token_as_op"
     if word == '+':
         return plus()
     elif word == '-':
@@ -127,11 +128,32 @@ def parse_word_as_op(word):
     elif word == '.':
         return dump()
     else:
-        return push(int(word))
+        try:
+            return push(int(word))
+        except ValueError as err:
+            print("%s:%d:%d: %s" % (file_path, row, col, err))
+            exit(1)
+
+def find_col(line, start, predicate):
+    while start < len(line) and not predicate(line[start]):
+        start += 1
+    return start
+
+def lex_line(line):
+    col = find_col(line, 0, lambda x: not x.isspace())
+    while col < len(line):
+        col_end = find_col(line, col, lambda x: x.isspace())
+        yield (col, line[col:col_end])
+        col = find_col(line, col_end, lambda x: not x.isspace())
+
+def lex_file(file_path):
+    with open(file_path, "r") as f:
+        return [(file_path, row, col, token)
+                for (row, line) in enumerate(f.readlines())
+                for (col, token) in lex_line(line)]
 
 def load_program_from_file(file_path):
-    with open(file_path, "r") as f:
-        return [parse_word_as_op(word) for word in f.read().split()]
+    return [parse_token_as_op(token) for token in lex_file(file_path)]
 
 def cmd_echoed(cmd):
     print("[CMD] %s" % " ".join(map(shlex.quote, cmd)))
