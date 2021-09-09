@@ -2,6 +2,7 @@
 
 import sys
 import subprocess
+import shlex
 from os import path
 
 iota_counter=0
@@ -132,8 +133,8 @@ def load_program_from_file(file_path):
     with open(file_path, "r") as f:
         return [parse_word_as_op(word) for word in f.read().split()]
 
-def call_cmd(cmd):
-    print(cmd)
+def cmd_echoed(cmd):
+    print("[CMD] %s" % " ".join(map(shlex.quote, cmd)))
     subprocess.call(cmd)
 
 def usage(compiler_name):
@@ -172,9 +173,10 @@ if __name__ == '__main__':
         basename = path.basename(program_path)
         if basename.endswith(porth_ext):
             basename = basename[:-len(porth_ext)]
+        print("Generating %s ..." % (basename + ".asm"))
         compile_program(program, basename + ".asm")
-        call_cmd(["nasm", "-felf64", basename + ".asm"])
-        call_cmd(["ld", "-o", basename, basename + ".o"])
+        cmd_echoed(["nasm", "-felf64", basename + ".asm"])
+        cmd_echoed(["ld", "-o", basename, basename + ".o"])
     elif subcommand == "help":
         usage(compiler_name)
         exit(0)
