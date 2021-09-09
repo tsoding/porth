@@ -2,6 +2,7 @@
 
 import sys
 import subprocess
+from os import path
 
 iota_counter=0
 def iota(reset=False):
@@ -170,9 +171,13 @@ if __name__ == '__main__':
             exit(1)
         (program_path, argv) = uncons(argv)
         program = load_program_from_file(program_path);
-        compile_program(program, "output.asm")
-        call_cmd(["nasm", "-felf64", "output.asm"])
-        call_cmd(["ld", "-o", "output", "output.o"])
+        porth_ext = '.porth'
+        basename = path.basename(program_path)
+        if basename.endswith(porth_ext):
+            basename = basename[:-len(porth_ext)]
+        compile_program(program, basename + ".asm")
+        call_cmd(["nasm", "-felf64", basename + ".asm"])
+        call_cmd(["ld", "-o", basename, basename + ".o"])
     elif subcommand == "help":
         usage(compiler_name)
         exit(0)
