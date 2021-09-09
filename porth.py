@@ -135,8 +135,8 @@ def call_cmd(cmd):
     print(cmd)
     subprocess.call(cmd)
 
-def usage(program):
-    print("Usage: %s <SUBCOMMAND> [ARGS]" % program)
+def usage(compiler_name):
+    print("Usage: %s <SUBCOMMAND> [ARGS]" % compiler_name)
     print("SUBCOMMANDS:")
     print("    sim <file>       Simulate the program")
     print("    com <file>       Compile the program")
@@ -148,16 +148,16 @@ def uncons(xs):
 if __name__ == '__main__':
     argv = sys.argv
     assert len(argv) >= 1
-    (program_name, argv) = uncons(argv)
+    (compiler_name, argv) = uncons(argv)
     if len(argv) < 1:
-        usage(program_name)
+        usage(compiler_name)
         print("ERROR: no subcommand is provided")
         exit(1)
     (subcommand, argv) = uncons(argv)
 
     if subcommand == "sim":
         if len(argv) < 1:
-            usage(program_name)
+            usage(compiler_name)
             print("ERROR: no input file is provided for the simulation")
             exit(1)
         (program_path, argv) = uncons(argv)
@@ -165,7 +165,7 @@ if __name__ == '__main__':
         simulate_program(program)
     elif subcommand == "com":
         if len(argv) < 1:
-            usage(program_name)
+            usage(compiler_name)
             print("ERROR: no input file is provided for the compilation")
             exit(1)
         (program_path, argv) = uncons(argv)
@@ -174,7 +174,7 @@ if __name__ == '__main__':
         call_cmd(["nasm", "-felf64", "output.asm"])
         call_cmd(["ld", "-o", "output", "output.o"])
     elif subcommand == "help":
-        usage(program_name)
+        usage(compiler_name)
         exit(0)
     else:
         usage()
