@@ -181,6 +181,6 @@ if __name__ == '__main__':
         usage(compiler_name)
         exit(0)
     else:
-        usage()
+        usage(compiler_name)
         print("ERROR: unknown subcommand %s" % (subcommand))
         exit(1)
