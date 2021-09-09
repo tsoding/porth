@@ -173,7 +173,7 @@ if __name__ == '__main__':
         basename = path.basename(program_path)
         if basename.endswith(porth_ext):
             basename = basename[:-len(porth_ext)]
-        print("Generating %s ..." % (basename + ".asm"))
+        print("[INFO] Generating %s" % (basename + ".asm"))
         compile_program(program, basename + ".asm")
         cmd_echoed(["nasm", "-felf64", basename + ".asm"])
         cmd_echoed(["ld", "-o", basename, basename + ".o"])
