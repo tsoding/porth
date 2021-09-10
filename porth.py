@@ -17,6 +17,7 @@ def iota(reset=False):
 OP_PUSH=iota(True)
 OP_PLUS=iota()
 OP_MINUS=iota()
+OP_EQUAL=iota()
 OP_DUMP=iota()
 COUNT_OPS=iota()
 
@@ -29,13 +30,16 @@ def plus():
 def minus():
     return (OP_MINUS, )
 
+def equal():
+    return (OP_EQUAL, )
+
 def dump():
     return (OP_DUMP, )
 
 def simulate_program(program):
     stack = []
     for op in program:
-        assert COUNT_OPS == 4, "Exhaustive handling of operations in simulation"
+        assert COUNT_OPS == 5, "Exhaustive handling of operations in simulation"
         if op[0] == OP_PUSH:
             stack.append(op[1])
         elif op[0] == OP_PLUS:
@@ -46,6 +50,10 @@ def simulate_program(program):
             a = stack.pop()
             b = stack.pop()
             stack.append(b - a)
+        elif op[0] == OP_EQUAL:
+            a = stack.pop()
+            b = stack.pop()
+            stack.append(int(a == b))
         elif op[0] == OP_DUMP:
             a = stack.pop()
             print(a)
@@ -54,6 +62,7 @@ def simulate_program(program):
 
 def compile_program(program, out_file_path):
     with open(out_file_path, "w") as out:
+        out.write("BITS 64\n")
         out.write("segment .text\n")
         out.write("dump:\n")
         out.write("    mov     r9, -3689348814741910323\n")
@@ -91,7 +100,7 @@ def compile_program(program, out_file_path):
         out.write("global _start\n")
         out.write("_start:\n")
         for op in program:
-            assert COUNT_OPS == 4, "Exhaustive handling of ops in compilation"
+            assert COUNT_OPS == 5, "Exhaustive handling of ops in compilation"
             if op[0] == OP_PUSH:
                 out.write("    ;; -- push %d --\n" % op[1])
                 out.write("    push %d\n" % op[1])
@@ -111,6 +120,14 @@ def compile_program(program, out_file_path):
                 out.write("    ;; -- dump --\n")
                 out.write("    pop rdi\n")
                 out.write("    call dump\n")
+            elif op[0] == OP_EQUAL:
+                out.write("    ;; -- equal -- \n")
+                out.write("    mov rcx, 0\n");
+                out.write("    mov rdx, 1\n");
+                out.write("    pop rax\n");
+                out.write("    pop rbx\n");
+                out.write("    cmp rax, rbx\n");
+                out.write("    cmove rcx, rdx\n");
             else:
                 assert False, "unreachable"
 
@@ -120,13 +137,15 @@ def compile_program(program, out_file_path):
 
 def parse_token_as_op(token):
     (file_path, row, col, word) = token
-    assert COUNT_OPS == 4, "Exhaustive op handling in parse_token_as_op"
+    assert COUNT_OPS == 5, "Exhaustive op handling in parse_token_as_op"
     if word == '+':
         return plus()
     elif word == '-':
         return minus()
     elif word == '.':
         return dump()
+    elif word == '=':
+        return equal()
     else:
         try:
             return push(int(word))
