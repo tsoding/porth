@@ -238,6 +238,7 @@ def compile_program(program, out_file_path):
             else:
                 assert False, "unreachable"
 
+        out.write("addr_%d:\n" % len(program))
         out.write("    mov rax, 60\n")
         out.write("    mov rdi, 0\n")
         out.write("    syscall\n")
