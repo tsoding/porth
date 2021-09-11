@@ -73,3 +73,18 @@ a = pop()
 print(a)
 ```
 
+### Comparison
+
+- `=` - checks if two elements on top of the stack are equal. Removes the elements from the stack and pushes `1` if they are equal and `0` if they are not.
+```
+a = pop()
+b = pop()
+push(int(a == b))
+```
+- `>` - checks if the element below the top greater than the top.
+```
+b = pop()
+a = pop()
+push(int(a > b))
+```
+
