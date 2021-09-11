@@ -30,7 +30,10 @@ end
 Simulation simply interprets the program.
 
 ```console
+$ cat program.porth
+34 35 + .
 $ ./porth.py sim program.porth
+69
 ```
 
 ### Compilation
@@ -38,6 +41,12 @@ $ ./porth.py sim program.porth
 Compilation generates assembly code, compiles it with [nasm](https://www.nasm.us/), and then links it with [GNU ld](https://www.gnu.org/software/binutils/). So make sure you have both available in your `$PATH`.
 
 ```console
+$ cat program.porth
+34 35 + .
 $ ./porth.py com program.porth
+[INFO] Generating program.asm
+[CMD] nasm -felf64 program.asm
+[CMD] ld -o program program.o
 $ ./program
+69
 ```
