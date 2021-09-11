@@ -44,9 +44,9 @@ Compilation generates assembly code, compiles it with [nasm](https://www.nasm.us
 $ cat program.porth
 34 35 + .
 $ ./porth.py com program.porth
-[INFO] Generating program.asm
-[CMD] nasm -felf64 program.asm
-[CMD] ld -o program program.o
+[INFO] Generating ./program.asm
+[CMD] nasm -felf64 ./program.asm
+[CMD] ld -o ./program ./program.o
 $ ./program
 69
 ```
