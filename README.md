@@ -88,3 +88,18 @@ a = pop()
 push(int(a > b))
 ```
 
+### Arithmetics
+
+- `+` - sums up two elements on the top of the stack.
+```
+a = pop()
+b = pop()
+push(a + b)
+```
+- `-` - subtracts the top of the stack from the element below.
+```
+a = pop()
+b = pop()
+push(b - a)
+```
+
