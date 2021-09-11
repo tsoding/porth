@@ -50,3 +50,26 @@ $ ./porth.py com program.porth
 $ ./program
 69
 ```
+
+## Language Reference
+
+This is what the language supports so far. **Since the language is a work in progress the exact set of operations is the subject to change.**
+
+### Stack Manipulation
+
+- `<integer>` - push the integer onto the stack. Right now the integer is anything that is parsable by [int](https://docs.python.org/3/library/functions.html#int) function.
+```
+push(<integer>)
+```
+- `dup` - duplicate an element on top of the stack.
+```
+a = pop()
+push(a)
+push(a)
+```
+- `.` - print the element on top of the stack to stdout and remove it from the stack.
+```
+a = pop()
+print(a)
+```
+
