@@ -35,7 +35,7 @@ $ ./porth.py sim program.porth
 
 ### Compilation
 
-Compilation generates assembly code and compiles it with [nasm](https://www.nasm.us/).
+Compilation generates assembly code, compiles it with [nasm](https://www.nasm.us/), and then links it with [GNU ld](https://www.gnu.org/software/binutils/). So make sure you have both available in your `$PATH`.
 
 ```console
 $ ./porth.py com program.porth
