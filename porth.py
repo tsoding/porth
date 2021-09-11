@@ -336,9 +336,9 @@ def cmd_echoed(cmd):
 def usage(compiler_name):
     print("Usage: %s <SUBCOMMAND> [ARGS]" % compiler_name)
     print("SUBCOMMANDS:")
-    print("    sim <file>       Simulate the program")
-    print("    com <file>       Compile the program")
-    print("    help             Print this help to stdout and exit with 0 code")
+    print("    sim <file>         Simulate the program")
+    print("    com [-r] <file>    Compile the program")
+    print("    help               Print this help to stdout and exit with 0 code")
 
 if __name__ == '__main__':
     argv = sys.argv
@@ -359,12 +359,21 @@ if __name__ == '__main__':
         program = load_program_from_file(program_path);
         simulate_program(program)
     elif subcommand == "com":
-        # TODO: -r flag for com that runs the application upon successful compilation
-        if len(argv) < 1:
+        run = False
+        program_path = None
+        while len(argv) > 0:
+            flag, *argv = argv
+            if flag == '-r':
+                run = True
+            else:
+                program_path = flag
+                break;
+
+        if program_path is None:
             usage(compiler_name)
             print("ERROR: no input file is provided for the compilation")
             exit(1)
-        program_path, *argv = argv
+
         program = load_program_from_file(program_path);
         porth_ext = '.porth'
         basename = path.basename(program_path)
@@ -374,6 +383,8 @@ if __name__ == '__main__':
         compile_program(program, basename + ".asm")
         cmd_echoed(["nasm", "-felf64", basename + ".asm"])
         cmd_echoed(["ld", "-o", basename, basename + ".o"])
+        if run:
+            cmd_echoed(["./" + basename])
     elif subcommand == "help":
         usage(compiler_name)
         exit(0)
