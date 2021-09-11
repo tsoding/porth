@@ -30,7 +30,7 @@ end
 Simulation simply interprets the program.
 
 ```console
-./porth.py sim program.porth
+$ ./porth.py sim program.porth
 ```
 
 ### Compilation
