@@ -28,42 +28,6 @@ OP_WHILE=iota()
 OP_DO=iota()
 COUNT_OPS=iota()
 
-def push(x):
-    return (OP_PUSH, x)
-
-def plus():
-    return (OP_PLUS, )
-
-def minus():
-    return (OP_MINUS, )
-
-def equal():
-    return (OP_EQUAL, )
-
-def dump():
-    return (OP_DUMP, )
-
-def iff():
-    return (OP_IF, )
-
-def end():
-    return (OP_END, )
-
-def elze():
-    return (OP_ELSE, )
-
-def dup():
-    return (OP_DUP, )
-
-def gt():
-    return (OP_GT, )
-
-def wile():
-    return (OP_WHILE, )
-
-def doo():
-    return (OP_DO, )
-
 def simulate_program(program):
     stack = []
     ip = 0
@@ -247,30 +211,30 @@ def parse_token_as_op(token):
     (file_path, row, col, word) = token
     assert COUNT_OPS == 12, "Exhaustive op handling in parse_token_as_op"
     if word == '+':
-        return plus()
+        return (OP_PLUS, )
     elif word == '-':
-        return minus()
+        return (OP_MINUS, )
     elif word == '.':
-        return dump()
+        return (OP_DUMP, )
     elif word == '=':
-        return equal()
+        return (OP_EQUAL, )
     elif word == 'if':
-        return iff()
+        return (OP_IF, )
     elif word == 'end':
-        return end()
+        return (OP_END, )
     elif word == 'else':
-        return elze()
+        return (OP_ELSE, )
     elif word == 'dup':
-        return dup()
+        return (OP_DUP, )
     elif word == '>':
-        return gt()
+        return (OP_GT, )
     elif word == 'while':
-        return wile()
+        return (OP_WHILE, )
     elif word == 'do':
-        return doo()
+        return (OP_DO, )
     else:
         try:
-            return push(int(word))
+            return (OP_PUSH, int(word))
         except ValueError as err:
             print("%s:%d:%d: %s" % (file_path, row, col, err))
             exit(1)
