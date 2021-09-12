@@ -3,7 +3,6 @@
 import sys
 import os
 import subprocess
-import difflib
 import shlex
 
 def cmd_run_echoed(cmd, **kwargs):
