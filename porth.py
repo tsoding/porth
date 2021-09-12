@@ -34,58 +34,58 @@ def simulate_program(program):
     while ip < len(program):
         assert COUNT_OPS == 12, "Exhaustive handling of operations in simulation"
         op = program[ip]
-        if op[0] == OP_PUSH:
-            stack.append(op[1])
+        if op['type'] == OP_PUSH:
+            stack.append(op['value'])
             ip += 1
-        elif op[0] == OP_PLUS:
+        elif op['type'] == OP_PLUS:
             a = stack.pop()
             b = stack.pop()
             stack.append(a + b)
             ip += 1
-        elif op[0] == OP_MINUS:
+        elif op['type'] == OP_MINUS:
             a = stack.pop()
             b = stack.pop()
             stack.append(b - a)
             ip += 1
-        elif op[0] == OP_EQUAL:
+        elif op['type'] == OP_EQUAL:
             a = stack.pop()
             b = stack.pop()
             stack.append(int(a == b))
             ip += 1
-        elif op[0] == OP_IF:
+        elif op['type'] == OP_IF:
             a = stack.pop()
             if a == 0:
-                assert len(op) >= 2, "`if` instruction does not have a reference to the end of its block. Please call crossreference_blocks() on the program before trying to simulate it"
-                ip = op[1]
+                assert 'jmp' in op, "`if` instruction does not have a reference to the end of its block. Please call crossreference_blocks() on the program before trying to simulate it"
+                ip = op['jmp']
             else:
                 ip += 1
-        elif op[0] == OP_ELSE:
-            assert len(op) >= 2, "`else` instruction does not have a reference to the end of its block. Please call crossreference_blocks() on the program before trying to simulate it"
-            ip = op[1]
-        elif op[0] == OP_END:
-            assert len(op) >= 2, "`end` instruction does not have a reference to the next instruction to jump to. Please call crossreference_blocks() on the program before trying to simulate it"
-            ip = op[1]
-        elif op[0] == OP_DUMP:
+        elif op['type'] == OP_ELSE:
+            assert 'jmp' in op, "`else` instruction does not have a reference to the end of its block. Please call crossreference_blocks() on the program before trying to simulate it"
+            ip = op['jmp']
+        elif op['type'] == OP_END:
+            assert 'jmp' in op, "`end` instruction does not have a reference to the next instruction to jump to. Please call crossreference_blocks() on the program before trying to simulate it"
+            ip = op['jmp']
+        elif op['type'] == OP_DUMP:
             a = stack.pop()
             print(a)
             ip += 1
-        elif op[0] == OP_DUP:
+        elif op['type'] == OP_DUP:
             a = stack.pop()
             stack.append(a)
             stack.append(a)
             ip += 1
-        elif op[0] == OP_GT:
+        elif op['type'] == OP_GT:
             a = stack.pop()
             b = stack.pop()
             stack.append(int(a < b))
             ip += 1
-        elif op[0] == OP_WHILE:
+        elif op['type'] == OP_WHILE:
             ip += 1
-        elif op[0] == OP_DO:
+        elif op['type'] == OP_DO:
             a = stack.pop()
             if a == 0:
-                assert len(op) >= 2, "`end` instruction does not have a reference to the next instruction to jump to. Please call crossreference_blocks() on the program before trying to simulate it"
-                ip = op[1]
+                assert 'jmp' in op, "`end` instruction does not have a reference to the next instruction to jump to. Please call crossreference_blocks() on the program before trying to simulate it"
+                ip = op['jmp']
             else:
                 ip += 1
         else:
@@ -134,26 +134,26 @@ def compile_program(program, out_file_path):
             op = program[ip]
             assert COUNT_OPS == 12, "Exhaustive handling of ops in compilation"
             out.write("addr_%d:\n" % ip)
-            if op[0] == OP_PUSH:
-                out.write("    ;; -- push %d --\n" % op[1])
-                out.write("    push %d\n" % op[1])
-            elif op[0] == OP_PLUS:
+            if op['type'] == OP_PUSH:
+                out.write("    ;; -- push %d --\n" % op['value'])
+                out.write("    push %d\n" % op['value'])
+            elif op['type'] == OP_PLUS:
                 out.write("    ;; -- plus --\n")
                 out.write("    pop rax\n")
                 out.write("    pop rbx\n")
                 out.write("    add rax, rbx\n")
                 out.write("    push rax\n")
-            elif op[0] == OP_MINUS:
+            elif op['type'] == OP_MINUS:
                 out.write("    ;; -- minus --\n")
                 out.write("    pop rax\n")
                 out.write("    pop rbx\n")
                 out.write("    sub rbx, rax\n")
                 out.write("    push rbx\n")
-            elif op[0] == OP_DUMP:
+            elif op['type'] == OP_DUMP:
                 out.write("    ;; -- dump --\n")
                 out.write("    pop rdi\n")
                 out.write("    call dump\n")
-            elif op[0] == OP_EQUAL:
+            elif op['type'] == OP_EQUAL:
                 out.write("    ;; -- equal -- \n")
                 out.write("    mov rcx, 0\n");
                 out.write("    mov rdx, 1\n");
@@ -162,27 +162,27 @@ def compile_program(program, out_file_path):
                 out.write("    cmp rax, rbx\n");
                 out.write("    cmove rcx, rdx\n");
                 out.write("    push rcx\n")
-            elif op[0] == OP_IF:
+            elif op['type'] == OP_IF:
                 out.write("    ;; -- if --\n")
                 out.write("    pop rax\n")
                 out.write("    test rax, rax\n")
-                assert len(op) >= 2, "`if` instruction does not have a reference to the end of its block. Please call crossreference_blocks() on the program before trying to compile it"
-                out.write("    jz addr_%d\n" % op[1])
-            elif op[0] == OP_ELSE:
+                assert 'jmp' in op, "`if` instruction does not have a reference to the end of its block. Please call crossreference_blocks() on the program before trying to compile it"
+                out.write("    jz addr_%d\n" % op['jmp'])
+            elif op['type'] == OP_ELSE:
                 out.write("    ;; -- else --\n")
-                assert len(op) >= 2, "`else` instruction does not have a reference to the end of its block. Please call crossreference_blocks() on the program before trying to compile it"
-                out.write("    jmp addr_%d\n" % op[1])
-            elif op[0] == OP_END:
-                assert len(op) >= 2, "`end` instruction does not have a reference to the next instruction to jump to. Please call crossreference_blocks() on the program before trying to compile it"
+                assert 'jmp' in op, "`else` instruction does not have a reference to the end of its block. Please call crossreference_blocks() on the program before trying to compile it"
+                out.write("    jmp addr_%d\n" % op['jmp'])
+            elif op['type'] == OP_END:
+                assert 'jmp' in op, "`end` instruction does not have a reference to the next instruction to jump to. Please call crossreference_blocks() on the program before trying to compile it"
                 out.write("    ;; -- end --\n")
-                if ip + 1 != op[1]:
-                    out.write("    jmp addr_%d\n" % op[1])
-            elif op[0] == OP_DUP:
+                if ip + 1 != op['jmp']:
+                    out.write("    jmp addr_%d\n" % op['jmp'])
+            elif op['type'] == OP_DUP:
                 out.write("    ;; -- dup -- \n")
                 out.write("    pop rax\n")
                 out.write("    push rax\n")
                 out.write("    push rax\n")
-            elif op[0] == OP_GT:
+            elif op['type'] == OP_GT:
                 out.write("    ;; -- gt --\n")
                 out.write("    mov rcx, 0\n");
                 out.write("    mov rdx, 1\n");
@@ -191,14 +191,14 @@ def compile_program(program, out_file_path):
                 out.write("    cmp rax, rbx\n");
                 out.write("    cmovg rcx, rdx\n");
                 out.write("    push rcx\n")
-            elif op[0] == OP_WHILE:
+            elif op['type'] == OP_WHILE:
                 out.write("    ;; -- while --\n")
-            elif op[0] == OP_DO:
+            elif op['type'] == OP_DO:
                 out.write("    ;; -- do --\n")
                 out.write("    pop rax\n")
                 out.write("    test rax, rax\n")
-                assert len(op) >= 2, "`do` instruction does not have a reference to the end of its block. Please call crossreference_blocks() on the program before trying to compile it"
-                out.write("    jz addr_%d\n" % op[1])
+                assert 'jmp' in op, "`do` instruction does not have a reference to the end of its block. Please call crossreference_blocks() on the program before trying to compile it"
+                out.write("    jz addr_%d\n" % op['jmp'])
             else:
                 assert False, "unreachable"
 
@@ -211,30 +211,30 @@ def parse_token_as_op(token):
     (file_path, row, col, word) = token
     assert COUNT_OPS == 12, "Exhaustive op handling in parse_token_as_op"
     if word == '+':
-        return (OP_PLUS, )
+        return {'type': OP_PLUS}
     elif word == '-':
-        return (OP_MINUS, )
+        return {'type': OP_MINUS}
     elif word == '.':
-        return (OP_DUMP, )
+        return {'type': OP_DUMP}
     elif word == '=':
-        return (OP_EQUAL, )
+        return {'type': OP_EQUAL}
     elif word == 'if':
-        return (OP_IF, )
+        return {'type': OP_IF}
     elif word == 'end':
-        return (OP_END, )
+        return {'type': OP_END}
     elif word == 'else':
-        return (OP_ELSE, )
+        return {'type': OP_ELSE}
     elif word == 'dup':
-        return (OP_DUP, )
+        return {'type': OP_DUP}
     elif word == '>':
-        return (OP_GT, )
+        return {'type': OP_GT}
     elif word == 'while':
-        return (OP_WHILE, )
+        return {'type': OP_WHILE}
     elif word == 'do':
-        return (OP_DO, )
+        return {'type': OP_DO}
     else:
         try:
-            return (OP_PUSH, int(word))
+            return {'type': OP_PUSH, 'value': int(word)}
         except ValueError as err:
             print("%s:%d:%d: %s" % (file_path, row, col, err))
             exit(1)
@@ -244,31 +244,31 @@ def crossreference_blocks(program):
     for ip in range(len(program)):
         op = program[ip]
         assert COUNT_OPS == 12, "Exhaustive handling of ops in crossreference_program. Keep in mind that not all of the ops need to be handled in here. Only those that form blocks."
-        if op[0] == OP_IF:
+        if op['type'] == OP_IF:
             stack.append(ip)
-        elif op[0] == OP_ELSE:
+        elif op['type'] == OP_ELSE:
             if_ip = stack.pop()
             # TODO: report block mismatch errors as compiler errors not asserts
-            assert program[if_ip][0] == OP_IF, "`else` can only be used in `if`-blocks"
-            program[if_ip] = (OP_IF, ip + 1)
+            assert program[if_ip]['type'] == OP_IF, "`else` can only be used in `if`-blocks"
+            program[if_ip]['jmp'] = ip + 1
             stack.append(ip)
-        elif op[0] == OP_END:
+        elif op['type'] == OP_END:
             block_ip = stack.pop()
-            if program[block_ip][0] == OP_IF or program[block_ip][0] == OP_ELSE:
-                program[block_ip] = (program[block_ip][0], ip)
-                program[ip] = (OP_END, ip + 1)
-            elif program[block_ip][0] == OP_DO:
+            if program[block_ip]['type'] == OP_IF or program[block_ip]['type'] == OP_ELSE:
+                program[block_ip]['jmp'] = ip
+                program[ip]['jmp'] = ip + 1
+            elif program[block_ip]['type'] == OP_DO:
                 assert len(program[block_ip]) >= 2
-                program[ip] = (OP_END, program[block_ip][1])
-                program[block_ip] = (OP_DO, ip + 1)
+                program[ip]['jmp'] = program[block_ip]['jmp']
+                program[block_ip]['jmp'] = ip + 1
             else:
                 # TODO: report block mismatch errors as compiler errors not asserts
                 assert False, "`end` can only close `if`, `else` or `do` blocks for now"
-        elif op[0] == OP_WHILE:
+        elif op['type'] == OP_WHILE:
             stack.append(ip)
-        elif op[0] == OP_DO:
-            wile_ip = stack.pop()
-            program[ip] = (OP_DO, wile_ip)
+        elif op['type'] == OP_DO:
+            while_ip = stack.pop()
+            program[ip]['jmp'] = while_ip
             stack.append(ip)
 
     # TODO: report unclosed blocks errors as compiler errors not asserts
