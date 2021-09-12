@@ -18,7 +18,7 @@ Simple program that prints numbers from 10 to 1 in a descending order:
 
 ```forth
 10 while dup 0 > do
-  dup .
+  dup dump
   1 -
 end
 ```
@@ -31,7 +31,7 @@ Simulation simply interprets the program.
 
 ```console
 $ cat program.porth
-34 35 + .
+34 35 + dump
 $ ./porth.py sim program.porth
 69
 ```
@@ -42,7 +42,7 @@ Compilation generates assembly code, compiles it with [nasm](https://www.nasm.us
 
 ```console
 $ cat program.porth
-34 35 + .
+34 35 + dump
 $ ./porth.py com program.porth
 [INFO] Generating ./program.asm
 [CMD] nasm -felf64 ./program.asm
