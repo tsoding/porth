@@ -126,3 +126,24 @@ addr = pop()
 byte = load(addr)
 push(byte)
 ```
+
+### System
+
+- `syscall1` - perform a syscall with 1 argument.
+```
+syscall_number = pop()
+<move syscall_number to the corresponding register>
+for i in range(1):
+    arg = pop()
+    <move arg to i-th register according to the call convention>
+<perform the syscall>
+```
+- `syscall3` - perform a syscall with 3 arguments.
+```
+syscall_number = pop()
+<move syscall_number to the corresponding register>
+for i in range(3):
+    arg = pop()
+    <move arg to i-th register according to the call convention>
+<perform the syscall>
+```
