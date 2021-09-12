@@ -321,7 +321,6 @@ def usage(compiler_name):
     print("        -o <file|dir>       Customize the output path")
     print("    help                  Print this help to stdout and exit with 0 code")
 
-# TODO: separate script to run and assert the tests from the `tests/` folder
 if __name__ == '__main__' and '__file__' in globals():
     argv = sys.argv
     assert len(argv) >= 1
