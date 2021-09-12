@@ -248,6 +248,7 @@ def crossreference_blocks(program):
             stack.append(ip)
         elif op[0] == OP_ELSE:
             if_ip = stack.pop()
+            # TODO: report block mismatch errors as compiler errors not asserts
             assert program[if_ip][0] == OP_IF, "`else` can only be used in `if`-blocks"
             program[if_ip] = (OP_IF, ip + 1)
             stack.append(ip)
@@ -261,6 +262,7 @@ def crossreference_blocks(program):
                 program[ip] = (OP_END, program[block_ip][1])
                 program[block_ip] = (OP_DO, ip + 1)
             else:
+                # TODO: report block mismatch errors as compiler errors not asserts
                 assert False, "`end` can only close `if`, `else` or `do` blocks for now"
         elif op[0] == OP_WHILE:
             stack.append(ip)
@@ -268,6 +270,9 @@ def crossreference_blocks(program):
             wile_ip = stack.pop()
             program[ip] = (OP_DO, wile_ip)
             stack.append(ip)
+
+    # TODO: report unclosed blocks errors as compiler errors not asserts
+    assert len(stack) == 0, "unclosed blocks"
 
     return program
 
@@ -306,6 +311,7 @@ def usage(compiler_name):
     print("        -o <file|dir>       Customize the output path")
     print("    help                  Print this help to stdout and exit with 0 code")
 
+# TODO: separate script to run and assert the tests from the `tests/` folder
 if __name__ == '__main__' and '__file__' in globals():
     argv = sys.argv
     assert len(argv) >= 1
