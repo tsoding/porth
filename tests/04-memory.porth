@@ -1,0 +1,9 @@
+// write "abc" into the memory
+mem 0 + 97 .
+mem 1 + 98 .
+mem 2 + 99 .
+
+// increament each character by 1 making it "bcd"
+mem 0 + dup , 1 + .
+mem 1 + dup , 1 + .
+mem 2 + dup , 1 + .

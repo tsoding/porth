@@ -40,11 +40,14 @@ COUNT_OPS=iota()
 
 MEM_CAPACITY = 640_000 # should be enough for everyone
 
+# TODO: introduce an option to dump the final state of the memory in the simulation mode
+# For debug purposes.
 def simulate_program(program):
     stack = []
+    mem = bytearray(MEM_CAPACITY)
     ip = 0
     while ip < len(program):
-        assert COUNT_OPS == 13, "Exhaustive handling of operations in simulation"
+        assert COUNT_OPS == 15, "Exhaustive handling of operations in simulation"
         op = program[ip]
         if op['type'] == OP_PUSH:
             stack.append(op['value'])
@@ -101,7 +104,18 @@ def simulate_program(program):
             else:
                 ip += 1
         elif op['type'] == OP_MEM:
-            assert False, "not implemented yet"
+            stack.append(0)
+            ip += 1
+        elif op['type'] == OP_LOAD:
+            addr = stack.pop()
+            byte = mem[addr]
+            stack.append(byte)
+            ip += 1
+        elif op['type'] == OP_STORE:
+            value = stack.pop()
+            addr = stack.pop()
+            mem[addr] = value & 0xFF
+            ip += 1
         else:
             assert False, "unreachable"
 
