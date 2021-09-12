@@ -111,3 +111,18 @@ push(b - a)
 ### Memory
 
 - `mem` - pushes the address of the beginning of the memory where you can read and write onto the stack.
+```
+push(mem_addr)
+```
+- `.` - store a given byte at the given address.
+```
+byte = pop()
+addr = pop()
+store(addr, byte)
+```
+- `,` - load a byte from the given address.
+```
+addr = pop()
+byte = load(addr)
+push(byte)
+```
