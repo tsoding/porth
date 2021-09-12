@@ -107,3 +107,7 @@ push(b - a)
 
 - `if <then-branch> else <else-branch> end` - pops the element on top of the stack and if the element is not `0` executes the `<then-branch>`, otherwise `<else-branch>`.
 - `while <condition> do <body> end` - keeps executing both `<condition>` and `<body>` until `<condition>` produces `0` at the top of the stack. Checking the result of the `<codition>` removes it from the stack.
+
+### Memory
+
+- `mem` - pushes the address of the beginning of the memory where you can read and write onto the stack.
