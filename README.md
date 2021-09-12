@@ -67,7 +67,7 @@ a = pop()
 push(a)
 push(a)
 ```
-- `.` - print the element on top of the stack to stdout and remove it from the stack.
+- `dump` - print the element on top of the stack to stdout and remove it from the stack.
 ```
 a = pop()
 print(a)
