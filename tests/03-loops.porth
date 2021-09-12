@@ -1,4 +1,4 @@
 10 while dup 0 > do  // hello
-  dup .
+  dup dump
   1 -
 end

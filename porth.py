@@ -232,7 +232,7 @@ def parse_token_as_op(token):
         return {'type': OP_PLUS, 'loc': loc}
     elif word == '-':
         return {'type': OP_MINUS, 'loc': loc}
-    elif word == '.':
+    elif word == 'dump':
         return {'type': OP_DUMP, 'loc': loc}
     elif word == '=':
         return {'type': OP_EQUAL, 'loc': loc}
