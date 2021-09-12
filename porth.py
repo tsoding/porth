@@ -42,7 +42,7 @@ def simulate_program(program):
     stack = []
     ip = 0
     while ip < len(program):
-        assert COUNT_OPS == 12, "Exhaustive handling of operations in simulation"
+        assert COUNT_OPS == 13, "Exhaustive handling of operations in simulation"
         op = program[ip]
         if op['type'] == OP_PUSH:
             stack.append(op['value'])
@@ -98,6 +98,8 @@ def simulate_program(program):
                 ip = op['jmp']
             else:
                 ip += 1
+        elif op['type'] == OP_MEM:
+            assert False, "not implemented yet"
         else:
             assert False, "unreachable"
 
