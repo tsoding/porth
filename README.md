@@ -14,12 +14,11 @@ Porth is planned to be
 
 ## Example
 
-Simple program that prints numbers from 10 to 1 in a descending order:
+Simple program that prints numbers from 0 to 99 in a ascending order:
 
 ```forth
-10 while dup 0 > do
-  dup dump
-  1 -
+100 0 while 2dup > do
+    dup dump 1 +
 end
 ```
 
