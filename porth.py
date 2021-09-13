@@ -31,6 +31,7 @@ OP_END=iota()
 OP_ELSE=iota()
 OP_DUP=iota()
 OP_2DUP=iota()
+OP_SWAP=iota()
 OP_GT=iota()
 OP_LT=iota()
 OP_WHILE=iota()
@@ -55,7 +56,7 @@ def simulate_program(program):
     mem = bytearray(MEM_CAPACITY)
     ip = 0
     while ip < len(program):
-        assert COUNT_OPS == 23, "Exhaustive handling of operations in simulation"
+        assert COUNT_OPS == 24, "Exhaustive handling of operations in simulation"
         op = program[ip]
         if op['type'] == OP_PUSH:
             stack.append(op['value'])
@@ -102,6 +103,12 @@ def simulate_program(program):
             a = stack.pop()
             stack.append(a)
             stack.append(b)
+            stack.append(a)
+            stack.append(b)
+            ip += 1
+        elif op['type'] == OP_SWAP:
+            a = stack.pop()
+            b = stack.pop()
             stack.append(a)
             stack.append(b)
             ip += 1
@@ -213,7 +220,7 @@ def compile_program(program, out_file_path):
         out.write("_start:\n")
         for ip in range(len(program)):
             op = program[ip]
-            assert COUNT_OPS == 23, "Exhaustive handling of ops in compilation"
+            assert COUNT_OPS == 24, "Exhaustive handling of ops in compilation"
             out.write("addr_%d:\n" % ip)
             if op['type'] == OP_PUSH:
                 out.write("    ;; -- push %d --\n" % op['value'])
@@ -269,6 +276,12 @@ def compile_program(program, out_file_path):
                 out.write("    pop rax\n")
                 out.write("    push rax\n")
                 out.write("    push rbx\n")
+                out.write("    push rax\n")
+                out.write("    push rbx\n")
+            elif op['type'] == OP_SWAP:
+                out.write("    ;; -- swap --\n")
+                out.write("    pop rax\n")
+                out.write("    pop rbx\n")
                 out.write("    push rax\n")
                 out.write("    push rbx\n")
             elif op['type'] == OP_GT:
@@ -369,7 +382,7 @@ def compile_program(program, out_file_path):
 def parse_token_as_op(token):
     (file_path, row, col, word) = token
     loc = (file_path, row + 1, col + 1)
-    assert COUNT_OPS == 23, "Exhaustive op handling in parse_token_as_op"
+    assert COUNT_OPS == 24, "Exhaustive op handling in parse_token_as_op"
     if word == '+':
         return {'type': OP_PLUS, 'loc': loc}
     elif word == '-':
@@ -388,6 +401,8 @@ def parse_token_as_op(token):
         return {'type': OP_DUP, 'loc': loc}
     elif word == '2dup':
         return {'type': OP_2DUP, 'loc': loc}
+    elif word == 'swap':
+        return {'type': OP_SWAP, 'loc': loc}
     elif word == '>':
         return {'type': OP_GT, 'loc': loc}
     elif word == '<':
@@ -425,7 +440,7 @@ def crossreference_blocks(program):
     stack = []
     for ip in range(len(program)):
         op = program[ip]
-        assert COUNT_OPS == 23, "Exhaustive handling of ops in crossreference_program. Keep in mind that not all of the ops need to be handled in here. Only those that form blocks."
+        assert COUNT_OPS == 24, "Exhaustive handling of ops in crossreference_program. Keep in mind that not all of the ops need to be handled in here. Only those that form blocks."
         if op['type'] == OP_IF:
             stack.append(ip)
         elif op['type'] == OP_ELSE:

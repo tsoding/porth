@@ -75,6 +75,12 @@ push(b)
 push(a)
 push(b)
 ```
+- `swap` - swap 2 elements on the top of the stack.
+```
+a = pop()
+b = pop()
+push(a)
+push(b)
 - `dump` - print the element on top of the stack to stdout and remove it from the stack.
 ```
 a = pop()
