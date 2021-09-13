@@ -67,6 +67,15 @@ a = pop()
 push(a)
 push(a)
 ```
+- `2dup` - duplicate pair.
+```
+b = pop()
+a = pop()
+push(a)
+push(b)
+push(a)
+push(b)
+```
 - `dump` - print the element on top of the stack to stdout and remove it from the stack.
 ```
 a = pop()
@@ -86,6 +95,12 @@ push(int(a == b))
 b = pop()
 a = pop()
 push(int(a > b))
+```
+- `<` - checks if the element below the top less than the top.
+```
+b = pop()
+a = pop()
+push(int(a < b))
 ```
 
 ### Arithmetics

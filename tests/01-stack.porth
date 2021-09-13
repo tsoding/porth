@@ -2,6 +2,13 @@
 10 20 30 dump dump dump
 10 dump 20 dump 30 dump
 
+111111111 dump // separation line lol
+
 // dup
 420 dup dup dump dump dump
 69 dup dump dup dump dump
+
+111111111 dump
+
+// 2dup
+69 420 2dup dump dump dump dump

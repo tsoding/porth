@@ -30,7 +30,9 @@ OP_IF=iota()
 OP_END=iota()
 OP_ELSE=iota()
 OP_DUP=iota()
+OP_2DUP=iota()
 OP_GT=iota()
+OP_LT=iota()
 OP_WHILE=iota()
 OP_DO=iota()
 OP_MEM=iota()
@@ -53,7 +55,7 @@ def simulate_program(program):
     mem = bytearray(MEM_CAPACITY)
     ip = 0
     while ip < len(program):
-        assert COUNT_OPS == 21, "Exhaustive handling of operations in simulation"
+        assert COUNT_OPS == 23, "Exhaustive handling of operations in simulation"
         op = program[ip]
         if op['type'] == OP_PUSH:
             stack.append(op['value'])
@@ -95,10 +97,25 @@ def simulate_program(program):
             stack.append(a)
             stack.append(a)
             ip += 1
+        elif op['type'] == OP_2DUP:
+            b = stack.pop()
+            a = stack.pop()
+            stack.append(a)
+            stack.append(b)
+            stack.append(a)
+            stack.append(b)
+            ip += 1
+        # TODO: OP_GT and OP_LT implementations are reversed for whatever reason
+        # It would be better to keep them in sync to avoid confusion
         elif op['type'] == OP_GT:
             a = stack.pop()
             b = stack.pop()
             stack.append(int(a < b))
+            ip += 1
+        elif op['type'] == OP_LT:
+            a = stack.pop()
+            b = stack.pop()
+            stack.append(int(a > b))
             ip += 1
         elif op['type'] == OP_WHILE:
             ip += 1
@@ -122,6 +139,7 @@ def simulate_program(program):
             addr = stack.pop()
             mem[addr] = value & 0xFF
             ip += 1
+        # TODO: call syscalls directly using ctypes
         elif op['type'] == OP_SYSCALL1:
             assert False, "not implemented"
         elif op['type'] == OP_SYSCALL2:
@@ -195,7 +213,7 @@ def compile_program(program, out_file_path):
         out.write("_start:\n")
         for ip in range(len(program)):
             op = program[ip]
-            assert COUNT_OPS == 21, "Exhaustive handling of ops in compilation"
+            assert COUNT_OPS == 23, "Exhaustive handling of ops in compilation"
             out.write("addr_%d:\n" % ip)
             if op['type'] == OP_PUSH:
                 out.write("    ;; -- push %d --\n" % op['value'])
@@ -245,6 +263,14 @@ def compile_program(program, out_file_path):
                 out.write("    pop rax\n")
                 out.write("    push rax\n")
                 out.write("    push rax\n")
+            elif op['type'] == OP_2DUP:
+                out.write("    ;; -- 2dup -- \n")
+                out.write("    pop rbx\n")
+                out.write("    pop rax\n")
+                out.write("    push rax\n")
+                out.write("    push rbx\n")
+                out.write("    push rax\n")
+                out.write("    push rbx\n")
             elif op['type'] == OP_GT:
                 out.write("    ;; -- gt --\n")
                 out.write("    mov rcx, 0\n");
@@ -253,6 +279,15 @@ def compile_program(program, out_file_path):
                 out.write("    pop rax\n");
                 out.write("    cmp rax, rbx\n");
                 out.write("    cmovg rcx, rdx\n");
+                out.write("    push rcx\n")
+            elif op['type'] == OP_LT:
+                out.write("    ;; -- gt --\n")
+                out.write("    mov rcx, 0\n");
+                out.write("    mov rdx, 1\n");
+                out.write("    pop rbx\n");
+                out.write("    pop rax\n");
+                out.write("    cmp rax, rbx\n");
+                out.write("    cmovl rcx, rdx\n");
                 out.write("    push rcx\n")
             elif op['type'] == OP_WHILE:
                 out.write("    ;; -- while --\n")
@@ -334,7 +369,7 @@ def compile_program(program, out_file_path):
 def parse_token_as_op(token):
     (file_path, row, col, word) = token
     loc = (file_path, row + 1, col + 1)
-    assert COUNT_OPS == 21, "Exhaustive op handling in parse_token_as_op"
+    assert COUNT_OPS == 23, "Exhaustive op handling in parse_token_as_op"
     if word == '+':
         return {'type': OP_PLUS, 'loc': loc}
     elif word == '-':
@@ -351,8 +386,12 @@ def parse_token_as_op(token):
         return {'type': OP_ELSE, 'loc': loc}
     elif word == 'dup':
         return {'type': OP_DUP, 'loc': loc}
+    elif word == '2dup':
+        return {'type': OP_2DUP, 'loc': loc}
     elif word == '>':
         return {'type': OP_GT, 'loc': loc}
+    elif word == '<':
+        return {'type': OP_LT, 'loc': loc}
     elif word == 'while':
         return {'type': OP_WHILE, 'loc': loc}
     elif word == 'do':
@@ -379,14 +418,14 @@ def parse_token_as_op(token):
         try:
             return {'type': OP_PUSH, 'value': int(word), 'loc': loc}
         except ValueError as err:
-            print("%s:%d:%d: %s" % (file_path, row, col, err))
+            print("%s:%d:%d: unknown word `%s`" % (loc + (word, )))
             exit(1)
 
 def crossreference_blocks(program):
     stack = []
     for ip in range(len(program)):
         op = program[ip]
-        assert COUNT_OPS == 21, "Exhaustive handling of ops in crossreference_program. Keep in mind that not all of the ops need to be handled in here. Only those that form blocks."
+        assert COUNT_OPS == 23, "Exhaustive handling of ops in crossreference_program. Keep in mind that not all of the ops need to be handled in here. Only those that form blocks."
         if op['type'] == OP_IF:
             stack.append(ip)
         elif op['type'] == OP_ELSE:

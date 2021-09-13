@@ -2,6 +2,14 @@
 69 420  = dump
 69 69   = dump
 
+111111111 dump
+
 // Greater
 420 69  > dump
 69 420  > dump
+
+111111111 dump
+
+// Less
+420 69  < dump
+69 420  < dump
