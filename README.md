@@ -129,20 +129,11 @@ push(byte)
 
 ### System
 
-- `syscall1` - perform a syscall with 1 argument.
+- `syscall<n>` - perform a syscall with n arguments where n is in range `[1..5]`. (`syscall1`, `syscall2`, etc)
 ```
 syscall_number = pop()
 <move syscall_number to the corresponding register>
-for i in range(1):
-    arg = pop()
-    <move arg to i-th register according to the call convention>
-<perform the syscall>
-```
-- `syscall3` - perform a syscall with 3 arguments.
-```
-syscall_number = pop()
-<move syscall_number to the corresponding register>
-for i in range(3):
+for i in range(n):
     arg = pop()
     <move arg to i-th register according to the call convention>
 <perform the syscall>
