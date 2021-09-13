@@ -1,3 +1,5 @@
+// We don't have string literals yet, so we simply write "Hello, World\n"
+// character by character into the memory and then call the write syscall
 mem
 dup 72  . 1 + 
 dup 101 . 1 +
