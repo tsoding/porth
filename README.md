@@ -50,6 +50,22 @@ $ ./program
 69
 ```
 
+### Testing
+
+Test cases are located in [./tests/](./tests/) folder. The `*.txt` files are the expected outputs of the corresponding programs.
+
+Run [./test.py](./test.py) script to execute the programs and assert their outputs:
+
+```console
+$ ./test.py
+```
+
+To updated expected output files run the `record` subcommand:
+
+```console
+$ ./test.py record
+```
+
 ## Language Reference
 
 This is what the language supports so far. **Since the language is a work in progress the exact set of operations is the subject to change.**
