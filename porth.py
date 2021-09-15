@@ -116,17 +116,15 @@ def simulate_program(program):
         elif op['type'] == OP_DROP:
             stack.pop()
             ip += 1
-        # TODO: OP_GT and OP_LT implementations are reversed for whatever reason
-        # It would be better to keep them in sync to avoid confusion
         elif op['type'] == OP_GT:
             a = stack.pop()
             b = stack.pop()
-            stack.append(int(a < b))
+            stack.append(int(b > a))
             ip += 1
         elif op['type'] == OP_LT:
             a = stack.pop()
             b = stack.pop()
-            stack.append(int(a > b))
+            stack.append(int(b < a))
             ip += 1
         elif op['type'] == OP_WHILE:
             ip += 1

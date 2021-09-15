@@ -10,6 +10,8 @@ def cmd_run_echoed(cmd, **kwargs):
     return subprocess.run(cmd, **kwargs)
 
 def test():
+    sim_failed = 0
+    com_failed = 0
     for entry in os.scandir("./tests/"):
         porth_ext = '.porth'
         if entry.is_file() and entry.path.endswith(porth_ext):
@@ -22,24 +24,28 @@ def test():
 
             sim_output = cmd_run_echoed(["./porth.py", "sim", entry.path], capture_output=True, check=True).stdout
             if sim_output != expected_output:
+                sim_failed += 1
                 print("[ERROR] Unexpected simulation output")
                 print("  Expected:")
                 print("    %s" % expected_output)
-                print("  Compilation output:")
+                print("  Actual:")
                 print("    %s" % sim_output)
-                exit(1)
+                # exit(1)
 
             cmd_run_echoed(["./porth.py", "com", entry.path], check=True)
             com_output = cmd_run_echoed([entry.path[:-len(porth_ext)]], capture_output=True, check=True).stdout
             if com_output != expected_output:
-                print("[ERROR] Unexpected simulation output")
+                com_failed += 1
+                print("[ERROR] Unexpected compilation output")
                 print("  Expected:")
                 print("    %s" % expected_output)
-                print("  Compilation output:")
+                print("  Actual:")
                 print("    %s" % com_output)
-                exit(1)
-
-            print('[INFO] %s OK' % entry.path)
+                # exit(1)
+    print()
+    print("Simulation failed: %d, Compilation failed: %d" % (sim_failed, com_failed))
+    if sim_failed != 0 or com_failed != 0:
+        exit(1)
 
 def record():
     for entry in os.scandir("./tests/"):
