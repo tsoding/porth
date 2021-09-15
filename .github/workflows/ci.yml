@@ -11,7 +11,7 @@ jobs:
           sudo apt-get install -qq nasm
       - uses: actions/setup-python@v2
         with:
-          python-version: '3.7.3'
+          python-version: '3.7'
           architecture: x64
       - name: run tests
         run: |
