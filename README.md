@@ -81,6 +81,10 @@ a = pop()
 b = pop()
 push(a)
 push(b)
+- `drop` - drops the top element of the stack.
+```
+pop()
+```
 - `dump` - print the element on top of the stack to stdout and remove it from the stack.
 ```
 a = pop()
