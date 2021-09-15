@@ -144,6 +144,33 @@ b = pop()
 push(b - a)
 ```
 
+### Bitwise
+
+- `shr`
+```
+a = pop()
+b = pop()
+push(b >> a)
+```
+- `shl`
+```
+a = pop()
+b = pop()
+push(b << a)
+```
+- `bor`
+```
+a = pop()
+b = pop()
+push(b | a)
+```
+- `band`
+```
+a = pop()
+b = pop()
+push(b & a)
+```
+
 ### Control Flow
 
 - `if <then-branch> else <else-branch> end` - pops the element on top of the stack and if the element is not `0` executes the `<then-branch>`, otherwise `<else-branch>`.

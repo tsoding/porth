@@ -1,0 +1,11 @@
+// shift left
+1  3 shl dump
+
+// shift right
+32 3 shr dump
+
+// bit or
+1 2 bor dump
+
+// bit and
+1 2 band dump
