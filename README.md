@@ -8,9 +8,9 @@ Porth is planned to be
 - [x] Compiled
 - [x] Native
 - [x] Stack-based (just like Forth)
-- [ ] Turing-complete (yes, the development is at such an early stage that this thing is not even Turing complete yet)
-- [ ] Statically typed (the type checking is probably gonna be similar to the [WASM validation](https://binji.github.io/posts/webassembly-type-checking/))
+- [x] [Turing-complete](./examples/rule110.porth)
 - [ ] Self-hosted (Python is used only as an initial bootstrap, once the language is mature enough we gonna rewrite it in itself)
+- [ ] Statically typed (the type checking is probably gonna be similar to the [WASM validation](https://binji.github.io/posts/webassembly-type-checking/))
 
 ## Example
 
@@ -106,6 +106,14 @@ pop()
 ```
 a = pop()
 print(a)
+```
+- `over`
+```
+a = pop()
+b = pop()
+push(b)
+push(a)
+push(b)
 ```
 
 ### Comparison
