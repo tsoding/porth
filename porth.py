@@ -332,6 +332,7 @@ def compile_program(program, out_file_path):
                 out.write("    pop rbx\n");
                 out.write("    pop rax\n");
                 out.write("    mov [rax], bl\n");
+            # TODO: syscall<n> ops do not push the result onto the data stack
             elif op['type'] == OP_SYSCALL1:
                 out.write("    ;; -- syscall1 --\n")
                 out.write("    pop rax\n")
