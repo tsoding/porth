@@ -12,6 +12,8 @@ import subprocess
 import shlex
 from os import path
 
+debug=False
+
 iota_counter=0
 def iota(reset=False):
     global iota_counter
@@ -50,8 +52,6 @@ COUNT_OPS=iota()
 
 MEM_CAPACITY = 640_000 # should be enough for everyone
 
-# TODO: introduce an option to dump the final state of the memory in the simulation mode
-# For debug purposes.
 def simulate_program(program):
     stack = []
     mem = bytearray(MEM_CAPACITY)
@@ -180,6 +180,9 @@ def simulate_program(program):
             assert False, "not implemented"
         else:
             assert False, "unreachable"
+    if debug:
+        print("[INFO] Memory dump")
+        print(mem[:20])
 
 def compile_program(program, out_file_path):
     with open(out_file_path, "w") as out:
@@ -508,7 +511,9 @@ def cmd_call_echoed(cmd):
     return subprocess.call(cmd)
 
 def usage(compiler_name):
-    print("Usage: %s <SUBCOMMAND> [ARGS]" % compiler_name)
+    print("Usage: %s [OPTIONS] <SUBCOMMAND> [ARGS]" % compiler_name)
+    print("  OPTIONS:")
+    print("    -debug                Enable debug mode.")
     print("  SUBCOMMAND:")
     print("    sim <file>            Simulate the program")
     print("    com [OPTIONS] <file>  Compile the program")
@@ -521,6 +526,17 @@ if __name__ == '__main__' and '__file__' in globals():
     argv = sys.argv
     assert len(argv) >= 1
     compiler_name, *argv = argv
+
+    while len(argv) > 0:
+        if argv[0] == '-debug':
+            debug = True
+            argv = argv[1:]
+        else:
+            break
+
+    if debug:
+        print("[INFO] Debug mode is enabled")
+
     if len(argv) < 1:
         usage(compiler_name)
         print("ERROR: no subcommand is provided")
