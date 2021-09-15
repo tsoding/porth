@@ -97,6 +97,7 @@ a = pop()
 b = pop()
 push(a)
 push(b)
+```
 - `drop` - drops the top element of the stack.
 ```
 pop()
