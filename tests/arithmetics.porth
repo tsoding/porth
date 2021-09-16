@@ -3,3 +3,7 @@
 
 // Subtract
 500 80  - dump
+
+// Modulo
+5 100 mod dump
+104 100 mod dump
