@@ -136,6 +136,18 @@ b = pop()
 a = pop()
 push(int(a < b))
 ```
+- `>=`
+```
+b = pop()
+a = pop()
+push(int(a >= b))
+```
+- `<=`
+```
+b = pop()
+a = pop()
+push(int(a >= b))
+```
 
 ### Arithmetic
 
