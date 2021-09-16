@@ -1,20 +1,20 @@
+//|board             |                   |
+// ^
+// mem
+
 mem 98 + 1 .
 
 0 while dup 98 < do
    0 while dup 100 < do
       dup mem + , if
-         mem 100 + 42 .
+         dup mem + 100 + 42 .
       else
-         mem 100 + 32 .
+         dup mem + 100 + 32 .
       end
-      1 mem 100 + 1 1 syscall3
-
       1 +
    end
-   drop
-
-   mem 100 + 10 .
-   1 mem 100 + 1 1 syscall3
+   mem + 100 + 10 .
+   101 mem 100 + 1 1 syscall3
 
    // pattern
    mem     , 1 shl
