@@ -32,6 +32,7 @@ OP_GT=iota()
 OP_LT=iota()
 OP_GE=iota()
 OP_LE=iota()
+# TODO: `not equals` operation is missing
 OP_SHR=iota()
 OP_SHL=iota()
 OP_BOR=iota()
@@ -48,6 +49,8 @@ OP_OVER=iota()
 OP_WHILE=iota()
 OP_DO=iota()
 OP_MEM=iota()
+# TODO: forth style of load/store
+# TODO: implement typing for load/store operations
 OP_LOAD=iota()
 OP_STORE=iota()
 OP_SYSCALL1=iota()
@@ -57,6 +60,8 @@ OP_SYSCALL4=iota()
 OP_SYSCALL5=iota()
 OP_SYSCALL6=iota()
 COUNT_OPS=iota()
+
+# TODO: introduce the notion of tokens
 
 MEM_CAPACITY = 640_000 # should be enough for everyone
 
