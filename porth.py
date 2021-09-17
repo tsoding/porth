@@ -747,7 +747,7 @@ if __name__ == '__main__' and '__file__' in globals():
         cmd_call_echoed(["nasm", "-felf64", basepath + ".asm"])
         cmd_call_echoed(["ld", "-o", basepath, basepath + ".o"])
         if run:
-            exit(cmd_call_echoed([basepath]))
+            exit(cmd_call_echoed([basepath] + argv))
     elif subcommand == "help":
         usage(compiler_name)
         exit(0)
