@@ -10,10 +10,10 @@ def cmd_run_echoed(cmd, **kwargs):
     print("[CMD] %s" % " ".join(map(shlex.quote, cmd)))
     return subprocess.run(cmd, **kwargs)
 
-def test():
+def test(folder):
     sim_failed = 0
     com_failed = 0
-    for entry in os.scandir("./tests/"):
+    for entry in os.scandir(folder):
         porth_ext = '.porth'
         if entry.is_file() and entry.path.endswith(porth_ext):
             print('[INFO] Testing %s' % entry.path)
@@ -48,8 +48,8 @@ def test():
     if sim_failed != 0 or com_failed != 0:
         exit(1)
 
-def record():
-    for entry in os.scandir("./tests/"):
+def record(folder):
+    for entry in os.scandir(folder):
         porth_ext = '.porth'
         if entry.is_file() and entry.path.endswith(porth_ext):
             sim_output = cmd_run_echoed(["./porth.py", "sim", entry.path], capture_output=True, check=True).stdout
@@ -59,7 +59,9 @@ def record():
                 txt_file.write(sim_output)
 
 def usage(exe_name):
-    print("Usage: ./test.py [SUBCOMMAND]")
+    print("Usage: ./test.py [OPTIONS] [SUBCOMMAND]")
+    print("OPTIONS:")
+    print("    -f <folder>   Folder with the tests. (Default: ./tests/)")
     print("SUBCOMMANDS:")
     print("    test          Run the tests. (Default when no subcommand is provided)")
     print("    record        Record expected output of the tests.")
@@ -68,17 +70,27 @@ def usage(exe_name):
 if __name__ == '__main__':
     exe_name, *argv = sys.argv
 
-    if len(argv) == 0:
-        test()
-    else:
-        subcmd, *argv = argv
-        if subcmd == 'record':
-            record()
-        elif subcmd == 'test':
-            test()
-        elif subcmd == 'help':
-            usage(exe_name)
+    folder = "./tests/"
+    subcmd = "test"
+
+    while len(argv) > 0:
+        arg, *argv = argv
+        if arg == '-f':
+            if len(argv) == 0:
+                print("[ERROR] no <folder> is provided for option `-f`")
+                exit(1)
+            folder, *argv = argv
         else:
-            usage(exe_name)
-            print("[ERROR] unknown subcommand `%s`" % subcmd, file=sys.stderr)
-            exit(1);
+            subcmd = arg
+            break
+
+    if subcmd == 'record':
+        record(folder)
+    elif subcmd == 'test':
+        test(folder)
+    elif subcmd == 'help':
+        usage(exe_name)
+    else:
+        usage(exe_name)
+        print("[ERROR] unknown subcommand `%s`" % subcmd, file=sys.stderr)
+        exit(1);

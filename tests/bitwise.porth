@@ -1,11 +1,25 @@
+// -*- mode: opascal -*-
+// Prepare the separation line
+0 while dup 30 < do
+  dup mem + 45 .
+  1 +
+end
+mem + 10 .
+
 // shift left
 1  3 shl dump
+
+31 mem 1 1 syscall3
 
 // shift right
 32 3 shr dump
 
+31 mem 1 1 syscall3
+
 // bit or
 1 2 bor dump
+
+31 mem 1 1 syscall3
 
 // bit and
 1 2 band dump

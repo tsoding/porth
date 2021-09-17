@@ -66,6 +66,13 @@ To updated expected output files run the `record` subcommand:
 $ ./test.py record
 ```
 
+The [./examples/](./examples/) contains programs that are ment for showcasing the language rather then testing it, but we still can them for testing just like the stuff in [./tests/](./tests/):
+
+```console
+$ ./test.py -f ./examples/
+$ ./test.py -f ./examples/ record
+```
+
 ## Language Reference
 
 This is what the language supports so far. **Since the language is a work in progress the exact set of operations is the subject to change.**

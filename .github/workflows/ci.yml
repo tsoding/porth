@@ -16,3 +16,4 @@ jobs:
       - name: run tests
         run: |
           python ./test.py
+          python ./test.py -f ./examples/
