@@ -685,14 +685,14 @@ if __name__ == '__main__' and '__file__' in globals():
 
     if len(argv) < 1:
         usage(compiler_name)
-        print("ERROR: no subcommand is provided")
+        print("[ERROR] no subcommand is provided")
         exit(1)
     subcommand, *argv = argv
 
     if subcommand == "sim":
         if len(argv) < 1:
             usage(compiler_name)
-            print("ERROR: no input file is provided for the simulation")
+            print("[ERROR] no input file is provided for the simulation")
             exit(1)
         program_path, *argv = argv
         program = load_program_from_file(program_path);
@@ -708,7 +708,7 @@ if __name__ == '__main__' and '__file__' in globals():
             elif arg == '-o':
                 if len(argv) == 0:
                     usage(compiler_name)
-                    print("ERROR: no argument is provided for parameter -o")
+                    print("[ERROR] no argument is provided for parameter -o")
                     exit(1)
                 output_path, *argv = argv
             else:
@@ -717,7 +717,7 @@ if __name__ == '__main__' and '__file__' in globals():
 
         if program_path is None:
             usage(compiler_name)
-            print("ERROR: no input file is provided for the compilation")
+            print("[ERROR] no input file is provided for the compilation")
             exit(1)
 
         basename = None
@@ -752,5 +752,5 @@ if __name__ == '__main__' and '__file__' in globals():
         exit(0)
     else:
         usage(compiler_name)
-        print("ERROR: unknown subcommand %s" % (subcommand))
+        print("[ERROR] unknown subcommand %s" % (subcommand))
         exit(1)
