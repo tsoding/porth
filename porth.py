@@ -291,7 +291,8 @@ def compile_program(program, out_file_path):
             out.write("addr_%d:\n" % ip)
             if op['type'] == OP_PUSH:
                 out.write("    ;; -- push %d --\n" % op['value'])
-                out.write("    push %d\n" % op['value'])
+                out.write("    mov rax, %d\n" % op['value'])
+                out.write("    push rax\n")
             elif op['type'] == OP_PLUS:
                 out.write("    ;; -- plus --\n")
                 out.write("    pop rax\n")
