@@ -210,7 +210,6 @@ def simulate_program(program):
             addr = stack.pop()
             mem[addr] = value & 0xFF
             ip += 1
-        # TODO: call syscalls directly using ctypes
         elif op['type'] == OP_SYSCALL1:
             assert False, "not implemented"
         elif op['type'] == OP_SYSCALL2:
