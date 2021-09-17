@@ -1,29 +1,42 @@
+// -*- mode: opascal -*-
+// Prepare the separation line
+0 while dup 30 < do
+  dup mem + 45 .
+  1 +
+end
+mem + 10 .
+
 // push
 10 20 30 dump dump dump
 10 dump 20 dump 30 dump
 
-111111111 dump // separation line lol
+31 mem 1 1 syscall3
 
 // dup
 420 dup dup dump dump dump
 69 dup dump dup dump dump
 
-111111111 dump
+31 mem 1 1 syscall3
 
 // 2dup
 69 420 2dup dump dump dump dump
 
-111111111 dump
+31 mem 1 1 syscall3
 
 // swap
 69 420 swap dump dump
 
-111111111 dump
+31 mem 1 1 syscall3
 
 // drop
 69 420 drop dump
 
-111111111 dump
+31 mem 1 1 syscall3
 
 // over
 69 420 over dump
+
+31 mem 1 1 syscall3
+
+// big number
+1234567890987654321 dump

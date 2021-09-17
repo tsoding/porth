@@ -5,6 +5,7 @@ import os
 import subprocess
 import shlex
 
+# TODO: when cmd_run_echoed fails it does not print the error output of the command
 def cmd_run_echoed(cmd, **kwargs):
     print("[CMD] %s" % " ".join(map(shlex.quote, cmd)))
     return subprocess.run(cmd, **kwargs)
