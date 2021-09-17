@@ -1,3 +1,4 @@
+// -*- mode: opascal -*-
 // write "abc" into the memory
 mem 0 + 97 .
 mem 1 + 98 .
