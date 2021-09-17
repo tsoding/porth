@@ -53,6 +53,7 @@ def record(folder):
         porth_ext = '.porth'
         if entry.is_file() and entry.path.endswith(porth_ext):
             sim_output = cmd_run_echoed(["./porth.py", "sim", entry.path], capture_output=True, check=True).stdout
+            # TODO: skip the test if .txt file does not exist
             txt_path = entry.path[:-len(porth_ext)] + ".txt"
             print("[INFO] Saving output to %s" % txt_path)
             with open(txt_path, "wb") as txt_file:

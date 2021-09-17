@@ -230,6 +230,7 @@ def simulate_program(program):
                     print(s, end='', file=sys.stderr)
                 else:
                     assert False, "unknown file descriptor %d" % fd
+                stack.append(count)
             else:
                 assert False, "unknown syscall number %d" % syscall_number
             ip += 1
@@ -459,18 +460,20 @@ def compile_program(program, out_file_path):
                 out.write("    pop rbx\n");
                 out.write("    pop rax\n");
                 out.write("    mov [rax], bl\n");
-            # TODO: syscall<n> ops do not push the result onto the data stack
+            # TODO: there is no syscall0
             elif op['type'] == OP_SYSCALL1:
                 out.write("    ;; -- syscall1 --\n")
                 out.write("    pop rax\n")
                 out.write("    pop rdi\n")
                 out.write("    syscall\n")
+                out.write("    push rax\n")
             elif op['type'] == OP_SYSCALL2:
                 out.write("    ;; -- syscall2 -- \n")
                 out.write("    pop rax\n");
                 out.write("    pop rdi\n");
                 out.write("    pop rsi\n");
                 out.write("    syscall\n");
+                out.write("    push rax\n")
             elif op['type'] == OP_SYSCALL3:
                 out.write("    ;; -- syscall3 --\n")
                 out.write("    pop rax\n")
@@ -478,6 +481,7 @@ def compile_program(program, out_file_path):
                 out.write("    pop rsi\n")
                 out.write("    pop rdx\n")
                 out.write("    syscall\n")
+                out.write("    push rax\n")
             elif op['type'] == OP_SYSCALL4:
                 out.write("    ;; -- syscall4 --\n")
                 out.write("    pop rax\n")
@@ -486,6 +490,7 @@ def compile_program(program, out_file_path):
                 out.write("    pop rdx\n")
                 out.write("    pop r10\n")
                 out.write("    syscall\n")
+                out.write("    push rax\n")
             elif op['type'] == OP_SYSCALL5:
                 out.write("    ;; -- syscall5 --\n")
                 out.write("    pop rax\n")
@@ -495,6 +500,7 @@ def compile_program(program, out_file_path):
                 out.write("    pop r10\n")
                 out.write("    pop r8\n")
                 out.write("    syscall\n")
+                out.write("    push rax\n")
             elif op['type'] == OP_SYSCALL6:
                 out.write("    ;; -- syscall6 --\n")
                 out.write("    pop rax\n")
@@ -505,6 +511,7 @@ def compile_program(program, out_file_path):
                 out.write("    pop r8\n")
                 out.write("    pop r9\n")
                 out.write("    syscall\n")
+                out.write("    push rax\n")
             else:
                 assert False, "unreachable"
 
