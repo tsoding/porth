@@ -236,7 +236,7 @@ push(byte)
 
 ### System
 
-- `syscall<n>` - perform a syscall with n arguments where n is in range `[1..6]`. (`syscall1`, `syscall2`, etc)
+- `syscall<n>` - perform a syscall with n arguments where n is in range `[0..6]`. (`syscall1`, `syscall2`, etc)
 ```
 syscall_number = pop()
 <move syscall_number to the corresponding register>
