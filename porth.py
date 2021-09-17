@@ -668,6 +668,8 @@ def usage(compiler_name):
     print("        -o <file|dir>       Customize the output path")
     print("    help                  Print this help to stdout and exit with 0 code")
 
+# TODO: there is no way to access command line arguments
+
 if __name__ == '__main__' and '__file__' in globals():
     argv = sys.argv
     assert len(argv) >= 1
