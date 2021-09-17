@@ -4,7 +4,7 @@
 
 It's like [Forth](https://en.wikipedia.org/wiki/Forth_(programming_language)) but written in [Python](https://www.python.org/). But I don't actually know since I never programmed in Forth, I only heard that it's some sort of stack-based programming language. Porth is also stack-based programming language. Which makes it just like Forth am I rite?
 
-Porth is planned to be
+Porth is planned to be (these are not the selling points, but rather milestones of the development)
 - [x] Compiled
 - [x] Native
 - [x] Stack-based (just like Forth)
