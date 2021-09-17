@@ -124,6 +124,12 @@ a = pop()
 b = pop()
 push(int(a == b))
 ```
+- `!=` - checks if two elements on top of the stack are not equal.
+```
+a = pop()
+b = pop()
+push(int(a != b))
+```
 - `>` - checks if the element below the top greater than the top.
 ```
 b = pop()

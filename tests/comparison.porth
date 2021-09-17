@@ -1,3 +1,4 @@
+// -*- mode: opascal -*-
 // Prepare the separation line
 0 while dup 30 < do
   dup mem + 45 .
@@ -34,3 +35,9 @@ mem + 10 .
 420 69 <= dump
 69 420 <= dump
 69 69  <= dump
+
+31 mem 1 1 syscall3
+
+// Not Equals
+69 69  != dump
+420 69 != dump
