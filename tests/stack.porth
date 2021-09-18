@@ -7,36 +7,36 @@ end
 mem + 10 .
 
 // push
-10 20 30 dump dump dump
-10 dump 20 dump 30 dump
+10 20 30 print print print
+10 print 20 print 30 print
 
 31 mem 1 1 syscall3
 
 // dup
-420 dup dup dump dump dump
-69 dup dump dup dump dump
+420 dup dup print print print
+69 dup print dup print print
 
 31 mem 1 1 syscall3
 
 // 2dup
-69 420 2dup dump dump dump dump
+69 420 2dup print print print print
 
 31 mem 1 1 syscall3
 
 // swap
-69 420 swap dump dump
+69 420 swap print print
 
 31 mem 1 1 syscall3
 
 // drop
-69 420 drop dump
+69 420 drop print
 
 31 mem 1 1 syscall3
 
 // over
-69 420 over dump
+69 420 over print
 
 31 mem 1 1 syscall3
 
 // big number
-1234567890987654321 dump
+1234567890987654321 print

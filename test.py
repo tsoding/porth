@@ -5,10 +5,14 @@ import os
 import subprocess
 import shlex
 
-# TODO: when cmd_run_echoed fails it does not print the error output of the command
 def cmd_run_echoed(cmd, **kwargs):
     print("[CMD] %s" % " ".join(map(shlex.quote, cmd)))
-    return subprocess.run(cmd, **kwargs)
+    cmd = subprocess.run(cmd, **kwargs)
+    if cmd.returncode != 0:
+        print(cmd.stdout.decode('utf-8'), file=sys.stdout)
+        print(cmd.stderr.decode('utf-8'), file=sys.stderr)
+        exit(cmd.returncode)
+    return cmd
 
 def test(folder):
     sim_failed = 0
@@ -23,7 +27,7 @@ def test(folder):
             with open(txt_path, "rb") as f:
                 expected_output = f.read()
 
-            sim_output = cmd_run_echoed(["./porth.py", "sim", entry.path], capture_output=True, check=True).stdout
+            sim_output = cmd_run_echoed(["./porth.py", "sim", entry.path], capture_output=True).stdout
             if sim_output != expected_output:
                 sim_failed += 1
                 print("[ERROR] Unexpected simulation output")
@@ -33,8 +37,8 @@ def test(folder):
                 print("    %s" % sim_output)
                 # exit(1)
 
-            cmd_run_echoed(["./porth.py", "com", entry.path], check=True)
-            com_output = cmd_run_echoed([entry.path[:-len(porth_ext)]], capture_output=True, check=True).stdout
+            cmd_run_echoed(["./porth.py", "com", entry.path])
+            com_output = cmd_run_echoed([entry.path[:-len(porth_ext)]], capture_output=True).stdout
             if com_output != expected_output:
                 com_failed += 1
                 print("[ERROR] Unexpected compilation output")
@@ -52,7 +56,7 @@ def record(folder):
     for entry in os.scandir(folder):
         porth_ext = '.porth'
         if entry.is_file() and entry.path.endswith(porth_ext):
-            sim_output = cmd_run_echoed(["./porth.py", "sim", entry.path], capture_output=True, check=True).stdout
+            sim_output = cmd_run_echoed(["./porth.py", "sim", entry.path], capture_output=True).stdout
             # TODO: skip the test if .txt file does not exist
             txt_path = entry.path[:-len(porth_ext)] + ".txt"
             print("[INFO] Saving output to %s" % txt_path)
