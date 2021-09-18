@@ -52,7 +52,6 @@ OP_OVER=iota()
 OP_WHILE=iota()
 OP_DO=iota()
 OP_MEM=iota()
-# TODO: forth style of load/store
 # TODO: implement typing for load/store operations
 OP_LOAD=iota()
 OP_STORE=iota()
