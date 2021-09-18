@@ -7,6 +7,7 @@ import shlex
 from os import path
 from typing import *
 from enum import Enum, auto
+from dataclasses import dataclass
 
 debug=False
 
@@ -75,11 +76,11 @@ class TokenType(Enum):
     INT=auto()
     STR=auto()
 
-# Token is a dict with the following possible fields:
-# - `type` - type of the Token. One of TOKEN_WORD, TOKEN_INT, etc. defined bellow
-# - `loc` - location of the Token within a file. It's a tuple of 3 elements: `(file_path, row, col)`. `row` and `col` are 1-based indices.
-# - `value` - the value of the token depending on the type of the Token. For TOKEN_WORD it's `str`, for TOKEN_INT it's `int`.
-Token=Dict[str, Union[TokenType, int, str, Loc]]
+@dataclass
+class Token:
+    typ: TokenType
+    loc: Loc
+    value: Union[int, str]
 
 STR_CAPACITY = 640_000 # should be enough for everyone
 MEM_CAPACITY = 640_000
@@ -613,16 +614,16 @@ BUILTIN_WORDS = {
 
 def compile_token_to_op(token: Token) -> Op:
     assert len(TokenType) == 3, "Exhaustive token handling in parse_token_as_op"
-    if token['type'] == TokenType.WORD:
-        if token['value'] in BUILTIN_WORDS:
-            return {'type': BUILTIN_WORDS[token['value']], 'loc': token['loc']}
+    if token.typ == TokenType.WORD:
+        if token.value in BUILTIN_WORDS:
+            return {'type': BUILTIN_WORDS[token.value], 'loc': token.loc}
         else:
-            print("%s:%d:%d: unknown word `%s`" % (token['loc'] + (token['value'], )))
+            print("%s:%d:%d: unknown word `%s`" % (token.loc + (token.value, )))
             exit(1)
-    elif token['type'] == TokenType.INT:
-        return {'type': OP_PUSH_INT, 'value': token['value'], 'loc': token['loc']}
-    elif token['type'] == TokenType.STR:
-        return {'type': OP_PUSH_STR, 'value': token['value'], 'loc': token['loc']}
+    elif token.typ == TokenType.INT:
+        return {'type': OP_PUSH_INT, 'value': token.value, 'loc': token.loc}
+    elif token.typ == TokenType.STR:
+        return {'type': OP_PUSH_STR, 'value': token.value, 'loc': token.loc}
     else:
         assert False, 'unreachable'
 
@@ -696,9 +697,7 @@ def lex_line(line: str) -> Generator[Tuple[int, TokenType, str], None, None]:
 
 def lex_file(file_path: str) -> List[Token]:
     with open(file_path, "r") as f:
-        return [{'type': token_type,
-                 'loc': (file_path, row + 1, col + 1),
-                 'value': token_value}
+        return [Token(token_type, (file_path, row + 1, col + 1), token_value)
                 for (row, line) in enumerate(f.readlines())
                 for (col, token_type, token_value) in lex_line(line.split('//')[0])]
 
