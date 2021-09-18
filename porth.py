@@ -2,10 +2,11 @@
 
 # Program is a list of Ops.
 # Op is a dict with the following possible fields:
-# - 'type' -- the type of the Op. One of OP_PUSH, OP_PLUS, OP_MINUS, etc, defined bellow
+# - 'type' -- the type of the Op. One of OP_PUSH_INT, OP_PUSH_STR, OP_PLUS, OP_MINUS, etc, defined bellow
 # - 'loc' -- location of the Op within a file. It's a tuple of 3 elements: `(file_path, row, col)`. `row` and `col` are 1-based indices.
-# - 'value' - optional field. Exists only for OP_PUSH. Contains the value that needs to be pushed onto the stack.
+# - 'value' -- optional field. Exists only for OP_PUSH_INT, OP_PUSH_STR. Contains the value that needs to be pushed onto the stack.
 # - 'jmp' -- optional field. Exists only for block Ops like `if`, `else`, `while`, etc. Contains an index of an Op within the Program that the execution has to jump to depending on the circumstantces. In case of `if` it's the place of else branch, in case of `else` it's the end of the construction, etc. The field is created during crossreference_blocks() step.
+# - 'addr' -- optional field. Exists only for OP_PUSH_STR. Contains the address of the string in the memory during simulation.
 
 # Token is a dict with the following possible fields:
 # - `type` - type of the Token. One of TOKEN_WORD, TOKEN_INT, etc. defined bellow
