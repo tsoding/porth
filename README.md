@@ -20,7 +20,7 @@ Hello, World:
 "Hello, World\n" 1 1 syscall3
 ```
 
-Simple program that prints numbers from 0 to 99 in a ascending order:
+Simple program that prints numbers from 0 to 99 in an ascending order:
 
 ```pascal
 100 0 while 2dup > do
@@ -88,6 +88,14 @@ This is what the language supports so far. **Since the language is a work in pro
 - `<integer>` - push the integer onto the stack. Right now the integer is anything that is parsable by [int](https://docs.python.org/3/library/functions.html#int) function.
 ```
 push(<integer>)
+```
+- `<string>` - push size and address of the string literal onto the stack. A string literal is a sequence of character enclosed with `"`.
+```
+size = len(<string>)
+push(n)
+ptr = static_memory_alloc(n)
+copy(ptr, <string>)
+push(ptr)
 ```
 - `dup` - duplicate an element on top of the stack.
 ```
