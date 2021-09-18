@@ -18,7 +18,7 @@ Simple program that prints numbers from 0 to 99 in a ascending order:
 
 ```forth
 100 0 while 2dup > do
-    dup dump 1 +
+    dup print 1 +
 end
 ```
 
@@ -30,7 +30,7 @@ Simulation simply interprets the program.
 
 ```console
 $ cat program.porth
-34 35 + dump
+34 35 + print
 $ ./porth.py sim program.porth
 69
 ```
@@ -41,7 +41,7 @@ Compilation generates assembly code, compiles it with [nasm](https://www.nasm.us
 
 ```console
 $ cat program.porth
-34 35 + dump
+34 35 + print
 $ ./porth.py com program.porth
 [INFO] Generating ./program.asm
 [CMD] nasm -felf64 ./program.asm
@@ -109,7 +109,7 @@ push(b)
 ```
 pop()
 ```
-- `dump` - print the element on top of the stack to stdout and remove it from the stack.
+- `print` - print the element on top of the stack in a free form to stdout and remove it from the stack.
 ```
 a = pop()
 print(a)

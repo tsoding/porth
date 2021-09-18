@@ -7,37 +7,37 @@ end
 mem + 10 .
 
 // Equals
-69 420  = dump
-69 69   = dump
+69 420  = print
+69 69   = print
 
 31 mem 1 1 syscall3
 
 // Greater
-420 69  > dump
-69 420  > dump
+420 69  > print
+69 420  > print
 
 31 mem 1 1 syscall3
 
 // Less
-420 69  < dump
-69 420  < dump
+420 69  < print
+69 420  < print
 
 31 mem 1 1 syscall3
 
 // Greater Equals
-420 69 >= dump
-69 420 >= dump
-69 69  >= dump
+420 69 >= print
+69 420 >= print
+69 69  >= print
 
 31 mem 1 1 syscall3
 
 // Less Equals
-420 69 <= dump
-69 420 <= dump
-69 69  <= dump
+420 69 <= print
+69 420 <= print
+69 69  <= print
 
 31 mem 1 1 syscall3
 
 // Not Equals
-69 69  != dump
-420 69 != dump
+69 69  != print
+420 69 != print

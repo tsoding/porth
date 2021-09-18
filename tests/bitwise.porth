@@ -7,19 +7,19 @@ end
 mem + 10 .
 
 // shift left
-1  3 shl dump
+1  3 shl print
 
 31 mem 1 1 syscall3
 
 // shift right
-32 3 shr dump
+32 3 shr print
 
 31 mem 1 1 syscall3
 
 // bit or
-1 2 bor dump
+1 2 bor print
 
 31 mem 1 1 syscall3
 
 // bit and
-1 2 band dump
+1 2 band print

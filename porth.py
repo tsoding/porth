@@ -40,7 +40,7 @@ OP_SHR=iota()
 OP_SHL=iota()
 OP_BOR=iota()
 OP_BAND=iota()
-OP_DUMP=iota()
+OP_PRINT=iota()
 OP_IF=iota()
 OP_END=iota()
 OP_ELSE=iota()
@@ -156,7 +156,7 @@ def simulate_program(program):
         elif op['type'] == OP_END:
             assert 'jmp' in op, "`end` instruction does not have a reference to the next instruction to jump to. Please call crossreference_blocks() on the program before trying to simulate it"
             ip = op['jmp']
-        elif op['type'] == OP_DUMP:
+        elif op['type'] == OP_PRINT:
             a = stack.pop()
             print(a)
             ip += 1
@@ -258,7 +258,7 @@ def compile_program(program, out_file_path):
     with open(out_file_path, "w") as out:
         out.write("BITS 64\n")
         out.write("segment .text\n")
-        out.write("dump:\n")
+        out.write("print:\n")
         out.write("    mov     r9, -3689348814741910323\n")
         out.write("    sub     rsp, 40\n")
         out.write("    mov     BYTE [rsp+31], 10\n")
@@ -344,10 +344,10 @@ def compile_program(program, out_file_path):
                 out.write("    pop rbx\n")
                 out.write("    and rbx, rax\n")
                 out.write("    push rbx\n")
-            elif op['type'] == OP_DUMP:
-                out.write("    ;; -- dump --\n")
+            elif op['type'] == OP_PRINT:
+                out.write("    ;; -- print --\n")
                 out.write("    pop rdi\n")
-                out.write("    call dump\n")
+                out.write("    call print\n")
             elif op['type'] == OP_EQ:
                 out.write("    ;; -- equal -- \n")
                 out.write("    mov rcx, 0\n");
@@ -544,8 +544,8 @@ def parse_token_as_op(token):
         return {'type': OP_MINUS, 'loc': loc}
     elif word == 'mod':
         return {'type': OP_MOD, 'loc': loc}
-    elif word == 'dump':
-        return {'type': OP_DUMP, 'loc': loc}
+    elif word == 'print':
+        return {'type': OP_PRINT, 'loc': loc}
     elif word == '=':
         return {'type': OP_EQ, 'loc': loc}
     elif word == '>':

@@ -7,13 +7,13 @@ end
 mem + 10 .
 
 // if-else
-34 35 + 70 = if 69 dump else 420 dump end
-34 35 + 69 = if 69 dump else 420 dump end
+34 35 + 70 = if 69 print else 420 print end
+34 35 + 69 = if 69 print else 420 print end
 
 31 mem 1 1 syscall3
 
 // while
 10 while dup 0 > do
-  dup dump
+  dup print
   1 -
 end
