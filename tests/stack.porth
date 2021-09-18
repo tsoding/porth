@@ -6,9 +6,14 @@
 end
 mem + 10 .
 
-// push
+// push int
 10 20 30 print print print
 10 print 20 print 30 print
+
+31 mem 1 1 syscall3
+
+// push str
+"Hello, World\n" 1 1 syscall3
 
 31 mem 1 1 syscall3
 
