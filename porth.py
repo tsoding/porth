@@ -1,33 +1,31 @@
 #!/usr/bin/env python3
 
-# Program is a list of Ops.
-# Op is a dict with the following possible fields:
-# - 'type' -- the type of the Op. One of OP_PUSH_INT, OP_PUSH_STR, OP_PLUS, OP_MINUS, etc, defined bellow
-# - 'loc' -- location of the Op within a file. It's a tuple of 3 elements: `(file_path, row, col)`. `row` and `col` are 1-based indices.
-# - 'value' -- optional field. Exists only for OP_PUSH_INT, OP_PUSH_STR. Contains the value that needs to be pushed onto the stack.
-# - 'jmp' -- optional field. Exists only for block Ops like `if`, `else`, `while`, etc. Contains an index of an Op within the Program that the execution has to jump to depending on the circumstantces. In case of `if` it's the place of else branch, in case of `else` it's the end of the construction, etc. The field is created during crossreference_blocks() step.
-
-# Token is a dict with the following possible fields:
-# - `type` - type of the Token. One of TOKEN_WORD, TOKEN_INT, etc. defined bellow
-# - `loc` - location of the Token within a file. It's a tuple of 3 elements: `(file_path, row, col)`. `row` and `col` are 1-based indices.
-# - `value` - the value of the token depending on the type of the Token. For TOKEN_WORD it's `str`, for TOKEN_INT it's `int`.
-
 import os
 import sys
 import subprocess
 import shlex
 from os import path
+from typing import *
 
 debug=False
 
 iota_counter=0
-def iota(reset=False):
+def iota(reset: bool=False) -> int:
     global iota_counter
     if reset:
         iota_counter = 0
     result = iota_counter
     iota_counter += 1
     return result
+
+Loc=Tuple[str, int, int]
+
+# Op is a dict with the following possible fields:
+# - 'type' -- the type of the Op. One of OP_PUSH_INT, OP_PUSH_STR, OP_PLUS, OP_MINUS, etc, defined bellow
+# - 'loc' -- location of the Op within a file. It's a tuple of 3 elements: `(file_path, row, col)`. `row` and `col` are 1-based indices.
+# - 'value' -- optional field. Exists only for OP_PUSH_INT, OP_PUSH_STR. Contains the value that needs to be pushed onto the stack.
+# - 'jmp' -- optional field. Exists only for block Ops like `if`, `else`, `while`, etc. Contains an index of an Op within the Program that the execution has to jump to depending on the circumstantces. In case of `if` it's the place of else branch, in case of `else` it's the end of the construction, etc. The field is created during crossreference_blocks() step.
+Op=Dict[str, Union[int, str, Loc]]
 
 # TODO: include operation documentation into the porth script itself
 # also make a subcommand that generates the language reference from that documentation
@@ -70,6 +68,12 @@ OP_SYSCALL5=iota()
 OP_SYSCALL6=iota()
 COUNT_OPS=iota()
 
+# Token is a dict with the following possible fields:
+# - `type` - type of the Token. One of TOKEN_WORD, TOKEN_INT, etc. defined bellow
+# - `loc` - location of the Token within a file. It's a tuple of 3 elements: `(file_path, row, col)`. `row` and `col` are 1-based indices.
+# - `value` - the value of the token depending on the type of the Token. For TOKEN_WORD it's `str`, for TOKEN_INT it's `int`.
+Token=Dict[str, Union[str, int, Loc]]
+
 TOKEN_WORD=iota(True)
 TOKEN_INT=iota()
 TOKEN_STR=iota()
@@ -78,7 +82,7 @@ COUNT_TOKENS=iota()
 STR_CAPACITY = 640_000 # should be enough for everyone
 MEM_CAPACITY = 640_000
 
-def simulate_little_endian_linux(program):
+def simulate_little_endian_linux(program: List[Op]):
     stack = []
     mem = bytearray(STR_CAPACITY + MEM_CAPACITY)
     str_offsets = {}
@@ -277,7 +281,7 @@ def simulate_little_endian_linux(program):
         print("[INFO] Memory dump")
         print(mem[:20])
 
-def generate_nasm_linux_x86_64(program, out_file_path):
+def generate_nasm_linux_x86_64(program: List[Op], out_file_path: str):
     strs = []
     with open(out_file_path, "w") as out:
         out.write("BITS 64\n")
@@ -605,7 +609,7 @@ BUILTIN_WORDS = {
     'syscall6': OP_SYSCALL6,
 }
 
-def compile_token_to_op(token):
+def compile_token_to_op(token: Token) -> Op:
     assert COUNT_TOKENS == 3, "Exhaustive token handling in parse_token_as_op"
     if token['type'] == TOKEN_WORD:
         if token['value'] in BUILTIN_WORDS:
@@ -620,7 +624,7 @@ def compile_token_to_op(token):
     else:
         assert False, 'unreachable'
 
-def compile_tokens_to_program(tokens):
+def compile_tokens_to_program(tokens: List[Token]) -> List[Op]:
     stack = []
     program = [compile_token_to_op(token) for token in tokens]
     for ip in range(len(program)):
@@ -660,13 +664,13 @@ def compile_tokens_to_program(tokens):
 
     return program
 
-def find_col(line, start, predicate):
+def find_col(line: int, start: int, predicate: Callable[[str], bool]) -> int:
     while start < len(line) and not predicate(line[start]):
         start += 1
     return start
 
 # TODO: lexer does not support new lines inside of the string literals
-def lex_line(line):
+def lex_line(line: str) -> Generator[Tuple[int, Tuple[int, str]], None, None]:
     col = find_col(line, 0, lambda x: not x.isspace())
     while col < len(line):
         col_end = None
@@ -688,7 +692,7 @@ def lex_line(line):
                 yield (col, (TOKEN_WORD, text_of_token))
             col = find_col(line, col_end, lambda x: not x.isspace())
 
-def lex_file(file_path):
+def lex_file(file_path: str) -> List[Token]:
     with open(file_path, "r") as f:
         return [{'type': token_type,
                  'loc': (file_path, row + 1, col + 1),
@@ -696,14 +700,14 @@ def lex_file(file_path):
                 for (row, line) in enumerate(f.readlines())
                 for (col, (token_type, token_value)) in lex_line(line.split('//')[0])]
 
-def compile_file_to_program(file_path):
+def compile_file_to_program(file_path: str) -> List[Op]:
     return compile_tokens_to_program(lex_file(file_path))
 
-def cmd_call_echoed(cmd):
+def cmd_call_echoed(cmd: List[str]):
     print("[CMD] %s" % " ".join(map(shlex.quote, cmd)))
     return subprocess.call(cmd)
 
-def usage(compiler_name):
+def usage(compiler_name: str):
     print("Usage: %s [OPTIONS] <SUBCOMMAND> [ARGS]" % compiler_name)
     print("  OPTIONS:")
     print("    -debug                Enable debug mode.")
