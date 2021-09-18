@@ -6,6 +6,7 @@ import subprocess
 import shlex
 from os import path
 from typing import *
+from enum import Enum, auto
 
 debug=False
 
@@ -69,11 +70,10 @@ COUNT_OPS=iota()
 # - 'jmp' -- optional field. Exists only for block Ops like `if`, `else`, `while`, etc. Contains an index of an Op within the Program that the execution has to jump to depending on the circumstantces. In case of `if` it's the place of else branch, in case of `else` it's the end of the construction, etc. The field is created during crossreference_blocks() step.
 Op=Dict[str, Union[OpType, int, str, Loc]]
 
-TokenType=int
-TOKEN_WORD=iota(True)
-TOKEN_INT=iota()
-TOKEN_STR=iota()
-COUNT_TOKENS=iota()
+class TokenType(Enum):
+    WORD=auto()
+    INT=auto()
+    STR=auto()
 
 # Token is a dict with the following possible fields:
 # - `type` - type of the Token. One of TOKEN_WORD, TOKEN_INT, etc. defined bellow
@@ -612,16 +612,16 @@ BUILTIN_WORDS = {
 }
 
 def compile_token_to_op(token: Token) -> Op:
-    assert COUNT_TOKENS == 3, "Exhaustive token handling in parse_token_as_op"
-    if token['type'] == TOKEN_WORD:
+    assert len(TokenType) == 3, "Exhaustive token handling in parse_token_as_op"
+    if token['type'] == TokenType.WORD:
         if token['value'] in BUILTIN_WORDS:
             return {'type': BUILTIN_WORDS[token['value']], 'loc': token['loc']}
         else:
             print("%s:%d:%d: unknown word `%s`" % (token['loc'] + (token['value'], )))
             exit(1)
-    elif token['type'] == TOKEN_INT:
+    elif token['type'] == TokenType.INT:
         return {'type': OP_PUSH_INT, 'value': token['value'], 'loc': token['loc']}
-    elif token['type'] == TOKEN_STR:
+    elif token['type'] == TokenType.STR:
         return {'type': OP_PUSH_STR, 'value': token['value'], 'loc': token['loc']}
     else:
         assert False, 'unreachable'
@@ -683,15 +683,15 @@ def lex_line(line: str) -> Generator[Tuple[int, TokenType, str], None, None]:
             text_of_token = line[col+1:col_end]
             # TODO: converted text_of_token to bytes and back just to unescape things is kinda sus ngl
             # Let's try to do something about that, for instance, open the file with "rb" in lex_file()
-            yield (col, TOKEN_STR, bytes(text_of_token, "utf-8").decode("unicode_escape"))
+            yield (col, TokenType.STR, bytes(text_of_token, "utf-8").decode("unicode_escape"))
             col = find_col(line, col_end+1, lambda x: not x.isspace())
         else:
             col_end = find_col(line, col, lambda x: x.isspace())
             text_of_token = line[col:col_end]
             try:
-                yield (col, TOKEN_INT, int(text_of_token))
+                yield (col, TokenType.INT, int(text_of_token))
             except ValueError:
-                yield (col, TOKEN_WORD, text_of_token)
+                yield (col, TokenType.WORD, text_of_token)
             col = find_col(line, col_end, lambda x: not x.isspace())
 
 def lex_file(file_path: str) -> List[Token]:
