@@ -1,16 +1,10 @@
 // -*- mode: opascal -*-
-// Prepare the separation line
-0 while dup 30 < do
-  dup mem + 45 .
-  1 +
-end
-mem + 10 .
 
 // if-else
 34 35 + 70 = if 69 print else 420 print end
 34 35 + 69 = if 69 print else 420 print end
 
-31 mem 1 1 syscall3
+"------------------------------\n" 1 1 syscall3
 
 // while
 10 while dup 0 > do
