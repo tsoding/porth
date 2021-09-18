@@ -7,6 +7,11 @@
 # - 'value' - optional field. Exists only for OP_PUSH. Contains the value that needs to be pushed onto the stack.
 # - 'jmp' -- optional field. Exists only for block Ops like `if`, `else`, `while`, etc. Contains an index of an Op within the Program that the execution has to jump to depending on the circumstantces. In case of `if` it's the place of else branch, in case of `else` it's the end of the construction, etc. The field is created during crossreference_blocks() step.
 
+# Token is a dict with the following possible fields:
+# - `type` - type of the Token. One of TOKEN_WORD, TOKEN_INT, etc. defined bellow
+# - `loc` - location of the Token within a file. It's a tuple of 3 elements: `(file_path, row, col)`. `row` and `col` are 1-based indices.
+# - `value` - the value of the token depending on the type of the Token. For TOKEN_WORD it's `str`, for TOKEN_INT it's `int`.
+
 import os
 import sys
 import subprocess
@@ -64,7 +69,9 @@ OP_SYSCALL5=iota()
 OP_SYSCALL6=iota()
 COUNT_OPS=iota()
 
-# TODO: introduce the notion of tokens
+TOKEN_WORD=iota(True)
+TOKEN_INT=iota()
+COUNT_TOKENS=iota()
 
 MEM_CAPACITY = 640_000 # should be enough for everyone
 
@@ -534,84 +541,56 @@ def compile_program(program, out_file_path):
         out.write("segment .bss\n")
         out.write("mem: resb %d\n" % MEM_CAPACITY)
 
+assert COUNT_OPS == 35, "Exhaustive BUILTIN_WORDS definition. Keep in mind that not all of the new ops need to be defined in here. Only those that introduce new builtin words."
+BUILTIN_WORDS = {
+    '+': OP_PLUS,
+    '-': OP_MINUS,
+    'mod': OP_MOD,
+    'print': OP_PRINT,
+    '=': OP_EQ,
+    '>': OP_GT,
+    '<': OP_LT,
+    '>=': OP_GE,
+    '<=': OP_LE,
+    '!=': OP_NE,
+    'shr': OP_SHR,
+    'shl': OP_SHL,
+    'bor': OP_BOR,
+    'band': OP_BAND,
+    'if': OP_IF,
+    'end': OP_END,
+    'else': OP_ELSE,
+    'dup': OP_DUP,
+    '2dup': OP_2DUP,
+    'swap': OP_SWAP,
+    'drop': OP_DROP,
+    'over': OP_OVER,
+    'while': OP_WHILE,
+    'do': OP_DO,
+    'mem': OP_MEM,
+    '.': OP_STORE,
+    ',': OP_LOAD,
+    'syscall0': OP_SYSCALL0,
+    'syscall1': OP_SYSCALL1,
+    'syscall2': OP_SYSCALL2,
+    'syscall3': OP_SYSCALL3,
+    'syscall4': OP_SYSCALL4,
+    'syscall5': OP_SYSCALL5,
+    'syscall6': OP_SYSCALL6,
+}
+
 def parse_token_as_op(token):
-    (file_path, row, col, word) = token
-    loc = (file_path, row + 1, col + 1)
-    assert COUNT_OPS == 35, "Exhaustive op handling in parse_token_as_op"
-    if word == '+':
-        return {'type': OP_PLUS, 'loc': loc}
-    elif word == '-':
-        return {'type': OP_MINUS, 'loc': loc}
-    elif word == 'mod':
-        return {'type': OP_MOD, 'loc': loc}
-    elif word == 'print':
-        return {'type': OP_PRINT, 'loc': loc}
-    elif word == '=':
-        return {'type': OP_EQ, 'loc': loc}
-    elif word == '>':
-        return {'type': OP_GT, 'loc': loc}
-    elif word == '<':
-        return {'type': OP_LT, 'loc': loc}
-    elif word == '>=':
-        return {'type': OP_GE, 'loc': loc}
-    elif word == '<=':
-        return {'type': OP_LE, 'loc': loc}
-    elif word == '!=':
-        return {'type': OP_NE, 'loc': loc}
-    elif word == 'shr':
-        return {'type': OP_SHR, 'loc': loc}
-    elif word == 'shl':
-        return {'type': OP_SHL, 'loc': loc}
-    elif word == 'bor':
-        return {'type': OP_BOR, 'loc': loc}
-    elif word == 'band':
-        return {'type': OP_BAND, 'loc': loc}
-    elif word == 'if':
-        return {'type': OP_IF, 'loc': loc}
-    elif word == 'end':
-        return {'type': OP_END, 'loc': loc}
-    elif word == 'else':
-        return {'type': OP_ELSE, 'loc': loc}
-    elif word == 'dup':
-        return {'type': OP_DUP, 'loc': loc}
-    elif word == '2dup':
-        return {'type': OP_2DUP, 'loc': loc}
-    elif word == 'swap':
-        return {'type': OP_SWAP, 'loc': loc}
-    elif word == 'drop':
-        return {'type': OP_DROP, 'loc': loc}
-    elif word == 'over':
-        return {'type': OP_OVER, 'loc': loc}
-    elif word == 'while':
-        return {'type': OP_WHILE, 'loc': loc}
-    elif word == 'do':
-        return {'type': OP_DO, 'loc': loc}
-    elif word == 'mem':
-        return {'type': OP_MEM, 'loc': loc}
-    elif word == '.':
-        return {'type': OP_STORE, 'loc': loc}
-    elif word == ',':
-        return {'type': OP_LOAD, 'loc': loc}
-    elif word == 'syscall0':
-        return {'type': OP_SYSCALL0, 'loc': loc}
-    elif word == 'syscall1':
-        return {'type': OP_SYSCALL1, 'loc': loc}
-    elif word == 'syscall2':
-        return {'type': OP_SYSCALL2, 'loc': loc}
-    elif word == 'syscall3':
-        return {'type': OP_SYSCALL3, 'loc': loc}
-    elif word == 'syscall4':
-        return {'type': OP_SYSCALL4, 'loc': loc}
-    elif word == 'syscall5':
-        return {'type': OP_SYSCALL5, 'loc': loc}
-    elif word == 'syscall6':
-        return {'type': OP_SYSCALL6, 'loc': loc}
-    else:
-        try:
-            return {'type': OP_PUSH, 'value': int(word), 'loc': loc}
-        except ValueError as err:
-            print("%s:%d:%d: unknown word `%s`" % (loc + (word, )))
+    assert COUNT_TOKENS == 2, "Exhaustive token hanlding in parse_token_as_op"
+    if token['type'] == TOKEN_WORD:
+        if token['value'] in BUILTIN_WORDS:
+            return {'type': BUILTIN_WORDS[token['value']], 'loc': token['loc']}
+        else:
+            print("%s:%d:%d: unknown word `%s`" % (token['loc'] + (token['value'], )))
             exit(1)
+    elif token['type'] == TOKEN_INT:
+        return {'type': OP_PUSH, 'value': token['value'], 'loc': token['loc']}
+    else:
+        assert False, 'unreachable'
 
 def crossreference_blocks(program):
     stack = []
@@ -657,18 +636,26 @@ def find_col(line, start, predicate):
         start += 1
     return start
 
+def lex_word(text_of_token):
+    try:
+        return (TOKEN_INT, int(text_of_token))
+    except ValueError:
+        return (TOKEN_WORD, text_of_token)
+
 def lex_line(line):
     col = find_col(line, 0, lambda x: not x.isspace())
     while col < len(line):
         col_end = find_col(line, col, lambda x: x.isspace())
-        yield (col, line[col:col_end])
+        yield (col, lex_word(line[col:col_end]))
         col = find_col(line, col_end, lambda x: not x.isspace())
 
 def lex_file(file_path):
     with open(file_path, "r") as f:
-        return [(file_path, row, col, token)
+        return [{'type': token_type,
+                 'loc': (file_path, row + 1, col + 1),
+                 'value': token_value}
                 for (row, line) in enumerate(f.readlines())
-                for (col, token) in lex_line(line.split('//')[0])]
+                for (col, (token_type, token_value)) in lex_line(line.split('//')[0])]
 
 def load_program_from_file(file_path):
     return crossreference_blocks([parse_token_as_op(token) for token in lex_file(file_path)])
