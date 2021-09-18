@@ -20,15 +20,9 @@ def iota(reset: bool=False) -> int:
 
 Loc=Tuple[str, int, int]
 
-# Op is a dict with the following possible fields:
-# - 'type' -- the type of the Op. One of OP_PUSH_INT, OP_PUSH_STR, OP_PLUS, OP_MINUS, etc, defined bellow
-# - 'loc' -- location of the Op within a file. It's a tuple of 3 elements: `(file_path, row, col)`. `row` and `col` are 1-based indices.
-# - 'value' -- optional field. Exists only for OP_PUSH_INT, OP_PUSH_STR. Contains the value that needs to be pushed onto the stack.
-# - 'jmp' -- optional field. Exists only for block Ops like `if`, `else`, `while`, etc. Contains an index of an Op within the Program that the execution has to jump to depending on the circumstantces. In case of `if` it's the place of else branch, in case of `else` it's the end of the construction, etc. The field is created during crossreference_blocks() step.
-Op=Dict[str, Union[int, str, Loc]]
-
 # TODO: include operation documentation into the porth script itself
 # also make a subcommand that generates the language reference from that documentation
+OpType=int
 OP_PUSH_INT=iota(True)
 OP_PUSH_STR=iota()
 OP_PLUS=iota()
@@ -68,16 +62,24 @@ OP_SYSCALL5=iota()
 OP_SYSCALL6=iota()
 COUNT_OPS=iota()
 
-# Token is a dict with the following possible fields:
-# - `type` - type of the Token. One of TOKEN_WORD, TOKEN_INT, etc. defined bellow
-# - `loc` - location of the Token within a file. It's a tuple of 3 elements: `(file_path, row, col)`. `row` and `col` are 1-based indices.
-# - `value` - the value of the token depending on the type of the Token. For TOKEN_WORD it's `str`, for TOKEN_INT it's `int`.
-Token=Dict[str, Union[str, int, Loc]]
+# Op is a dict with the following possible fields:
+# - 'type' -- the type of the Op. One of OP_PUSH_INT, OP_PUSH_STR, OP_PLUS, OP_MINUS, etc, defined bellow
+# - 'loc' -- location of the Op within a file. It's a tuple of 3 elements: `(file_path, row, col)`. `row` and `col` are 1-based indices.
+# - 'value' -- optional field. Exists only for OP_PUSH_INT, OP_PUSH_STR. Contains the value that needs to be pushed onto the stack.
+# - 'jmp' -- optional field. Exists only for block Ops like `if`, `else`, `while`, etc. Contains an index of an Op within the Program that the execution has to jump to depending on the circumstantces. In case of `if` it's the place of else branch, in case of `else` it's the end of the construction, etc. The field is created during crossreference_blocks() step.
+Op=Dict[str, Union[OpType, int, str, Loc]]
 
+TokenType=int
 TOKEN_WORD=iota(True)
 TOKEN_INT=iota()
 TOKEN_STR=iota()
 COUNT_TOKENS=iota()
+
+# Token is a dict with the following possible fields:
+# - `type` - type of the Token. One of TOKEN_WORD, TOKEN_INT, etc. defined bellow
+# - `loc` - location of the Token within a file. It's a tuple of 3 elements: `(file_path, row, col)`. `row` and `col` are 1-based indices.
+# - `value` - the value of the token depending on the type of the Token. For TOKEN_WORD it's `str`, for TOKEN_INT it's `int`.
+Token=Dict[str, Union[TokenType, int, str, Loc]]
 
 STR_CAPACITY = 640_000 # should be enough for everyone
 MEM_CAPACITY = 640_000
@@ -670,7 +672,7 @@ def find_col(line: int, start: int, predicate: Callable[[str], bool]) -> int:
     return start
 
 # TODO: lexer does not support new lines inside of the string literals
-def lex_line(line: str) -> Generator[Tuple[int, int, str], None, None]:
+def lex_line(line: str) -> Generator[Tuple[int, TokenType, str], None, None]:
     col = find_col(line, 0, lambda x: not x.isspace())
     while col < len(line):
         col_end = None
