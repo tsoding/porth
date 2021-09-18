@@ -1,17 +1,1 @@
-// We don't have string literals yet, so we simply write "Hello, World\n"
-// character by character into the memory and then call the write syscall
-mem
-dup 72  . 1 + 
-dup 101 . 1 +
-dup 108 . 1 +
-dup 108 . 1 +
-dup 111 . 1 +
-dup 44  . 1 +
-dup 32  . 1 +
-dup 87  . 1 +
-dup 111 . 1 +
-dup 114 . 1 +
-dup 108 . 1 +
-dup 100 . 1 +
-dup 10  . 1 +
-mem - mem 1 1 syscall3
+"Hello, World\n" 1 1 syscall3
