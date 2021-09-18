@@ -78,7 +78,7 @@ COUNT_TOKENS=iota()
 STR_CAPACITY = 640_000 # should be enough for everyone
 MEM_CAPACITY = 640_000
 
-def simulate_program(program):
+def simulate_little_endian_linux(program):
     stack = []
     mem = bytearray(STR_CAPACITY + MEM_CAPACITY)
     str_offsets = {}
@@ -277,7 +277,7 @@ def simulate_program(program):
         print("[INFO] Memory dump")
         print(mem[:20])
 
-def compile_program(program, out_file_path):
+def generate_nasm_linux_x86_64(program, out_file_path):
     strs = []
     with open(out_file_path, "w") as out:
         out.write("BITS 64\n")
@@ -319,7 +319,7 @@ def compile_program(program, out_file_path):
         out.write("_start:\n")
         for ip in range(len(program)):
             op = program[ip]
-            assert COUNT_OPS == 36, "Exhaustive handling of ops in compilation"
+            assert COUNT_OPS == 36, "Exhaustive handling of ops in generate_nasm_linux_x86_64"
             out.write("addr_%d:\n" % ip)
             if op['type'] == OP_PUSH_INT:
                 out.write("    ;; -- push int %d --\n" % op['value'])
@@ -605,8 +605,8 @@ BUILTIN_WORDS = {
     'syscall6': OP_SYSCALL6,
 }
 
-def parse_token_as_op(token):
-    assert COUNT_TOKENS == 3, "Exhaustive token hanlding in parse_token_as_op"
+def compile_token_to_op(token):
+    assert COUNT_TOKENS == 3, "Exhaustive token handling in parse_token_as_op"
     if token['type'] == TOKEN_WORD:
         if token['value'] in BUILTIN_WORDS:
             return {'type': BUILTIN_WORDS[token['value']], 'loc': token['loc']}
@@ -620,8 +620,9 @@ def parse_token_as_op(token):
     else:
         assert False, 'unreachable'
 
-def crossreference_blocks(program):
+def compile_tokens_to_program(tokens):
     stack = []
+    program = [compile_token_to_op(token) for token in tokens]
     for ip in range(len(program)):
         op = program[ip]
         assert COUNT_OPS == 36, "Exhaustive handling of ops in crossreference_program. Keep in mind that not all of the ops need to be handled in here. Only those that form blocks."
@@ -695,8 +696,8 @@ def lex_file(file_path):
                 for (row, line) in enumerate(f.readlines())
                 for (col, (token_type, token_value)) in lex_line(line.split('//')[0])]
 
-def load_program_from_file(file_path):
-    return crossreference_blocks([parse_token_as_op(token) for token in lex_file(file_path)])
+def compile_file_to_program(file_path):
+    return compile_tokens_to_program(lex_file(file_path))
 
 def cmd_call_echoed(cmd):
     print("[CMD] %s" % " ".join(map(shlex.quote, cmd)))
@@ -743,8 +744,8 @@ if __name__ == '__main__' and '__file__' in globals():
             print("[ERROR] no input file is provided for the simulation")
             exit(1)
         program_path, *argv = argv
-        program = load_program_from_file(program_path);
-        simulate_program(program)
+        program = compile_file_to_program(program_path);
+        simulate_little_endian_linux(program)
     elif subcommand == "com":
         run = False
         program_path = None
@@ -789,8 +790,8 @@ if __name__ == '__main__' and '__file__' in globals():
         basepath = path.join(basedir, basename)
 
         print("[INFO] Generating %s" % (basepath + ".asm"))
-        program = load_program_from_file(program_path);
-        compile_program(program, basepath + ".asm")
+        program = compile_file_to_program(program_path);
+        generate_nasm_linux_x86_64(program, basepath + ".asm")
         cmd_call_echoed(["nasm", "-felf64", basepath + ".asm"])
         cmd_call_echoed(["ld", "-o", basepath, basepath + ".o"])
         if run:
