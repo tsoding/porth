@@ -14,9 +14,15 @@ Porth is planned to be (these are not the selling points, but rather milestones 
 
 ## Example
 
+Hello, World:
+
+```pascal
+"Hello, World\n" 1 1 syscall3
+```
+
 Simple program that prints numbers from 0 to 99 in a ascending order:
 
-```forth
+```pascal
 100 0 while 2dup > do
     dup print 1 +
 end
