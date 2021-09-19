@@ -336,8 +336,10 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                 out.write("    push rax\n")
             elif op.typ == OpType.PUSH_STR:
                 assert op.value is not None, "This could be a bug in the compilation step"
+                bs = bytes(op.value, 'utf-8')
+                n = len(bs)
                 out.write("    ;; -- push str --\n")
-                out.write("    mov rax, %d\n" % len(op.value))
+                out.write("    mov rax, %d\n" % n)
                 out.write("    push rax\n")
                 out.write("    push str_%d\n" % len(strs))
                 strs.append(op.value)
