@@ -17,7 +17,9 @@ Porth is planned to be (these are not the selling points, but rather milestones 
 Hello, World:
 
 ```pascal
-"Hello, World\n" 1 1 syscall3
+include "io.porth"
+
+"Hello, World\n" write
 ```
 
 Simple program that prints numbers from 0 to 99 in an ascending order:
@@ -273,4 +275,12 @@ Define a new word `write` that expands into a sequence of tokens `1 1 syscall3` 
 macro write
     1 1 syscall3
 end
+```
+
+### Include
+
+Include tokens of file `file.porth`
+
+```
+include "file.porth"
 ```
