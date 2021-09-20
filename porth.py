@@ -683,6 +683,7 @@ def unescape_string(s: str) -> str:
 
 # TODO: lexer does not support new lines inside of the string literals
 # TODO: lexer does not support quotes inside of the string literals
+# TODO: lexer does not support // inside of string literals
 def lex_line(file_path: str, row: int, line: str) -> Generator[Token, None, None]:
     col = find_col(line, 0, lambda x: not x.isspace())
     while col < len(line):
