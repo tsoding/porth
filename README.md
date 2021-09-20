@@ -17,7 +17,9 @@ Porth is planned to be (these are not the selling points, but rather milestones 
 Hello, World:
 
 ```pascal
-"Hello, World\n" 1 1 syscall3
+include "io.porth"
+
+"Hello, World\n" write
 ```
 
 Simple program that prints numbers from 0 to 99 in an ascending order:
@@ -83,7 +85,7 @@ $ ./test.py -f ./examples/ record
 
 This is what the language supports so far. **Since the language is a work in progress the exact set of operations is the subject to change.**
 
-### Stack Manipulation
+### Data Types
 
 - `<integer>` - push the integer onto the stack. Right now the integer is anything that is parsable by [int](https://docs.python.org/3/library/functions.html#int) function.
 ```
@@ -97,6 +99,11 @@ ptr = static_memory_alloc(n)
 copy(ptr, <string>)
 push(ptr)
 ```
+
+### Built-in Words
+
+#### Stack Manipulation
+
 - `dup` - duplicate an element on top of the stack.
 ```
 a = pop()
@@ -137,7 +144,7 @@ push(a)
 push(b)
 ```
 
-### Comparison
+#### Comparison
 
 - `=` - checks if two elements on top of the stack are equal. Removes the elements from the stack and pushes `1` if they are equal and `0` if they are not.
 ```
@@ -176,7 +183,7 @@ a = pop()
 push(int(a >= b))
 ```
 
-### Arithmetic
+#### Arithmetic
 
 - `+` - sums up two elements on the top of the stack.
 ```
@@ -190,6 +197,12 @@ a = pop()
 b = pop()
 push(b - a)
 ```
+- `*` - multiples the top of the stack with the element below the top of the stack
+```
+a = pop()
+b = pop()
+push(b * a)
+```
 - `mod`
 ```
 a = pop()
@@ -197,7 +210,7 @@ b = pop()
 push(b % a)
 ```
 
-### Bitwise
+#### Bitwise
 
 - `shr`
 ```
@@ -224,12 +237,12 @@ b = pop()
 push(b & a)
 ```
 
-### Control Flow
+#### Control Flow
 
 - `if <then-branch> else <else-branch> end` - pops the element on top of the stack and if the element is not `0` executes the `<then-branch>`, otherwise `<else-branch>`.
 - `while <condition> do <body> end` - keeps executing both `<condition>` and `<body>` until `<condition>` produces `0` at the top of the stack. Checking the result of the `<condition>` removes it from the stack.
 
-### Memory
+#### Memory
 
 - `mem` - pushes the address of the beginning of the memory where you can read and write onto the stack.
 ```
@@ -248,7 +261,7 @@ byte = load(addr)
 push(byte)
 ```
 
-### System
+#### System
 
 - `syscall<n>` - perform a syscall with n arguments where n is in range `[0..6]`. (`syscall1`, `syscall2`, etc)
 ```
@@ -258,4 +271,22 @@ for i in range(n):
     arg = pop()
     <move arg to i-th register according to the call convention>
 <perform the syscall>
+```
+
+### Macros
+
+Define a new word `write` that expands into a sequence of tokens `1 1 syscall3` during the compilation.
+
+```
+macro write
+    1 1 syscall3
+end
+```
+
+### Include
+
+Include tokens of file `file.porth`
+
+```
+include "file.porth"
 ```

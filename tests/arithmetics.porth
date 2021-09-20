@@ -13,3 +13,9 @@
 // Modulo
 5 100 mod print
 104 100 mod print
+
+"------------------------------\n" 1 1 syscall3
+
+// Multiple
+
+42 10 * print

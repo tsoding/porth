@@ -1,2 +1,5 @@
 // -*- mode: opascal -*-
-"Hello, World\n" 1 1 syscall3
+
+include "io.porth"
+
+"Hello, World\n" write
