@@ -326,7 +326,6 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
         for ip in range(len(program)):
             op = program[ip]
             assert len(OpType) == 36, "Exhaustive ops handling in generate_nasm_linux_x86_64"
-            out.write("addr_%d:\n" % ip)
             if op.typ == OpType.PUSH_INT:
                 assert isinstance(op.value, int), "This could be a bug in the compilation step"
                 out.write("    ;; -- push int %d --\n" % op.value)
@@ -452,11 +451,15 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                 out.write("    ;; -- else --\n")
                 assert op.jmp is not None, "This could be a bug in the compilation step"
                 out.write("    jmp addr_%d\n" % op.jmp)
+                # on `0` the `if` instruction jumps to the one that follows `else`.
+                out.write("addr_%d:\n" % (ip + 1)) 
             elif op.typ == OpType.END:
                 assert op.jmp is not None, "This could be a bug in the compilation step"
+                out.write("addr_%d:\n" % ip)
                 out.write("    ;; -- end --\n")
                 if ip + 1 != op.jmp:
                     out.write("    jmp addr_%d\n" % op.jmp)
+                out.write("addr_%d:\n" % (ip + 1))
             elif op.typ == OpType.DUP:
                 out.write("    ;; -- dup -- \n")
                 out.write("    pop rax\n")
@@ -488,6 +491,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                 out.write("    push rbx\n")
             elif op.typ == OpType.WHILE:
                 out.write("    ;; -- while --\n")
+                out.write("addr_%d:\n" % ip)
             elif op.typ == OpType.DO:
                 out.write("    ;; -- do --\n")
                 out.write("    pop rax\n")
