@@ -77,7 +77,9 @@ class TokenType(Enum):
     WORD=auto()
     INT=auto()
     STR=auto()
+    CHAR=auto()
 
+assert len(TokenType) == 4, "Exhaustive Token type definition. The `value` field of the Token dataclass may require an update"
 @dataclass
 class Token:
     typ: TokenType
@@ -650,13 +652,15 @@ class Macro:
     tokens: List[Token]
 
 def tokentype_human_readable_name(typ: TokenType) -> str:
-    assert len(TokenType) == 3, "Exhaustive handling of token typs in tokentype_human_readable_name()"
+    assert len(TokenType) == 4, "Exhaustive handling of token typs in tokentype_human_readable_name()"
     if typ == TokenType.WORD:
         return "word"
     elif typ == TokenType.INT:
         return "integer"
     elif typ == TokenType.STR:
         return "string"
+    elif typ == TokenType.CHAR:
+        return "character"
     else:
         assert False, "unreachable"
 
@@ -670,7 +674,7 @@ def compile_tokens_to_program(tokens: List[Token]) -> Program:
         # TODO: some sort of safety mechanism for recursive macros
         token = rtokens.pop()
         op = None
-        assert len(TokenType) == 3, "Exhaustive token handling in compile_tokens_to_program"
+        assert len(TokenType) == 4, "Exhaustive token handling in compile_tokens_to_program"
         if token.typ == TokenType.WORD:
             assert isinstance(token.value, str), "This could be a bug in the lexer"
             if token.value in BUILTIN_WORDS:
@@ -685,6 +689,8 @@ def compile_tokens_to_program(tokens: List[Token]) -> Program:
             op = Op(typ=OpType.PUSH_INT, value=token.value, loc=token.loc)
         elif token.typ == TokenType.STR:
             op = Op(typ=OpType.PUSH_STR, value=token.value, loc=token.loc)
+        elif token.typ == TokenType.CHAR:
+            op = Op(typ=OpType.PUSH_INT, value=ord(token.value), loc=token.loc)
         else:
             assert False, 'unreachable'
 
@@ -807,6 +813,14 @@ def lex_line(file_path: str, row: int, line: str) -> Generator[Token, None, None
                 exit(1)
             text_of_token = line[col+1:col_end]
             yield Token(TokenType.STR, loc, unescape_string(text_of_token))
+            col = find_col(line, col_end+1, lambda x: not x.isspace())
+        elif line[col] == "'":
+            col_end = find_col(line, col+1, lambda x: x == "'")
+            if col_end >= len(line) or line[col_end] != "'":
+                print("%s:%d:%d: ERROR: unclosed character literal" % loc)
+                exit(1)
+            text_of_token = line[col+1:col_end]
+            yield Token(TokenType.CHAR, loc, unescape_string(text_of_token))
             col = find_col(line, col_end+1, lambda x: not x.isspace())
         else:
             col_end = find_col(line, col, lambda x: x.isspace())

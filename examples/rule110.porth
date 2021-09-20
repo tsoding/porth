@@ -11,9 +11,9 @@ mem N 2 - + 1 .
 0 while dup N 2 - < do
    0 while dup N < do
       dup mem + , if
-         dup mem + N + 42 .
+         dup mem + N + '*' .
       else
-         dup mem + N + 32 .
+         dup mem + N + ' ' .
       end
       1 +
    end
