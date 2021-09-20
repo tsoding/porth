@@ -99,12 +99,12 @@ def simulate_little_endian_linux(program: Program):
             ip += 1
         elif op.typ == OpType.PUSH_STR:
             assert op.value is not None, "This could be a bug in the compilation step"
-            bs = bytes(op.value, 'utf-8')
-            n = len(bs)
+            value = op.value.encode('utf-8')
+            n = len(value)
             stack.append(n)
             if ip not in str_offsets:
                 str_offsets[ip] = str_size
-                mem[str_size:str_size+n] = bs
+                mem[str_size:str_size+n] = value
                 str_size += n
                 assert str_size <= STR_CAPACITY, "String buffer overflow"
             stack.append(str_offsets[ip])
@@ -336,11 +336,13 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                 out.write("    push rax\n")
             elif op.typ == OpType.PUSH_STR:
                 assert op.value is not None, "This could be a bug in the compilation step"
+                value = op.value.encode('utf-8')
+                n = len(value)
                 out.write("    ;; -- push str --\n")
-                out.write("    mov rax, %d\n" % len(op.value))
+                out.write("    mov rax, %d\n" % n)
                 out.write("    push rax\n")
                 out.write("    push str_%d\n" % len(strs))
-                strs.append(op.value)
+                strs.append(value)
             elif op.typ == OpType.PLUS:
                 out.write("    ;; -- plus --\n")
                 out.write("    pop rax\n")
@@ -573,7 +575,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
         out.write("    syscall\n")
         out.write("segment .data\n")
         for index, s in enumerate(strs):
-            out.write("str_%d: db %s\n" % (index, ','.join(map(hex, list(bytes(s, 'utf-8'))))))
+            out.write("str_%d: db %s\n" % (index, ','.join(map(hex, list(s)))))
         out.write("segment .bss\n")
         out.write("mem: resb %d\n" % MEM_CAPACITY)
 
@@ -675,7 +677,13 @@ def find_col(line: int, start: int, predicate: Callable[[str], bool]) -> int:
         start += 1
     return start
 
+def unescape_string(s: str) -> str:
+    # NOTE: unicode_escape assumes latin-1 encoding, so we kinda have
+    # to do this weird round trip
+    return s.encode('utf-8').decode('unicode_escape').encode('latin-1').decode('utf-8')
+
 # TODO: lexer does not support new lines inside of the string literals
+# TODO: lexer does not support quotes inside of the string literals
 def lex_line(line: str) -> Generator[Tuple[int, TokenType, str], None, None]:
     col = find_col(line, 0, lambda x: not x.isspace())
     while col < len(line):
@@ -685,9 +693,7 @@ def lex_line(line: str) -> Generator[Tuple[int, TokenType, str], None, None]:
             # TODO: report unclosed string literals as proper compiler errors instead of python asserts
             assert line[col_end] == '"'
             text_of_token = line[col+1:col_end]
-            # TODO: converted text_of_token to bytes and back just to unescape things is kinda sus ngl
-            # Let's try to do something about that, for instance, open the file with "rb" in lex_file()
-            yield (col, TokenType.STR, bytes(text_of_token, "utf-8").decode("unicode_escape"))
+            yield (col, TokenType.STR, unescape_string(text_of_token))
             col = find_col(line, col_end+1, lambda x: not x.isspace())
         else:
             col_end = find_col(line, col, lambda x: x.isspace())
@@ -699,7 +705,7 @@ def lex_line(line: str) -> Generator[Tuple[int, TokenType, str], None, None]:
             col = find_col(line, col_end, lambda x: not x.isspace())
 
 def lex_file(file_path: str) -> List[Token]:
-    with open(file_path, "r") as f:
+    with open(file_path, "r", encoding='utf-8') as f:
         return [Token(token_type, (file_path, row + 1, col + 1), token_value)
                 for (row, line) in enumerate(f.readlines())
                 for (col, token_type, token_value) in lex_line(line.split('//')[0])]
