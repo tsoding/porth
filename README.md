@@ -197,6 +197,12 @@ a = pop()
 b = pop()
 push(b - a)
 ```
+- `*` - multiples the top of the stack with the element below the top of the stack
+```
+a = pop()
+b = pop()
+push(b * a)
+```
 - `mod`
 ```
 a = pop()
