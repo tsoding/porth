@@ -13,7 +13,11 @@ jobs:
         with:
           python-version: '3.7'
           architecture: x64
+      - name: install dependencies
+        run: |
+          pip install mypy
       - name: run tests
         run: |
+          mypy ./porth.py
           python ./test.py
           python ./test.py -f ./examples/
