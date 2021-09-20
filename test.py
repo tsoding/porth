@@ -72,6 +72,8 @@ def usage(exe_name):
     print("    record        Record expected output of the tests.")
     print("    help          Print this message to stdout and exit with 0 code.")
 
+# TODO: test compiler errors
+
 if __name__ == '__main__':
     exe_name, *argv = sys.argv
 
