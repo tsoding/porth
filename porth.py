@@ -85,7 +85,7 @@ STR_CAPACITY = 640_000 # should be enough for everyone
 MEM_CAPACITY = 640_000
 
 def simulate_little_endian_linux(program: Program):
-    stack = []
+    stack: List[int] = []
     mem = bytearray(STR_CAPACITY + MEM_CAPACITY)
     str_offsets = {}
     str_size = 0
@@ -94,11 +94,11 @@ def simulate_little_endian_linux(program: Program):
         assert len(OpType) == 36, "Exhaustive op handling in simulate_little_endian_linux"
         op = program[ip]
         if op.typ == OpType.PUSH_INT:
-            assert op.value is not None, "This could be a bug in the compilation step"
+            assert isinstance(op.value, int), "This could be a bug in the compilation step"
             stack.append(op.value)
             ip += 1
         elif op.typ == OpType.PUSH_STR:
-            assert op.value is not None, "This could be a bug in the compilation step"
+            assert isinstance(op.value, str), "This could be a bug in the compilation step"
             value = op.value.encode('utf-8')
             n = len(value)
             stack.append(n)
@@ -238,9 +238,9 @@ def simulate_little_endian_linux(program: Program):
             stack.append(byte)
             ip += 1
         elif op.typ == OpType.STORE:
-            value = stack.pop()
-            addr = stack.pop()
-            mem[addr] = value & 0xFF
+            store_value = stack.pop()
+            store_addr = stack.pop()
+            mem[store_addr] = store_value & 0xFF
             ip += 1
         elif op.typ == OpType.SYSCALL0:
             syscall_number = stack.pop()
@@ -286,7 +286,7 @@ def simulate_little_endian_linux(program: Program):
         print(mem[:20])
 
 def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
-    strs = []
+    strs: List[bytes] = []
     with open(out_file_path, "w") as out:
         out.write("BITS 64\n")
         out.write("segment .text\n")
@@ -330,12 +330,12 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
             assert len(OpType) == 36, "Exhaustive ops handling in generate_nasm_linux_x86_64"
             out.write("addr_%d:\n" % ip)
             if op.typ == OpType.PUSH_INT:
-                assert op.value is not None, "This could be a bug in the compilation step"
+                assert isinstance(op.value, int), "This could be a bug in the compilation step"
                 out.write("    ;; -- push int %d --\n" % op.value)
                 out.write("    mov rax, %d\n" % op.value)
                 out.write("    push rax\n")
             elif op.typ == OpType.PUSH_STR:
-                assert op.value is not None, "This could be a bug in the compilation step"
+                assert isinstance(op.value, str), "This could be a bug in the compilation step"
                 value = op.value.encode('utf-8')
                 n = len(value)
                 out.write("    ;; -- push str --\n")
@@ -620,6 +620,7 @@ BUILTIN_WORDS = {
 def compile_token_to_op(token: Token) -> Op:
     assert len(TokenType) == 3, "Exhaustive token handling in compile_token_to_op"
     if token.typ == TokenType.WORD:
+        assert isinstance(token.value, str), "This could be a bug in the lexer"
         if token.value in BUILTIN_WORDS:
             return Op(typ=BUILTIN_WORDS[token.value], loc=token.loc)
         else:
@@ -643,7 +644,7 @@ def compile_tokens_to_program(tokens: List[Token]) -> Program:
         elif op.typ == OpType.ELSE:
             if_ip = stack.pop()
             if program[if_ip].typ != OpType.IF:
-                print('%s:%d:%d: ERROR: `else` can only be used in `if`-blocks' % program[if_ip]['loc'])
+                print('%s:%d:%d: ERROR: `else` can only be used in `if`-blocks' % program[if_ip].loc)
                 exit(1)
             program[if_ip].jmp = ip + 1
             stack.append(ip)
@@ -672,7 +673,7 @@ def compile_tokens_to_program(tokens: List[Token]) -> Program:
 
     return program
 
-def find_col(line: int, start: int, predicate: Callable[[str], bool]) -> int:
+def find_col(line: str, start: int, predicate: Callable[[str], bool]) -> int:
     while start < len(line) and not predicate(line[start]):
         start += 1
     return start
@@ -684,7 +685,7 @@ def unescape_string(s: str) -> str:
 
 # TODO: lexer does not support new lines inside of the string literals
 # TODO: lexer does not support quotes inside of the string literals
-def lex_line(line: str) -> Generator[Tuple[int, TokenType, str], None, None]:
+def lex_line(line: str) -> Generator[Tuple[int, TokenType, Union[str, int]], None, None]:
     col = find_col(line, 0, lambda x: not x.isspace())
     while col < len(line):
         col_end = None
@@ -752,6 +753,8 @@ if __name__ == '__main__' and '__file__' in globals():
         exit(1)
     subcommand, *argv = argv
 
+    program_path: Optional[str] = None
+
     if subcommand == "sim":
         if len(argv) < 1:
             usage(compiler_name)
@@ -762,7 +765,6 @@ if __name__ == '__main__' and '__file__' in globals():
         simulate_little_endian_linux(program)
     elif subcommand == "com":
         run = False
-        program_path = None
         output_path = None
         while len(argv) > 0:
             arg, *argv = argv
