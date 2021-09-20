@@ -690,6 +690,7 @@ def compile_tokens_to_program(tokens: List[Token]) -> Program:
         elif token.typ == TokenType.STR:
             op = Op(typ=OpType.PUSH_STR, value=token.value, loc=token.loc)
         elif token.typ == TokenType.CHAR:
+            assert isinstance(token.value, str)
             op = Op(typ=OpType.PUSH_INT, value=ord(token.value), loc=token.loc)
         else:
             assert False, 'unreachable'
