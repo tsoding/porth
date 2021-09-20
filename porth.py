@@ -13,8 +13,6 @@ debug=False
 
 Loc=Tuple[str, int, int]
 
-# TODO: include operation documentation into the porth script itself
-# also make a subcommand that generates the language reference from that documentation
 class OpType(Enum):
     PUSH_INT=auto()
     PUSH_STR=auto()
