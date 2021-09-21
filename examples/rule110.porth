@@ -3,7 +3,8 @@
 // ^
 // mem
 
-macro write 1 1 syscall3 drop end
+include "io.porth"
+
 macro N 100 end
 
 mem N 2 - + 1 .
@@ -18,7 +19,7 @@ mem N 2 - + 1 .
       1 +
    end
    mem + N + 10 .
-   N 1 + mem N + write
+   N 1 + mem N + write drop
 
    // pattern
    mem     , 1 shl

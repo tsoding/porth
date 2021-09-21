@@ -1,36 +1,38 @@
 // -*- mode: opascal -*-
 
+include "io.porth"
+
 // Equals
 69 420  = print
 69 69   = print
 
-"------------------------------\n" 1 1 syscall3
+"------------------------------\n" write
 
 // Greater
 420 69  > print
 69 420  > print
 
-"------------------------------\n" 1 1 syscall3
+"------------------------------\n" write
 
 // Less
 420 69  < print
 69 420  < print
 
-"------------------------------\n" 1 1 syscall3
+"------------------------------\n" write
 
 // Greater Equals
 420 69 >= print
 69 420 >= print
 69 69  >= print
 
-"------------------------------\n" 1 1 syscall3
+"------------------------------\n" write
 
 // Less Equals
 420 69 <= print
 69 420 <= print
 69 69  <= print
 
-"------------------------------\n" 1 1 syscall3
+"------------------------------\n" write
 
 // Not Equals
 69 69  != print

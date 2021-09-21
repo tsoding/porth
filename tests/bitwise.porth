@@ -1,19 +1,21 @@
 // -*- mode: opascal -*-
 
+include "io.porth"
+
 // shift left
 1  3 shl print
 
-"------------------------------\n" 1 1 syscall3
+"------------------------------\n" write
 
 // shift right
 32 3 shr print
 
-"------------------------------\n" 1 1 syscall3
+"------------------------------\n" write
 
 // bit or
 1 2 bor print
 
-"------------------------------\n" 1 1 syscall3
+"------------------------------\n" write
 
 // bit and
 1 2 band print

@@ -1,42 +1,44 @@
 // -*- mode: opascal -*-
 
+include "io.porth"
+
 // push int
 10 20 30 print print print
 10 print 20 print 30 print
 
-"------------------------------\n" 1 1 syscall3
+"------------------------------\n" write
 
 // push str
-"Hello, World\n" 1 1 syscall3 // ascii
-"Привет, Мир!\n" 1 1 syscall3 // utf-8
+"Hello, World\n" write // ascii
+"Привет, Мир!\n" write // utf-8
 
-"------------------------------\n" 1 1 syscall3
+"------------------------------\n" write
 
 // dup
 420 dup dup print print print
 69 dup print dup print print
 
-"------------------------------\n" 1 1 syscall3
+"------------------------------\n" write
 
 // 2dup
 69 420 2dup print print print print
 
-"------------------------------\n" 1 1 syscall3
+"------------------------------\n" write
 
 // swap
 69 420 swap print print
 
-"------------------------------\n" 1 1 syscall3
+"------------------------------\n" write
 
 // drop
 69 420 drop print
 
-"------------------------------\n" 1 1 syscall3
+"------------------------------\n" write
 
 // over
 69 420 over print
 
-"------------------------------\n" 1 1 syscall3
+"------------------------------\n" write
 
 // big number
 1234567890987654321 print

@@ -1,20 +1,22 @@
 // -*- mode: opascal -*-
 
-// Add
-34 35   + print
+include "io.porth"
 
-"------------------------------\n" 1 1 syscall3
+// Add
+34 35 + print
+
+"------------------------------\n" write
 
 // Subtract
-500 80  - print
+500 80 - print
 
-"------------------------------\n" 1 1 syscall3
+"------------------------------\n" write
 
 // Modulo
 5 100 mod print
 104 100 mod print
 
-"------------------------------\n" 1 1 syscall3
+"------------------------------\n" write
 
 // Multiple
 
