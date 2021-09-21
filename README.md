@@ -12,7 +12,7 @@ Porth is planned to be (these are not the selling points, but rather milestones 
 - [ ] Self-hosted (Python is used only as an initial bootstrap, once the language is mature enough we gonna rewrite it in itself)
 - [ ] Statically typed (the type checking is probably gonna be similar to the [WASM validation](https://binji.github.io/posts/webassembly-type-checking/))
 
-## Example
+## Examples
 
 Hello, World:
 
@@ -80,6 +80,14 @@ The [./examples/](./examples/) contains programs that are ment for showcasing th
 $ ./test.py -f ./examples/
 $ ./test.py -f ./examples/ record
 ```
+
+### Usage
+
+If you wanna use the Porth compiler separately from its code base you only need two things:
+- [./porth.py](./porth.py) - the compiler itself,
+- [./std/](./std/) - the standard library.
+
+By default the compiler searches files to include in `./` and `./std/`. You can add more search paths via the `-I` flag before the subcommand: `./porth.py -I <custom-path> com ...`. See `./porth.py help` for more info.
 
 ## Language Reference
 
