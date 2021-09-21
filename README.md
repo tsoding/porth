@@ -2,7 +2,7 @@
 
 **WARNING! This language is a work in progress!**
 
-It's like [Forth](https://en.wikipedia.org/wiki/Forth_(programming_language)) but written in [Python](https://www.python.org/). But I don't actually know since I never programmed in Forth, I only heard that it's some sort of stack-based programming language. Porth is also stack-based programming language. Which makes it just like Forth am I rite?
+It's like [Forth](https://en.wikipedia.org/wiki/Forth_(programming_language)) but written in [Python](https://www.python.org/). But I don't actually know for sure since I never programmed in Forth, I only heard that it's some sort of stack-based programming language. Porth is also stack-based programming language. Which makes it just like Forth am I rite?
 
 Porth is planned to be
 - [x] Compiled
@@ -76,7 +76,7 @@ To updated expected output files run the `record` subcommand:
 $ ./test.py record
 ```
 
-The [./examples/](./examples/) contains programs that are ment for showcasing the language rather then testing it, but we still can them for testing just like the stuff in [./tests/](./tests/):
+The [./examples/](./examples/) folder contains programs that are ment for showcasing the language rather then testing it, but we still can use them for testing just like the stuff in the [./tests/](./tests/) folder:
 
 ```console
 $ ./test.py -f ./examples/
@@ -85,7 +85,7 @@ $ ./test.py -f ./examples/ record
 
 ### Usage
 
-If you wanna use the Porth compiler separately from its code base you only need two things:
+If you wanna use the Porth compiler separately from its codebase you only need two things:
 - [./porth.py](./porth.py) - the compiler itself,
 - [./std/](./std/) - the standard library.
 
@@ -93,22 +93,45 @@ By default the compiler searches files to include in `./` and `./std/`. You can 
 
 ## Language Reference
 
-This is what the language supports so far. **Since the language is a work in progress the exact set of operations is the subject to change.**
+This is what the language supports so far. **Since the language is a work in progress everything in this section is the subject to change.**
 
 ### Data Types
 
-- `<integer>` - push the integer onto the stack. Right now the integer is anything that is parsable by [int](https://docs.python.org/3/library/functions.html#int) function.
+#### Integer
+
+Currently an integer is anything that is parsable by [int](https://docs.python.org/3/library/functions.html#int) function of Python. When the compiler encounters an integer it pushes it onto the data stack for processing by the relevant operations.
+
+Example:
+
+```pascal
+10 20 +
 ```
-push(<integer>)
+
+The code above pushes 10 and 20 onto the data stack and sums them up with `+` operation.
+
+#### String
+
+Currently a string is any sequence of bytes sandwiched between two `"`. No newlines inside of the strings are allowed. Escaping is done by [unicode_escape codec](https://docs.python.org/3/library/codecs.html#text-encodings) of Python. No way to escape `"` themselves for now. No special support for Unicode is provided right now too, it's just a sequence of bytes, encode it however you want.
+
+When the compiler encounters a string:
+1. the size of the string in bytes is pushed onto the data stack,
+2. the bytes of the string are copied somewhere into the memory (the exact location is implementation specific),
+3. the pointer to the beginning of the string is pushed onto the data stack.
+
+Those, a single string pushes two values onto the data stack: the size and the pointer.
+
+Example:
+
 ```
-- `<string>` - push size and address of the string literal onto the stack. A string literal is a sequence of character enclosed with `"`.
+include "io.porth"
+"Hello, World" write
 ```
-size = len(<string>)
-push(n)
-ptr = static_memory_alloc(n)
-copy(ptr, <string>)
-push(ptr)
-```
+
+The `write` macro from `io.porth` module expects two values on the data stack: the size of the buffer it needs to print to stdout and the pointer to the beginning of the buffer. Both of the values are provided by the string `"Hello, World"`.
+
+#### Character
+
+TBD
 
 ### Built-in Words
 
