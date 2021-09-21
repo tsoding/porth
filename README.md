@@ -131,7 +131,17 @@ The `write` macro from `io.porth` module expects two values on the data stack: t
 
 #### Character
 
-TBD
+Currently a character is a single byte sandwiched between two `'`. Escaping is done by [unicode_escape codec](https://docs.python.org/3/library/codecs.html#text-encodings) of Python. No way to escape `'` themselves for now. No special support for Unicode is provided right now too.
+
+When compiler encounters a character it pushes its value as an integer onto the stack.
+
+Example:
+
+```
+'E' print
+```
+
+This program pushes integer `69` onto the stack (since the ASCII code of letter `E` is `69`) and prints it with the `print` operation.
 
 ### Built-in Words
 
