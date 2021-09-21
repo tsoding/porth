@@ -111,7 +111,7 @@ The code above pushes 10 and 20 onto the data stack and sums them up with `+` op
 
 #### String
 
-Currently a string is any sequence of bytes sandwiched between two `"`. No newlines inside of the strings are allowed. Escaping is done by [unicode_escape codec](https://docs.python.org/3/library/codecs.html#text-encodings) of Python. No way to escape `"` themselves for now. No special support for Unicode is provided right now too, it's just a sequence of bytes, encode it however you want.
+Currently a string is any sequence of bytes sandwiched between two `"`. No newlines inside of the strings are allowed. Escaping is done by [unicode_escape codec](https://docs.python.org/3/library/codecs.html#text-encodings) of Python. No way to escape `"` themselves for now. No special support for Unicode is provided right now too.
 
 When the compiler encounters a string:
 1. the size of the string in bytes is pushed onto the data stack,

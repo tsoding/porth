@@ -12,6 +12,11 @@ include "io.porth"
 
 "------------------------------\n" write
 
+// Characters
+'E' print
+
+"------------------------------\n" write
+
 // dup
 420 dup dup print print print
 69 dup print dup print print

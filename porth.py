@@ -691,8 +691,8 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str]) -> 
         elif token.typ == TokenType.STR:
             op = Op(typ=OpType.PUSH_STR, value=token.value, loc=token.loc)
         elif token.typ == TokenType.CHAR:
-            assert isinstance(token.value, str)
-            op = Op(typ=OpType.PUSH_INT, value=ord(token.value), loc=token.loc)
+            assert isinstance(token.value, int)
+            op = Op(typ=OpType.PUSH_INT, value=token.value, loc=token.loc)
         else:
             assert False, 'unreachable'
 
@@ -826,8 +826,11 @@ def lex_line(file_path: str, row: int, line: str) -> Generator[Token, None, None
             if col_end >= len(line) or line[col_end] != "'":
                 print("%s:%d:%d: ERROR: unclosed character literal" % loc)
                 exit(1)
-            text_of_token = line[col+1:col_end]
-            yield Token(TokenType.CHAR, loc, unescape_string(text_of_token))
+            char_bytes = unescape_string(line[col+1:col_end]).encode('utf-8')
+            if len(char_bytes) != 1:
+                print("%s:%d:%d: ERROR: only a single byte is allowed inside of a character literal" % loc)
+                exit(1)
+            yield Token(TokenType.CHAR, loc, char_bytes[0])
             col = find_col(line, col_end+1, lambda x: not x.isspace())
         else:
             col_end = find_col(line, col, lambda x: x.isspace())
