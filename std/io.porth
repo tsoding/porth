@@ -1,2 +1,4 @@
+include "linux.porth"
+
 /// Writes a string into the standard output
-macro write 1 1 syscall3 end
+macro write STDOUT SYS_write syscall3 end
