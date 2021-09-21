@@ -1,5 +1,3 @@
-// -*- mode: opascal -*-
-
 include "io.porth"
 
 // push int

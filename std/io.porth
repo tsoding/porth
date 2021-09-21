@@ -1,1 +1,2 @@
+/// Writes a string into the standard output
 macro write 1 1 syscall3 end
