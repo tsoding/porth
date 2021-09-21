@@ -651,20 +651,21 @@ class Macro:
     loc: Loc
     tokens: List[Token]
 
-def tokentype_human_readable_name(typ: TokenType) -> str:
-    assert len(TokenType) == 4, "Exhaustive handling of token typs in tokentype_human_readable_name()"
+def human(typ: TokenType) -> str:
+    '''Human readable representation of an object that can be used in error messages'''
+    assert len(TokenType) == 4, "Exhaustive handling of token types in human()"
     if typ == TokenType.WORD:
-        return "word"
+        return "a word"
     elif typ == TokenType.INT:
-        return "integer"
+        return "an integer"
     elif typ == TokenType.STR:
-        return "string"
+        return "a string"
     elif typ == TokenType.CHAR:
-        return "character"
+        return "a character"
     else:
         assert False, "unreachable"
 
-def compile_tokens_to_program(tokens: List[Token]) -> Program:
+def compile_tokens_to_program(tokens: List[Token], include_paths: List[str]) -> Program:
     stack = []
     program = []
     rtokens = list(reversed(tokens))
@@ -739,14 +740,19 @@ def compile_tokens_to_program(tokens: List[Token]) -> Program:
                 exit(1)
             token = rtokens.pop()
             if token.typ != TokenType.STR:
-                print("%s:%d:%d: ERROR: expected path to the include file to be %s but found %s" % (token.loc + (tokentype_human_readable_name(TokenType.STR), tokentype_human_readable_name(token.typ))))
+                print("%s:%d:%d: ERROR: expected path to the include file to be %s but found %s" % (token.loc + (human(TokenType.STR), human(token.typ))))
                 exit(1)
+            assert isinstance(token.value, str), "This is probably a bug in the lexer"
             # TODO: safety mechanism for recursive includes
-            # TODO: some sort of search path mechanism for includes
-            try:
-                assert isinstance(token.value, str), "This is probably a bug in the lexer"
-                rtokens += reversed(lex_file(token.value))
-            except FileNotFoundError:
+            file_included = False
+            for include_path in include_paths:
+                try:
+                    rtokens += reversed(lex_file(path.join(include_path, token.value)))
+                    file_included = True
+                    break
+                except FileNotFoundError:
+                    continue
+            if not file_included:
                 print("%s:%d:%d: ERROR: file `%s` not found" % (token.loc + (token.value, )))
                 exit(1)
         # TODO: capability to define macros from command line
@@ -756,7 +762,7 @@ def compile_tokens_to_program(tokens: List[Token]) -> Program:
                 exit(1)
             token = rtokens.pop()
             if token.typ != TokenType.WORD:
-                print("%s:%d:%d: ERROR: expected macro name to be %s but found %s" % (token.loc + (tokentype_human_readable_name(TokenType.WORD), tokentype_human_readable_name(token.typ))))
+                print("%s:%d:%d: ERROR: expected macro name to be %s but found %s" % (token.loc + (human(TokenType.WORD), human(token.typ))))
                 exit(1)
             assert isinstance(token.value, str), "This is probably a bug in the lexer"
             if token.value in macros:
@@ -838,8 +844,8 @@ def lex_file(file_path: str) -> List[Token]:
                 for (row, line) in enumerate(f.readlines())
                 for token in lex_line(file_path, row, line.split('//')[0])]
 
-def compile_file_to_program(file_path: str) -> Program:
-    return compile_tokens_to_program(lex_file(file_path))
+def compile_file_to_program(file_path: str, include_paths: List[str]) -> Program:
+    return compile_tokens_to_program(lex_file(file_path), include_paths)
 
 def cmd_call_echoed(cmd: List[str]) -> int:
     print("[CMD] %s" % " ".join(map(shlex.quote, cmd)))
@@ -849,6 +855,7 @@ def usage(compiler_name: str):
     print("Usage: %s [OPTIONS] <SUBCOMMAND> [ARGS]" % compiler_name)
     print("  OPTIONS:")
     print("    -debug                Enable debug mode.")
+    print("    -I <path>             Add the path to the include search list")
     print("  SUBCOMMAND:")
     print("    sim <file>            Simulate the program")
     print("    com [OPTIONS] <file>  Compile the program")
@@ -864,10 +871,20 @@ if __name__ == '__main__' and '__file__' in globals():
     assert len(argv) >= 1
     compiler_name, *argv = argv
 
+    include_paths = ['.', './std/']
+
     while len(argv) > 0:
         if argv[0] == '-debug':
-            debug = True
             argv = argv[1:]
+            debug = True
+        elif argv[0] == '-I':
+            argv = argv[1:]
+            if len(argv) == 0:
+                usage(compiler_name)
+                print("[ERROR] no path is provided for `-I` flag")
+                exit(1)
+            include_path, *argv = argv
+            include_paths.append(include_path)
         else:
             break
 
@@ -888,7 +905,7 @@ if __name__ == '__main__' and '__file__' in globals():
             print("[ERROR] no input file is provided for the simulation")
             exit(1)
         program_path, *argv = argv
-        program = compile_file_to_program(program_path);
+        program = compile_file_to_program(program_path, include_paths);
         simulate_little_endian_linux(program)
     elif subcommand == "com":
         run = False
@@ -933,7 +950,7 @@ if __name__ == '__main__' and '__file__' in globals():
         basepath = path.join(basedir, basename)
 
         print("[INFO] Generating %s" % (basepath + ".asm"))
-        program = compile_file_to_program(program_path);
+        program = compile_file_to_program(program_path, include_paths);
         generate_nasm_linux_x86_64(program, basepath + ".asm")
         cmd_call_echoed(["nasm", "-felf64", basepath + ".asm"])
         cmd_call_echoed(["ld", "-o", basepath, basepath + ".o"])

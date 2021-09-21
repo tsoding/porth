@@ -1,10 +1,12 @@
 // -*- mode: opascal -*-
 
+include "io.porth"
+
 // if-else
 34 35 + 70 = if 69 print else 420 print end
 34 35 + 69 = if 69 print else 420 print end
 
-"------------------------------\n" 1 1 syscall3
+"------------------------------\n" write
 
 // while
 10 while dup 0 > do
