@@ -2,7 +2,7 @@
 // ^
 // mem
 
-include "io.porth"
+include "std.porth"
 
 macro N 100 end
 

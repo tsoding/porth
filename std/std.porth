@@ -1,3 +1,4 @@
+/// Standard streams
 macro STDIN  0 end
 macro STDOUT 1 end
 macro STDERR 2 end
@@ -319,3 +320,8 @@ macro SYS_process_vm_readv 310 end
 macro SYS_process_vm_writev 311 end
 macro SYS_kcmp 312 end
 macro SYS_finit_module 313 end
+
+/// Writes a string into the standard output
+macro write STDOUT SYS_write syscall3 end
+
+macro 2dup over over end

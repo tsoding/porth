@@ -1,4 +1,4 @@
-include "io.porth"
+include "std.porth"
 
 // push int
 10 20 30 print print print
