@@ -22,10 +22,7 @@ class Keyword(Enum):
     MACRO=auto()
     INCLUDE=auto()
 
-# TODO: extract all builtin words into a separate op
-class OpType(Enum):
-    PUSH_INT=auto()
-    PUSH_STR=auto()
+class Intrinsic(Enum):
     PLUS=auto()
     MINUS=auto()
     MUL=auto()
@@ -41,11 +38,6 @@ class OpType(Enum):
     BOR=auto()
     BAND=auto()
     PRINT=auto()
-    IF=auto()
-    END=auto()
-    ELSE=auto()
-    WHILE=auto()
-    DO=auto()
     DUP=auto()
     SWAP=auto()
     DROP=auto()
@@ -62,18 +54,29 @@ class OpType(Enum):
     SYSCALL5=auto()
     SYSCALL6=auto()
 
+class OpType(Enum):
+    PUSH_INT=auto()
+    PUSH_STR=auto()
+    INTRINSIC=auto()
+    IF=auto()
+    END=auto()
+    ELSE=auto()
+    WHILE=auto()
+    DO=auto()
+
 @dataclass
 class Op:
     typ: OpType
     loc: Loc
     # Exists only for OpType.PUSH_INT, Op.PUSH_STR. Contains the value
     # that needs to be pushed onto the stack.
-    value: Optional[Union[int, str]] = None
+    value: Optional[Union[int, str, Intrinsic]] = None
     # Exists only for block Ops like `if`, `else`, `while`,
     # etc. Contains an index of an Op within the Program that the
     # execution has to jump to depending on the circumstantces. In
     # case of `if` it's the place of else branch, in case of `else`
     # it's the end of the construction, etc.
+    # TODO: merge value and jmp
     jmp: Optional[int] = None
 
 Program=List[Op]
@@ -102,7 +105,7 @@ def simulate_little_endian_linux(program: Program):
     str_size = 0
     ip = 0
     while ip < len(program):
-        assert len(OpType) == 36, "Exhaustive op handling in simulate_little_endian_linux"
+        assert len(OpType) == 8, "Exhaustive op handling in simulate_little_endian_linux"
         op = program[ip]
         if op.typ == OpType.PUSH_INT:
             assert isinstance(op.value, int), "This could be a bug in the compilation step"
@@ -120,77 +123,6 @@ def simulate_little_endian_linux(program: Program):
                 assert str_size <= STR_CAPACITY, "String buffer overflow"
             stack.append(str_offsets[ip])
             ip += 1
-        elif op.typ == OpType.PLUS:
-            a = stack.pop()
-            b = stack.pop()
-            stack.append(a + b)
-            ip += 1
-        elif op.typ == OpType.MINUS:
-            a = stack.pop()
-            b = stack.pop()
-            stack.append(b - a)
-            ip += 1
-        elif op.typ == OpType.MUL:
-            a = stack.pop()
-            b = stack.pop()
-            stack.append(b * a)
-            ip += 1
-        elif op.typ == OpType.DIVMOD:
-            a = stack.pop()
-            b = stack.pop()
-            stack.append(b // a)
-            stack.append(b % a)
-            ip += 1
-        elif op.typ == OpType.EQ:
-            a = stack.pop()
-            b = stack.pop()
-            stack.append(int(a == b))
-            ip += 1
-        elif op.typ == OpType.GT:
-            a = stack.pop()
-            b = stack.pop()
-            stack.append(int(b > a))
-            ip += 1
-        elif op.typ == OpType.LT:
-            a = stack.pop()
-            b = stack.pop()
-            stack.append(int(b < a))
-            ip += 1
-        elif op.typ == OpType.GE:
-            a = stack.pop()
-            b = stack.pop()
-            stack.append(int(b >= a))
-            ip += 1
-        elif op.typ == OpType.LE:
-            a = stack.pop()
-            b = stack.pop()
-            stack.append(int(b <= a))
-            ip += 1
-        elif op.typ == OpType.NE:
-            a = stack.pop()
-            b = stack.pop()
-            stack.append(int(b != a))
-            ip += 1
-        elif op.typ == OpType.SHR:
-            a = stack.pop()
-            b = stack.pop()
-            stack.append(int(b >> a))
-            ip += 1
-        elif op.typ == OpType.SHL:
-            a = stack.pop()
-            b = stack.pop()
-            stack.append(int(b << a))
-            ip += 1
-        elif op.typ == OpType.BOR:
-            a = stack.pop()
-            b = stack.pop()
-            stack.append(int(a | b))
-            ip += 1
-        elif op.typ == OpType.BAND:
-            a = stack.pop()
-            b = stack.pop()
-            stack.append(int(a & b))
-            ip += 1
         elif op.typ == OpType.IF:
             a = stack.pop()
             if a == 0:
@@ -204,31 +136,6 @@ def simulate_little_endian_linux(program: Program):
         elif op.typ == OpType.END:
             assert op.jmp is not None, "This could be a bug in the compilation step"
             ip = op.jmp
-        elif op.typ == OpType.PRINT:
-            a = stack.pop()
-            print(a)
-            ip += 1
-        elif op.typ == OpType.DUP:
-            a = stack.pop()
-            stack.append(a)
-            stack.append(a)
-            ip += 1
-        elif op.typ == OpType.SWAP:
-            a = stack.pop()
-            b = stack.pop()
-            stack.append(a)
-            stack.append(b)
-            ip += 1
-        elif op.typ == OpType.DROP:
-            stack.pop()
-            ip += 1
-        elif op.typ == OpType.OVER:
-            a = stack.pop()
-            b = stack.pop()
-            stack.append(b)
-            stack.append(a)
-            stack.append(b)
-            ip += 1
         elif op.typ == OpType.WHILE:
             ip += 1
         elif op.typ == OpType.DO:
@@ -238,56 +145,156 @@ def simulate_little_endian_linux(program: Program):
                 ip = op.jmp
             else:
                 ip += 1
-        elif op.typ == OpType.MEM:
-            stack.append(STR_CAPACITY)
-            ip += 1
-        elif op.typ == OpType.LOAD:
-            addr = stack.pop()
-            byte = mem[addr]
-            stack.append(byte)
-            ip += 1
-        elif op.typ == OpType.STORE:
-            store_value = stack.pop()
-            store_addr = stack.pop()
-            mem[store_addr] = store_value & 0xFF
-            ip += 1
-        elif op.typ == OpType.SYSCALL0:
-            syscall_number = stack.pop()
-            if syscall_number == 39:
-                stack.append(os.getpid())
-            else:
-                assert False, "unknown syscall number %d" % syscall_number
-            ip += 1
-        elif op.typ == OpType.SYSCALL1:
-            assert False, "not implemented"
-        elif op.typ == OpType.SYSCALL2:
-            assert False, "not implemented"
-        elif op.typ == OpType.SYSCALL3:
-            syscall_number = stack.pop()
-            arg1 = stack.pop()
-            arg2 = stack.pop()
-            arg3 = stack.pop()
-            if syscall_number == 1:
-                fd = arg1
-                buf = arg2
-                count = arg3
-                s = mem[buf:buf+count].decode('utf-8')
-                if fd == 1:
-                    print(s, end='')
-                elif fd == 2:
-                    print(s, end='', file=sys.stderr)
+        elif op.typ == OpType.INTRINSIC:
+            assert len(Intrinsic) == 29, "Exhaustive handling of intrinsic in simulate_little_endian_linux()"
+            if op.value == Intrinsic.PLUS:
+                a = stack.pop()
+                b = stack.pop()
+                stack.append(a + b)
+                ip += 1
+            elif op.value == Intrinsic.MINUS:
+                a = stack.pop()
+                b = stack.pop()
+                stack.append(b - a)
+                ip += 1
+            elif op.value == Intrinsic.MUL:
+                a = stack.pop()
+                b = stack.pop()
+                stack.append(b * a)
+                ip += 1
+            elif op.value == Intrinsic.DIVMOD:
+                a = stack.pop()
+                b = stack.pop()
+                stack.append(b // a)
+                stack.append(b % a)
+                ip += 1
+            elif op.value == Intrinsic.EQ:
+                a = stack.pop()
+                b = stack.pop()
+                stack.append(int(a == b))
+                ip += 1
+            elif op.value == Intrinsic.GT:
+                a = stack.pop()
+                b = stack.pop()
+                stack.append(int(b > a))
+                ip += 1
+            elif op.value == Intrinsic.LT:
+                a = stack.pop()
+                b = stack.pop()
+                stack.append(int(b < a))
+                ip += 1
+            elif op.value == Intrinsic.GE:
+                a = stack.pop()
+                b = stack.pop()
+                stack.append(int(b >= a))
+                ip += 1
+            elif op.value == Intrinsic.LE:
+                a = stack.pop()
+                b = stack.pop()
+                stack.append(int(b <= a))
+                ip += 1
+            elif op.value == Intrinsic.NE:
+                a = stack.pop()
+                b = stack.pop()
+                stack.append(int(b != a))
+                ip += 1
+            elif op.value == Intrinsic.SHR:
+                a = stack.pop()
+                b = stack.pop()
+                stack.append(int(b >> a))
+                ip += 1
+            elif op.value == Intrinsic.SHL:
+                a = stack.pop()
+                b = stack.pop()
+                stack.append(int(b << a))
+                ip += 1
+            elif op.value == Intrinsic.BOR:
+                a = stack.pop()
+                b = stack.pop()
+                stack.append(int(a | b))
+                ip += 1
+            elif op.value == Intrinsic.BAND:
+                a = stack.pop()
+                b = stack.pop()
+                stack.append(int(a & b))
+                ip += 1
+            elif op.value == Intrinsic.PRINT:
+                a = stack.pop()
+                print(a)
+                ip += 1
+            elif op.value == Intrinsic.DUP:
+                a = stack.pop()
+                stack.append(a)
+                stack.append(a)
+                ip += 1
+            elif op.value == Intrinsic.SWAP:
+                a = stack.pop()
+                b = stack.pop()
+                stack.append(a)
+                stack.append(b)
+                ip += 1
+            elif op.value == Intrinsic.DROP:
+                stack.pop()
+                ip += 1
+            elif op.value == Intrinsic.OVER:
+                a = stack.pop()
+                b = stack.pop()
+                stack.append(b)
+                stack.append(a)
+                stack.append(b)
+                ip += 1
+            elif op.value == Intrinsic.MEM:
+                stack.append(STR_CAPACITY)
+                ip += 1
+            elif op.value == Intrinsic.LOAD:
+                addr = stack.pop()
+                byte = mem[addr]
+                stack.append(byte)
+                ip += 1
+            elif op.value == Intrinsic.STORE:
+                store_value = stack.pop()
+                store_addr = stack.pop()
+                mem[store_addr] = store_value & 0xFF
+                ip += 1
+            elif op.value == Intrinsic.SYSCALL0:
+                syscall_number = stack.pop()
+                if syscall_number == 39:
+                    stack.append(os.getpid())
                 else:
-                    assert False, "unknown file descriptor %d" % fd
-                stack.append(count)
+                    assert False, "unknown syscall number %d" % syscall_number
+                ip += 1
+            elif op.value == Intrinsic.SYSCALL1:
+                assert False, "not implemented"
+            elif op.value == Intrinsic.SYSCALL2:
+                assert False, "not implemented"
+            elif op.value == Intrinsic.SYSCALL3:
+                syscall_number = stack.pop()
+                arg1 = stack.pop()
+                arg2 = stack.pop()
+                arg3 = stack.pop()
+                if syscall_number == 1:
+                    fd = arg1
+                    buf = arg2
+                    count = arg3
+                    s = mem[buf:buf+count].decode('utf-8')
+                    if fd == 1:
+                        print(s, end='')
+                    elif fd == 2:
+                        print(s, end='', file=sys.stderr)
+                    else:
+                        assert False, "unknown file descriptor %d" % fd
+                    stack.append(count)
+                else:
+                    assert False, "unknown syscall number %d" % syscall_number
+                ip += 1
+            elif op.value == Intrinsic.SYSCALL4:
+                assert False, "not implemented"
+            elif op.value == Intrinsic.SYSCALL5:
+                assert False, "not implemented"
+            elif op.value == Intrinsic.SYSCALL6:
+                assert False, "not implemented"
             else:
-                assert False, "unknown syscall number %d" % syscall_number
-            ip += 1
-        elif op.typ == OpType.SYSCALL4:
-            assert False, "not implemented"
-        elif op.typ == OpType.SYSCALL5:
-            assert False, "not implemented"
-        elif op.typ == OpType.SYSCALL6:
-            assert False, "not implemented"
+                assert False, "unreachable"
         else:
             assert False, "unreachable"
     if debug:
@@ -336,7 +343,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
         out.write("_start:\n")
         for ip in range(len(program)):
             op = program[ip]
-            assert len(OpType) == 36, "Exhaustive ops handling in generate_nasm_linux_x86_64"
+            assert len(OpType) == 8, "Exhaustive ops handling in generate_nasm_linux_x86_64"
             out.write("addr_%d:\n" % ip)
             if op.typ == OpType.PUSH_INT:
                 assert isinstance(op.value, int), "This could be a bug in the compilation step"
@@ -352,114 +359,6 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                 out.write("    push rax\n")
                 out.write("    push str_%d\n" % len(strs))
                 strs.append(value)
-            elif op.typ == OpType.PLUS:
-                out.write("    ;; -- plus --\n")
-                out.write("    pop rax\n")
-                out.write("    pop rbx\n")
-                out.write("    add rax, rbx\n")
-                out.write("    push rax\n")
-            elif op.typ == OpType.MINUS:
-                out.write("    ;; -- minus --\n")
-                out.write("    pop rax\n")
-                out.write("    pop rbx\n")
-                out.write("    sub rbx, rax\n")
-                out.write("    push rbx\n")
-            elif op.typ == OpType.MUL:
-                out.write("    ;; -- mul --\n")
-                out.write("    pop rax\n")
-                out.write("    pop rbx\n")
-                out.write("    mul rbx\n")
-                out.write("    push rax\n")
-            elif op.typ == OpType.DIVMOD:
-                out.write("    ;; -- mod --\n")
-                out.write("    xor rdx, rdx\n")
-                out.write("    pop rbx\n")
-                out.write("    pop rax\n")
-                out.write("    div rbx\n")
-                out.write("    push rax\n");
-                out.write("    push rdx\n");
-            elif op.typ == OpType.SHR:
-                out.write("    ;; -- shr --\n")
-                out.write("    pop rcx\n")
-                out.write("    pop rbx\n")
-                out.write("    shr rbx, cl\n")
-                out.write("    push rbx\n")
-            elif op.typ == OpType.SHL:
-                out.write("    ;; -- shl --\n")
-                out.write("    pop rcx\n")
-                out.write("    pop rbx\n")
-                out.write("    shl rbx, cl\n")
-                out.write("    push rbx\n")
-            elif op.typ == OpType.BOR:
-                out.write("    ;; -- bor --\n")
-                out.write("    pop rax\n")
-                out.write("    pop rbx\n")
-                out.write("    or rbx, rax\n")
-                out.write("    push rbx\n")
-            elif op.typ == OpType.BAND:
-                out.write("    ;; -- band --\n")
-                out.write("    pop rax\n")
-                out.write("    pop rbx\n")
-                out.write("    and rbx, rax\n")
-                out.write("    push rbx\n")
-            elif op.typ == OpType.PRINT:
-                out.write("    ;; -- print --\n")
-                out.write("    pop rdi\n")
-                out.write("    call print\n")
-            elif op.typ == OpType.EQ:
-                out.write("    ;; -- equal -- \n")
-                out.write("    mov rcx, 0\n");
-                out.write("    mov rdx, 1\n");
-                out.write("    pop rax\n");
-                out.write("    pop rbx\n");
-                out.write("    cmp rax, rbx\n");
-                out.write("    cmove rcx, rdx\n");
-                out.write("    push rcx\n")
-            elif op.typ == OpType.GT:
-                out.write("    ;; -- gt --\n")
-                out.write("    mov rcx, 0\n");
-                out.write("    mov rdx, 1\n");
-                out.write("    pop rbx\n");
-                out.write("    pop rax\n");
-                out.write("    cmp rax, rbx\n");
-                out.write("    cmovg rcx, rdx\n");
-                out.write("    push rcx\n")
-            elif op.typ == OpType.LT:
-                out.write("    ;; -- gt --\n")
-                out.write("    mov rcx, 0\n");
-                out.write("    mov rdx, 1\n");
-                out.write("    pop rbx\n");
-                out.write("    pop rax\n");
-                out.write("    cmp rax, rbx\n");
-                out.write("    cmovl rcx, rdx\n");
-                out.write("    push rcx\n")
-            elif op.typ == OpType.GE:
-                out.write("    ;; -- gt --\n")
-                out.write("    mov rcx, 0\n");
-                out.write("    mov rdx, 1\n");
-                out.write("    pop rbx\n");
-                out.write("    pop rax\n");
-                out.write("    cmp rax, rbx\n");
-                out.write("    cmovge rcx, rdx\n");
-                out.write("    push rcx\n")
-            elif op.typ == OpType.LE:
-                out.write("    ;; -- gt --\n")
-                out.write("    mov rcx, 0\n");
-                out.write("    mov rdx, 1\n");
-                out.write("    pop rbx\n");
-                out.write("    pop rax\n");
-                out.write("    cmp rax, rbx\n");
-                out.write("    cmovle rcx, rdx\n");
-                out.write("    push rcx\n")
-            elif op.typ == OpType.NE:
-                out.write("    ;; -- ne --\n")
-                out.write("    mov rcx, 0\n")
-                out.write("    mov rdx, 1\n")
-                out.write("    pop rbx\n")
-                out.write("    pop rax\n")
-                out.write("    cmp rax, rbx\n")
-                out.write("    cmovne rcx, rdx\n")
-                out.write("    push rcx\n")
             elif op.typ == OpType.IF:
                 out.write("    ;; -- if --\n")
                 out.write("    pop rax\n")
@@ -475,27 +374,6 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                 out.write("    ;; -- end --\n")
                 if ip + 1 != op.jmp:
                     out.write("    jmp addr_%d\n" % op.jmp)
-            elif op.typ == OpType.DUP:
-                out.write("    ;; -- dup -- \n")
-                out.write("    pop rax\n")
-                out.write("    push rax\n")
-                out.write("    push rax\n")
-            elif op.typ == OpType.SWAP:
-                out.write("    ;; -- swap --\n")
-                out.write("    pop rax\n")
-                out.write("    pop rbx\n")
-                out.write("    push rax\n")
-                out.write("    push rbx\n")
-            elif op.typ == OpType.DROP:
-                out.write("    ;; -- drop --\n")
-                out.write("    pop rax\n")
-            elif op.typ == OpType.OVER:
-                out.write("    ;; -- over --\n")
-                out.write("    pop rax\n")
-                out.write("    pop rbx\n")
-                out.write("    push rbx\n")
-                out.write("    push rax\n")
-                out.write("    push rbx\n")
             elif op.typ == OpType.WHILE:
                 out.write("    ;; -- while --\n")
             elif op.typ == OpType.DO:
@@ -504,76 +382,209 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                 out.write("    test rax, rax\n")
                 assert op.jmp is not None, "This could be a bug in the compilation step"
                 out.write("    jz addr_%d\n" % op.jmp)
-            elif op.typ == OpType.MEM:
-                out.write("    ;; -- mem --\n")
-                out.write("    push mem\n")
-            elif op.typ == OpType.LOAD:
-                out.write("    ;; -- load --\n")
-                out.write("    pop rax\n")
-                out.write("    xor rbx, rbx\n")
-                out.write("    mov bl, [rax]\n")
-                out.write("    push rbx\n")
-            elif op.typ == OpType.STORE:
-                out.write("    ;; -- store --\n")
-                out.write("    pop rbx\n");
-                out.write("    pop rax\n");
-                out.write("    mov [rax], bl\n");
-            elif op.typ == OpType.SYSCALL0:
-                out.write("    ;; -- syscall0 --\n")
-                out.write("    pop rax\n")
-                out.write("    syscall\n")
-                out.write("    push rax\n")
-            elif op.typ == OpType.SYSCALL1:
-                out.write("    ;; -- syscall1 --\n")
-                out.write("    pop rax\n")
-                out.write("    pop rdi\n")
-                out.write("    syscall\n")
-                out.write("    push rax\n")
-            elif op.typ == OpType.SYSCALL2:
-                out.write("    ;; -- syscall2 -- \n")
-                out.write("    pop rax\n");
-                out.write("    pop rdi\n");
-                out.write("    pop rsi\n");
-                out.write("    syscall\n");
-                out.write("    push rax\n")
-            elif op.typ == OpType.SYSCALL3:
-                out.write("    ;; -- syscall3 --\n")
-                out.write("    pop rax\n")
-                out.write("    pop rdi\n")
-                out.write("    pop rsi\n")
-                out.write("    pop rdx\n")
-                out.write("    syscall\n")
-                out.write("    push rax\n")
-            elif op.typ == OpType.SYSCALL4:
-                out.write("    ;; -- syscall4 --\n")
-                out.write("    pop rax\n")
-                out.write("    pop rdi\n")
-                out.write("    pop rsi\n")
-                out.write("    pop rdx\n")
-                out.write("    pop r10\n")
-                out.write("    syscall\n")
-                out.write("    push rax\n")
-            elif op.typ == OpType.SYSCALL5:
-                out.write("    ;; -- syscall5 --\n")
-                out.write("    pop rax\n")
-                out.write("    pop rdi\n")
-                out.write("    pop rsi\n")
-                out.write("    pop rdx\n")
-                out.write("    pop r10\n")
-                out.write("    pop r8\n")
-                out.write("    syscall\n")
-                out.write("    push rax\n")
-            elif op.typ == OpType.SYSCALL6:
-                out.write("    ;; -- syscall6 --\n")
-                out.write("    pop rax\n")
-                out.write("    pop rdi\n")
-                out.write("    pop rsi\n")
-                out.write("    pop rdx\n")
-                out.write("    pop r10\n")
-                out.write("    pop r8\n")
-                out.write("    pop r9\n")
-                out.write("    syscall\n")
-                out.write("    push rax\n")
+            elif op.typ == OpType.INTRINSIC:
+                assert len(Intrinsic) == 29, "Exhaustive intrinsic handling in generate_nasm_linux_x86_64()"
+                if op.value == Intrinsic.PLUS:
+                    out.write("    ;; -- plus --\n")
+                    out.write("    pop rax\n")
+                    out.write("    pop rbx\n")
+                    out.write("    add rax, rbx\n")
+                    out.write("    push rax\n")
+                elif op.value == Intrinsic.MINUS:
+                    out.write("    ;; -- minus --\n")
+                    out.write("    pop rax\n")
+                    out.write("    pop rbx\n")
+                    out.write("    sub rbx, rax\n")
+                    out.write("    push rbx\n")
+                elif op.value == Intrinsic.MUL:
+                    out.write("    ;; -- mul --\n")
+                    out.write("    pop rax\n")
+                    out.write("    pop rbx\n")
+                    out.write("    mul rbx\n")
+                    out.write("    push rax\n")
+                elif op.value == Intrinsic.DIVMOD:
+                    out.write("    ;; -- mod --\n")
+                    out.write("    xor rdx, rdx\n")
+                    out.write("    pop rbx\n")
+                    out.write("    pop rax\n")
+                    out.write("    div rbx\n")
+                    out.write("    push rax\n");
+                    out.write("    push rdx\n");
+                elif op.value == Intrinsic.SHR:
+                    out.write("    ;; -- shr --\n")
+                    out.write("    pop rcx\n")
+                    out.write("    pop rbx\n")
+                    out.write("    shr rbx, cl\n")
+                    out.write("    push rbx\n")
+                elif op.value == Intrinsic.SHL:
+                    out.write("    ;; -- shl --\n")
+                    out.write("    pop rcx\n")
+                    out.write("    pop rbx\n")
+                    out.write("    shl rbx, cl\n")
+                    out.write("    push rbx\n")
+                elif op.value == Intrinsic.BOR:
+                    out.write("    ;; -- bor --\n")
+                    out.write("    pop rax\n")
+                    out.write("    pop rbx\n")
+                    out.write("    or rbx, rax\n")
+                    out.write("    push rbx\n")
+                elif op.value == Intrinsic.BAND:
+                    out.write("    ;; -- band --\n")
+                    out.write("    pop rax\n")
+                    out.write("    pop rbx\n")
+                    out.write("    and rbx, rax\n")
+                    out.write("    push rbx\n")
+                elif op.value == Intrinsic.PRINT:
+                    out.write("    ;; -- print --\n")
+                    out.write("    pop rdi\n")
+                    out.write("    call print\n")
+                elif op.value == Intrinsic.EQ:
+                    out.write("    ;; -- equal -- \n")
+                    out.write("    mov rcx, 0\n");
+                    out.write("    mov rdx, 1\n");
+                    out.write("    pop rax\n");
+                    out.write("    pop rbx\n");
+                    out.write("    cmp rax, rbx\n");
+                    out.write("    cmove rcx, rdx\n");
+                    out.write("    push rcx\n")
+                elif op.value == Intrinsic.GT:
+                    out.write("    ;; -- gt --\n")
+                    out.write("    mov rcx, 0\n");
+                    out.write("    mov rdx, 1\n");
+                    out.write("    pop rbx\n");
+                    out.write("    pop rax\n");
+                    out.write("    cmp rax, rbx\n");
+                    out.write("    cmovg rcx, rdx\n");
+                    out.write("    push rcx\n")
+                elif op.value == Intrinsic.LT:
+                    out.write("    ;; -- gt --\n")
+                    out.write("    mov rcx, 0\n");
+                    out.write("    mov rdx, 1\n");
+                    out.write("    pop rbx\n");
+                    out.write("    pop rax\n");
+                    out.write("    cmp rax, rbx\n");
+                    out.write("    cmovl rcx, rdx\n");
+                    out.write("    push rcx\n")
+                elif op.value == Intrinsic.GE:
+                    out.write("    ;; -- gt --\n")
+                    out.write("    mov rcx, 0\n");
+                    out.write("    mov rdx, 1\n");
+                    out.write("    pop rbx\n");
+                    out.write("    pop rax\n");
+                    out.write("    cmp rax, rbx\n");
+                    out.write("    cmovge rcx, rdx\n");
+                    out.write("    push rcx\n")
+                elif op.value == Intrinsic.LE:
+                    out.write("    ;; -- gt --\n")
+                    out.write("    mov rcx, 0\n");
+                    out.write("    mov rdx, 1\n");
+                    out.write("    pop rbx\n");
+                    out.write("    pop rax\n");
+                    out.write("    cmp rax, rbx\n");
+                    out.write("    cmovle rcx, rdx\n");
+                    out.write("    push rcx\n")
+                elif op.value == Intrinsic.NE:
+                    out.write("    ;; -- ne --\n")
+                    out.write("    mov rcx, 0\n")
+                    out.write("    mov rdx, 1\n")
+                    out.write("    pop rbx\n")
+                    out.write("    pop rax\n")
+                    out.write("    cmp rax, rbx\n")
+                    out.write("    cmovne rcx, rdx\n")
+                    out.write("    push rcx\n")
+                elif op.value == Intrinsic.DUP:
+                    out.write("    ;; -- dup -- \n")
+                    out.write("    pop rax\n")
+                    out.write("    push rax\n")
+                    out.write("    push rax\n")
+                elif op.value == Intrinsic.SWAP:
+                    out.write("    ;; -- swap --\n")
+                    out.write("    pop rax\n")
+                    out.write("    pop rbx\n")
+                    out.write("    push rax\n")
+                    out.write("    push rbx\n")
+                elif op.value == Intrinsic.DROP:
+                    out.write("    ;; -- drop --\n")
+                    out.write("    pop rax\n")
+                elif op.value == Intrinsic.OVER:
+                    out.write("    ;; -- over --\n")
+                    out.write("    pop rax\n")
+                    out.write("    pop rbx\n")
+                    out.write("    push rbx\n")
+                    out.write("    push rax\n")
+                    out.write("    push rbx\n")
+                elif op.value == Intrinsic.MEM:
+                    out.write("    ;; -- mem --\n")
+                    out.write("    push mem\n")
+                elif op.value == Intrinsic.LOAD:
+                    out.write("    ;; -- load --\n")
+                    out.write("    pop rax\n")
+                    out.write("    xor rbx, rbx\n")
+                    out.write("    mov bl, [rax]\n")
+                    out.write("    push rbx\n")
+                elif op.value == Intrinsic.STORE:
+                    out.write("    ;; -- store --\n")
+                    out.write("    pop rbx\n");
+                    out.write("    pop rax\n");
+                    out.write("    mov [rax], bl\n");
+                elif op.value == Intrinsic.SYSCALL0:
+                    out.write("    ;; -- syscall0 --\n")
+                    out.write("    pop rax\n")
+                    out.write("    syscall\n")
+                    out.write("    push rax\n")
+                elif op.value == Intrinsic.SYSCALL1:
+                    out.write("    ;; -- syscall1 --\n")
+                    out.write("    pop rax\n")
+                    out.write("    pop rdi\n")
+                    out.write("    syscall\n")
+                    out.write("    push rax\n")
+                elif op.value == Intrinsic.SYSCALL2:
+                    out.write("    ;; -- syscall2 -- \n")
+                    out.write("    pop rax\n");
+                    out.write("    pop rdi\n");
+                    out.write("    pop rsi\n");
+                    out.write("    syscall\n");
+                    out.write("    push rax\n")
+                elif op.value == Intrinsic.SYSCALL3:
+                    out.write("    ;; -- syscall3 --\n")
+                    out.write("    pop rax\n")
+                    out.write("    pop rdi\n")
+                    out.write("    pop rsi\n")
+                    out.write("    pop rdx\n")
+                    out.write("    syscall\n")
+                    out.write("    push rax\n")
+                elif op.value == Intrinsic.SYSCALL4:
+                    out.write("    ;; -- syscall4 --\n")
+                    out.write("    pop rax\n")
+                    out.write("    pop rdi\n")
+                    out.write("    pop rsi\n")
+                    out.write("    pop rdx\n")
+                    out.write("    pop r10\n")
+                    out.write("    syscall\n")
+                    out.write("    push rax\n")
+                elif op.value == Intrinsic.SYSCALL5:
+                    out.write("    ;; -- syscall5 --\n")
+                    out.write("    pop rax\n")
+                    out.write("    pop rdi\n")
+                    out.write("    pop rsi\n")
+                    out.write("    pop rdx\n")
+                    out.write("    pop r10\n")
+                    out.write("    pop r8\n")
+                    out.write("    syscall\n")
+                    out.write("    push rax\n")
+                elif op.value == Intrinsic.SYSCALL6:
+                    out.write("    ;; -- syscall6 --\n")
+                    out.write("    pop rax\n")
+                    out.write("    pop rdi\n")
+                    out.write("    pop rsi\n")
+                    out.write("    pop rdx\n")
+                    out.write("    pop r10\n")
+                    out.write("    pop r8\n")
+                    out.write("    pop r9\n")
+                    out.write("    syscall\n")
+                    out.write("    push rax\n")
+                else:
+                    assert False, "unreachable"
             else:
                 assert False, "unreachable"
 
@@ -598,37 +609,37 @@ KEYWORD_NAMES = {
     'include': Keyword.INCLUDE,
 }
 
-assert len(OpType) == 36, "Exhaustive BUILTIN_WORDS definition. Keep in mind that not all of the new ops need to be defined in here. Only those that introduce new builtin words."
-BUILTIN_WORDS = {
-    '+': OpType.PLUS,
-    '-': OpType.MINUS,
-    '*': OpType.MUL,
-    'divmod': OpType.DIVMOD,
-    'print': OpType.PRINT,
-    '=': OpType.EQ,
-    '>': OpType.GT,
-    '<': OpType.LT,
-    '>=': OpType.GE,
-    '<=': OpType.LE,
-    '!=': OpType.NE,
-    'shr': OpType.SHR,
-    'shl': OpType.SHL,
-    'bor': OpType.BOR,
-    'band': OpType.BAND,
-    'dup': OpType.DUP,
-    'swap': OpType.SWAP,
-    'drop': OpType.DROP,
-    'over': OpType.OVER,
-    'mem': OpType.MEM,
-    '.': OpType.STORE,
-    ',': OpType.LOAD,
-    'syscall0': OpType.SYSCALL0,
-    'syscall1': OpType.SYSCALL1,
-    'syscall2': OpType.SYSCALL2,
-    'syscall3': OpType.SYSCALL3,
-    'syscall4': OpType.SYSCALL4,
-    'syscall5': OpType.SYSCALL5,
-    'syscall6': OpType.SYSCALL6,
+assert len(Intrinsic) == 29, "Exhaustive INTRINSIC_NAMES definition"
+INTRINSIC_NAMES = {
+    '+': Intrinsic.PLUS,
+    '-': Intrinsic.MINUS,
+    '*': Intrinsic.MUL,
+    'divmod': Intrinsic.DIVMOD,
+    'print': Intrinsic.PRINT,
+    '=': Intrinsic.EQ,
+    '>': Intrinsic.GT,
+    '<': Intrinsic.LT,
+    '>=': Intrinsic.GE,
+    '<=': Intrinsic.LE,
+    '!=': Intrinsic.NE,
+    'shr': Intrinsic.SHR,
+    'shl': Intrinsic.SHL,
+    'bor': Intrinsic.BOR,
+    'band': Intrinsic.BAND,
+    'dup': Intrinsic.DUP,
+    'swap': Intrinsic.SWAP,
+    'drop': Intrinsic.DROP,
+    'over': Intrinsic.OVER,
+    'mem': Intrinsic.MEM,
+    '.': Intrinsic.STORE,
+    ',': Intrinsic.LOAD,
+    'syscall0': Intrinsic.SYSCALL0,
+    'syscall1': Intrinsic.SYSCALL1,
+    'syscall2': Intrinsic.SYSCALL2,
+    'syscall3': Intrinsic.SYSCALL3,
+    'syscall4': Intrinsic.SYSCALL4,
+    'syscall5': Intrinsic.SYSCALL5,
+    'syscall6': Intrinsic.SYSCALL6,
 }
 
 @dataclass
@@ -662,8 +673,8 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str]) -> 
         assert len(TokenType) == 5, "Exhaustive token handling in compile_tokens_to_program"
         if token.typ == TokenType.WORD:
             assert isinstance(token.value, str), "This could be a bug in the lexer"
-            if token.value in BUILTIN_WORDS:
-                program.append(Op(typ=BUILTIN_WORDS[token.value], loc=token.loc))
+            if token.value in INTRINSIC_NAMES:
+                program.append(Op(typ=OpType.INTRINSIC, loc=token.loc, value=INTRINSIC_NAMES[token.value]))
                 ip += 1
             elif token.value in macros:
                 rtokens += reversed(macros[token.value].tokens)
@@ -756,8 +767,8 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str]) -> 
                     print("%s:%d:%d: ERROR: redefinition of already existing macro `%s`" % (token.loc + (token.value, )))
                     print("%s:%d:%d: NOTE: the first definition is located here" % macros[token.value].loc)
                     exit(1)
-                if token.value in BUILTIN_WORDS:
-                    print("%s:%d:%d: ERROR: redefinition of a builtin word `%s`" % (token.loc + (token.value, )))
+                if token.value in INTRINSIC_NAMES:
+                    print("%s:%d:%d: ERROR: redefinition of an intrinsic word `%s`" % (token.loc + (token.value, )))
                     exit(1)
                 macro = Macro(token.loc, [])
                 macros[token.value] = macro
