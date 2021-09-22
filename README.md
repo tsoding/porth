@@ -27,6 +27,8 @@ include "std.porth"
 Simple program that prints numbers from 0 to 99 in an ascending order:
 
 ```pascal
+include "std.porth"
+
 100 0 while 2dup > do
     dup print 1 +
 end
