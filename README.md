@@ -155,15 +155,6 @@ a = pop()
 push(a)
 push(a)
 ```
-- `2dup` - duplicate pair.
-```
-b = pop()
-a = pop()
-push(a)
-push(b)
-push(a)
-push(b)
-```
 - `swap` - swap 2 elements on the top of the stack.
 ```
 a = pop()
