@@ -13,6 +13,16 @@ debug=False
 
 Loc=Tuple[str, int, int]
 
+class Keyword(Enum):
+    IF=auto()
+    END=auto()
+    ELSE=auto()
+    WHILE=auto()
+    DO=auto()
+    MACRO=auto()
+    INCLUDE=auto()
+
+# TODO: extract all builtin words into a separate op
 class OpType(Enum):
     PUSH_INT=auto()
     PUSH_STR=auto()
@@ -31,15 +41,11 @@ class OpType(Enum):
     BOR=auto()
     BAND=auto()
     PRINT=auto()
-
     IF=auto()
     END=auto()
     ELSE=auto()
     WHILE=auto()
     DO=auto()
-    MACRO=auto()
-    INCLUDE=auto()
-
     DUP=auto()
     SWAP=auto()
     DROP=auto()
@@ -77,13 +83,14 @@ class TokenType(Enum):
     INT=auto()
     STR=auto()
     CHAR=auto()
+    KEYWORD=auto()
 
-assert len(TokenType) == 4, "Exhaustive Token type definition. The `value` field of the Token dataclass may require an update"
+assert len(TokenType) == 5, "Exhaustive Token type definition. The `value` field of the Token dataclass may require an update"
 @dataclass
 class Token:
     typ: TokenType
     loc: Loc
-    value: Union[int, str]
+    value: Union[int, str, Keyword]
 
 STR_CAPACITY = 640_000 # should be enough for everyone
 MEM_CAPACITY = 640_000
@@ -95,7 +102,7 @@ def simulate_little_endian_linux(program: Program):
     str_size = 0
     ip = 0
     while ip < len(program):
-        assert len(OpType) == 38, "Exhaustive op handling in simulate_little_endian_linux"
+        assert len(OpType) == 36, "Exhaustive op handling in simulate_little_endian_linux"
         op = program[ip]
         if op.typ == OpType.PUSH_INT:
             assert isinstance(op.value, int), "This could be a bug in the compilation step"
@@ -197,10 +204,6 @@ def simulate_little_endian_linux(program: Program):
         elif op.typ == OpType.END:
             assert op.jmp is not None, "This could be a bug in the compilation step"
             ip = op.jmp
-        elif op.typ == OpType.MACRO:
-            assert False, "Unreachable. All of the macro definition should've been eliminated at the compilation step"
-        elif op.typ == OpType.INCLUDE:
-            assert False, "Unreachable. All of the file includes should've been eliminated at the compilation step"
         elif op.typ == OpType.PRINT:
             a = stack.pop()
             print(a)
@@ -333,7 +336,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
         out.write("_start:\n")
         for ip in range(len(program)):
             op = program[ip]
-            assert len(OpType) == 38, "Exhaustive ops handling in generate_nasm_linux_x86_64"
+            assert len(OpType) == 36, "Exhaustive ops handling in generate_nasm_linux_x86_64"
             out.write("addr_%d:\n" % ip)
             if op.typ == OpType.PUSH_INT:
                 assert isinstance(op.value, int), "This could be a bug in the compilation step"
@@ -472,10 +475,6 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                 out.write("    ;; -- end --\n")
                 if ip + 1 != op.jmp:
                     out.write("    jmp addr_%d\n" % op.jmp)
-            elif op.typ == OpType.MACRO:
-                assert False, "Unreachable. All of the macro definition should've been eliminated at the compilation step."
-            elif op.typ == OpType.INCLUDE:
-                assert False, "Unreachable. All of the file includes should've been eliminated at the compilation step."
             elif op.typ == OpType.DUP:
                 out.write("    ;; -- dup -- \n")
                 out.write("    pop rax\n")
@@ -588,7 +587,18 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
         out.write("segment .bss\n")
         out.write("mem: resb %d\n" % MEM_CAPACITY)
 
-assert len(OpType) == 38, "Exhaustive BUILTIN_WORDS definition. Keep in mind that not all of the new ops need to be defined in here. Only those that introduce new builtin words."
+assert len(Keyword) == 7, "Exhaustive KEYWORD_NAMES definition."
+KEYWORD_NAMES = {
+    'if': Keyword.IF,
+    'end': Keyword.END,
+    'else': Keyword.ELSE,
+    'while': Keyword.WHILE,
+    'do': Keyword.DO,
+    'macro': Keyword.MACRO,
+    'include': Keyword.INCLUDE,
+}
+
+assert len(OpType) == 36, "Exhaustive BUILTIN_WORDS definition. Keep in mind that not all of the new ops need to be defined in here. Only those that introduce new builtin words."
 BUILTIN_WORDS = {
     '+': OpType.PLUS,
     '-': OpType.MINUS,
@@ -605,15 +615,6 @@ BUILTIN_WORDS = {
     'shl': OpType.SHL,
     'bor': OpType.BOR,
     'band': OpType.BAND,
-
-    'if': OpType.IF,
-    'end': OpType.END,
-    'else': OpType.ELSE,
-    'while': OpType.WHILE,
-    'do': OpType.DO,
-    'macro': OpType.MACRO,
-    'include': OpType.INCLUDE,
-
     'dup': OpType.DUP,
     'swap': OpType.SWAP,
     'drop': OpType.DROP,
@@ -651,127 +652,131 @@ def human(typ: TokenType) -> str:
 
 def compile_tokens_to_program(tokens: List[Token], include_paths: List[str]) -> Program:
     stack = []
-    program = []
+    program: List[Op] = []
     rtokens = list(reversed(tokens))
     macros: Dict[str, Macro] = {}
     ip = 0;
     while len(rtokens) > 0:
         # TODO: some sort of safety mechanism for recursive macros
         token = rtokens.pop()
-        op = None
-        assert len(TokenType) == 4, "Exhaustive token handling in compile_tokens_to_program"
+        assert len(TokenType) == 5, "Exhaustive token handling in compile_tokens_to_program"
         if token.typ == TokenType.WORD:
             assert isinstance(token.value, str), "This could be a bug in the lexer"
             if token.value in BUILTIN_WORDS:
-                op = Op(typ=BUILTIN_WORDS[token.value], loc=token.loc)
+                program.append(Op(typ=BUILTIN_WORDS[token.value], loc=token.loc))
+                ip += 1
             elif token.value in macros:
                 rtokens += reversed(macros[token.value].tokens)
-                continue
             else:
                 print("%s:%d:%d: unknown word `%s`" % (token.loc + (token.value, )))
                 exit(1)
         elif token.typ == TokenType.INT:
-            op = Op(typ=OpType.PUSH_INT, value=token.value, loc=token.loc)
+            assert isinstance(token.value, int), "This could be a bug in the lexer"
+            program.append(Op(typ=OpType.PUSH_INT, value=token.value, loc=token.loc))
+            ip += 1
         elif token.typ == TokenType.STR:
-            op = Op(typ=OpType.PUSH_STR, value=token.value, loc=token.loc)
+            assert isinstance(token.value, str), "This could be a bug in the lexer"
+            program.append(Op(typ=OpType.PUSH_STR, value=token.value, loc=token.loc));
+            ip += 1
         elif token.typ == TokenType.CHAR:
             assert isinstance(token.value, int)
-            op = Op(typ=OpType.PUSH_INT, value=token.value, loc=token.loc)
+            program.append(Op(typ=OpType.PUSH_INT, value=token.value, loc=token.loc));
+            ip += 1
+        elif token.typ == TokenType.KEYWORD:
+            assert len(Keyword) == 7, "Exhaustive keywords handling in compile_tokens_to_program()"
+            if token.value == Keyword.IF:
+                program.append(Op(typ=OpType.IF, loc=token.loc))
+                stack.append(ip)
+                ip += 1
+            elif token.value == Keyword.ELSE:
+                program.append(Op(typ=OpType.ELSE, loc=token.loc))
+                if_ip = stack.pop()
+                if program[if_ip].typ != OpType.IF:
+                    print('%s:%d:%d: ERROR: `else` can only be used in `if`-blocks' % program[if_ip].loc)
+                    exit(1)
+                program[if_ip].jmp = ip + 1
+                stack.append(ip)
+                ip += 1
+            elif token.value == Keyword.END:
+                program.append(Op(typ=OpType.END, loc=token.loc))
+                block_ip = stack.pop()
+                if program[block_ip].typ == OpType.IF or program[block_ip].typ == OpType.ELSE:
+                    program[block_ip].jmp = ip
+                    program[ip].jmp = ip + 1
+                elif program[block_ip].typ == OpType.DO:
+                    assert program[block_ip].jmp is not None
+                    program[ip].jmp = program[block_ip].jmp
+                    program[block_ip].jmp = ip + 1
+                else:
+                    print('%s:%d:%d: ERROR: `end` can only close `if`, `else` or `do` blocks for now' % program[block_ip].loc)
+                    exit(1)
+                ip += 1
+            elif token.value == Keyword.WHILE:
+                program.append(Op(typ=OpType.WHILE, loc=token.loc))
+                stack.append(ip)
+                ip += 1
+            elif token.value == Keyword.DO:
+                program.append(Op(typ=OpType.DO, loc=token.loc))
+                while_ip = stack.pop()
+                program[ip].jmp = while_ip
+                stack.append(ip)
+                ip += 1
+            elif token.value == Keyword.INCLUDE:
+                if len(rtokens) == 0:
+                    print("%s:%d:%d: ERROR: expected path to the include file but found nothing" % token.loc)
+                    exit(1)
+                token = rtokens.pop()
+                if token.typ != TokenType.STR:
+                    print("%s:%d:%d: ERROR: expected path to the include file to be %s but found %s" % (token.loc + (human(TokenType.STR), human(token.typ))))
+                    exit(1)
+                assert isinstance(token.value, str), "This is probably a bug in the lexer"
+                # TODO: safety mechanism for recursive includes
+                file_included = False
+                for include_path in include_paths:
+                    try:
+                        rtokens += reversed(lex_file(path.join(include_path, token.value)))
+                        file_included = True
+                        break
+                    except FileNotFoundError:
+                        continue
+                if not file_included:
+                    print("%s:%d:%d: ERROR: file `%s` not found" % (token.loc + (token.value, )))
+                    exit(1)
+            # TODO: capability to define macros from command line
+            elif token.value == Keyword.MACRO:
+                if len(rtokens) == 0:
+                    print("%s:%d:%d: ERROR: expected macro name but found nothing" % token.loc)
+                    exit(1)
+                token = rtokens.pop()
+                if token.typ != TokenType.WORD:
+                    print("%s:%d:%d: ERROR: expected macro name to be %s but found %s" % (token.loc + (human(TokenType.WORD), human(token.typ))))
+                    exit(1)
+                assert isinstance(token.value, str), "This is probably a bug in the lexer"
+                if token.value in macros:
+                    print("%s:%d:%d: ERROR: redefinition of already existing macro `%s`" % (token.loc + (token.value, )))
+                    print("%s:%d:%d: NOTE: the first definition is located here" % macros[token.value].loc)
+                    exit(1)
+                if token.value in BUILTIN_WORDS:
+                    print("%s:%d:%d: ERROR: redefinition of a builtin word `%s`" % (token.loc + (token.value, )))
+                    exit(1)
+                macro = Macro(token.loc, [])
+                macros[token.value] = macro
+
+                # TODO: support for nested blocks within the macro definition
+                while len(rtokens) > 0:
+                    token = rtokens.pop()
+                    if token.typ == TokenType.KEYWORD and token.value == Keyword.END:
+                        break
+                    else:
+                        macro.tokens.append(token)
+                if token.typ != TokenType.KEYWORD or token.value != Keyword.END:
+                    print("%s:%d:%d: ERROR: expected `end` at the end of the macro definition but got `%s`" % (token.loc + (token.value, )))
+                    exit(1)
+            else:
+                assert False, 'unreachable';
         else:
             assert False, 'unreachable'
 
-        assert len(OpType) == 38, "Exhaustive ops handling in compile_tokens_to_program. Keep in mind that not all of the ops need to be handled in here. Only those that form blocks."
-        if op.typ == OpType.IF:
-            program.append(op)
-            stack.append(ip)
-            ip += 1
-        elif op.typ == OpType.ELSE:
-            program.append(op)
-            if_ip = stack.pop()
-            if program[if_ip].typ != OpType.IF:
-                print('%s:%d:%d: ERROR: `else` can only be used in `if`-blocks' % program[if_ip].loc)
-                exit(1)
-            program[if_ip].jmp = ip + 1
-            stack.append(ip)
-            ip += 1
-        elif op.typ == OpType.END:
-            program.append(op)
-            block_ip = stack.pop()
-            if program[block_ip].typ == OpType.IF or program[block_ip].typ == OpType.ELSE:
-                program[block_ip].jmp = ip
-                program[ip].jmp = ip + 1
-            elif program[block_ip].typ == OpType.DO:
-                assert program[block_ip].jmp is not None
-                program[ip].jmp = program[block_ip].jmp
-                program[block_ip].jmp = ip + 1
-            else:
-                print('%s:%d:%d: ERROR: `end` can only close `if`, `else` or `do` blocks for now' % program[block_ip].loc)
-                exit(1)
-            ip += 1
-        elif op.typ == OpType.WHILE:
-            program.append(op)
-            stack.append(ip)
-            ip += 1
-        elif op.typ == OpType.DO:
-            program.append(op)
-            while_ip = stack.pop()
-            program[ip].jmp = while_ip
-            stack.append(ip)
-            ip += 1
-        elif op.typ == OpType.INCLUDE:
-            if len(rtokens) == 0:
-                print("%s:%d:%d: ERROR: expected path to the include file but found nothing" % op.loc)
-                exit(1)
-            token = rtokens.pop()
-            if token.typ != TokenType.STR:
-                print("%s:%d:%d: ERROR: expected path to the include file to be %s but found %s" % (token.loc + (human(TokenType.STR), human(token.typ))))
-                exit(1)
-            assert isinstance(token.value, str), "This is probably a bug in the lexer"
-            # TODO: safety mechanism for recursive includes
-            file_included = False
-            for include_path in include_paths:
-                try:
-                    rtokens += reversed(lex_file(path.join(include_path, token.value)))
-                    file_included = True
-                    break
-                except FileNotFoundError:
-                    continue
-            if not file_included:
-                print("%s:%d:%d: ERROR: file `%s` not found" % (token.loc + (token.value, )))
-                exit(1)
-        # TODO: capability to define macros from command line
-        elif op.typ == OpType.MACRO:
-            if len(rtokens) == 0:
-                print("%s:%d:%d: ERROR: expected macro name but found nothing" % op.loc)
-                exit(1)
-            token = rtokens.pop()
-            if token.typ != TokenType.WORD:
-                print("%s:%d:%d: ERROR: expected macro name to be %s but found %s" % (token.loc + (human(TokenType.WORD), human(token.typ))))
-                exit(1)
-            assert isinstance(token.value, str), "This is probably a bug in the lexer"
-            if token.value in macros:
-                print("%s:%d:%d: ERROR: redefinition of already existing macro `%s`" % (token.loc + (token.value, )))
-                print("%s:%d:%d: NOTE: the first definition is located here" % macros[token.value].loc)
-                exit(1)
-            if token.value in BUILTIN_WORDS:
-                print("%s:%d:%d: ERROR: redefinition of a builtin word `%s`" % (token.loc + (token.value, )))
-                exit(1)
-            macro = Macro(op.loc, [])
-            macros[token.value] = macro
-
-            # TODO: support for nested blocks within the macro definition
-            while len(rtokens) > 0:
-                token = rtokens.pop()
-                if token.typ == TokenType.WORD and token.value == "end":
-                    break
-                else:
-                    macro.tokens.append(token)
-            if token.typ != TokenType.WORD or token.value != "end":
-                print("%s:%d:%d: ERROR: expected `end` at the end of the macro definition but got `%s`" % (token.loc + (token.value, )))
-                exit(1)
-        else:
-            program.append(op)
-            ip += 1
 
     if len(stack) > 0:
         print('%s:%d:%d: ERROR: unclosed block' % program[stack.pop()].loc)
@@ -794,6 +799,7 @@ def unescape_string(s: str) -> str:
 # TODO: lexer does not support // inside of string literals
 def lex_line(file_path: str, row: int, line: str) -> Generator[Token, None, None]:
     col = find_col(line, 0, lambda x: not x.isspace())
+    assert len(TokenType) == 5, 'Exhaustive handling of token types in lex_line'
     while col < len(line):
         loc = (file_path, row + 1, col + 1)
         col_end = None
@@ -822,7 +828,10 @@ def lex_line(file_path: str, row: int, line: str) -> Generator[Token, None, None
             try:
                 yield Token(TokenType.INT, loc, int(text_of_token))
             except ValueError:
-                yield Token(TokenType.WORD, loc, text_of_token)
+                if text_of_token in KEYWORD_NAMES:
+                    yield Token(TokenType.KEYWORD, loc, KEYWORD_NAMES[text_of_token])
+                else:
+                    yield Token(TokenType.WORD, loc, text_of_token)
             col = find_col(line, col_end, lambda x: not x.isspace())
 
 def lex_file(file_path: str) -> List[Token]:
