@@ -327,3 +327,8 @@ macro write STDOUT SYS_write syscall3 end
 
 macro 2dup over over end
 macro 2drop drop drop end
+
+macro / divmod drop end
+macro % divmod swap drop end
+macro mod % end
+macro div / end
