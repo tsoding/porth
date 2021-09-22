@@ -19,7 +19,7 @@ Porth is planned to be
 Hello, World:
 
 ```pascal
-include "io.porth"
+include "std.porth"
 
 "Hello, World\n" write
 ```
@@ -123,11 +123,11 @@ Those, a single string pushes two values onto the data stack: the size and the p
 Example:
 
 ```
-include "io.porth"
+include "std.porth"
 "Hello, World" write
 ```
 
-The `write` macro from `io.porth` module expects two values on the data stack: the size of the buffer it needs to print to stdout and the pointer to the beginning of the buffer. Both of the values are provided by the string `"Hello, World"`.
+The `write` macro from `std.porth` module expects two values on the data stack: the size of the buffer it needs to print to stdout and the pointer to the beginning of the buffer. Both of the values are provided by the string `"Hello, World"`.
 
 #### Character
 

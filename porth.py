@@ -41,7 +41,6 @@ class OpType(Enum):
     INCLUDE=auto()
 
     DUP=auto()
-    DUP2=auto()
     SWAP=auto()
     DROP=auto()
     OVER=auto()
@@ -96,7 +95,7 @@ def simulate_little_endian_linux(program: Program):
     str_size = 0
     ip = 0
     while ip < len(program):
-        assert len(OpType) == 39, "Exhaustive op handling in simulate_little_endian_linux"
+        assert len(OpType) == 38, "Exhaustive op handling in simulate_little_endian_linux"
         op = program[ip]
         if op.typ == OpType.PUSH_INT:
             assert isinstance(op.value, int), "This could be a bug in the compilation step"
@@ -209,14 +208,6 @@ def simulate_little_endian_linux(program: Program):
             a = stack.pop()
             stack.append(a)
             stack.append(a)
-            ip += 1
-        elif op.typ == OpType.DUP2:
-            b = stack.pop()
-            a = stack.pop()
-            stack.append(a)
-            stack.append(b)
-            stack.append(a)
-            stack.append(b)
             ip += 1
         elif op.typ == OpType.SWAP:
             a = stack.pop()
@@ -341,7 +332,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
         out.write("_start:\n")
         for ip in range(len(program)):
             op = program[ip]
-            assert len(OpType) == 39, "Exhaustive ops handling in generate_nasm_linux_x86_64"
+            assert len(OpType) == 38, "Exhaustive ops handling in generate_nasm_linux_x86_64"
             out.write("addr_%d:\n" % ip)
             if op.typ == OpType.PUSH_INT:
                 assert isinstance(op.value, int), "This could be a bug in the compilation step"
@@ -488,14 +479,6 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                 out.write("    pop rax\n")
                 out.write("    push rax\n")
                 out.write("    push rax\n")
-            elif op.typ == OpType.DUP2:
-                out.write("    ;; -- 2dup -- \n")
-                out.write("    pop rbx\n")
-                out.write("    pop rax\n")
-                out.write("    push rax\n")
-                out.write("    push rbx\n")
-                out.write("    push rax\n")
-                out.write("    push rbx\n")
             elif op.typ == OpType.SWAP:
                 out.write("    ;; -- swap --\n")
                 out.write("    pop rax\n")
@@ -603,7 +586,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
         out.write("segment .bss\n")
         out.write("mem: resb %d\n" % MEM_CAPACITY)
 
-assert len(OpType) == 39, "Exhaustive BUILTIN_WORDS definition. Keep in mind that not all of the new ops need to be defined in here. Only those that introduce new builtin words."
+assert len(OpType) == 38, "Exhaustive BUILTIN_WORDS definition. Keep in mind that not all of the new ops need to be defined in here. Only those that introduce new builtin words."
 BUILTIN_WORDS = {
     '+': OpType.PLUS,
     '-': OpType.MINUS,
@@ -630,7 +613,6 @@ BUILTIN_WORDS = {
     'include': OpType.INCLUDE,
 
     'dup': OpType.DUP,
-    '2dup': OpType.DUP2,
     'swap': OpType.SWAP,
     'drop': OpType.DROP,
     'over': OpType.OVER,
@@ -696,7 +678,7 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str]) -> 
         else:
             assert False, 'unreachable'
 
-        assert len(OpType) == 39, "Exhaustive ops handling in compile_tokens_to_program. Keep in mind that not all of the ops need to be handled in here. Only those that form blocks."
+        assert len(OpType) == 38, "Exhaustive ops handling in compile_tokens_to_program. Keep in mind that not all of the ops need to be handled in here. Only those that form blocks."
         if op.typ == OpType.IF:
             program.append(op)
             stack.append(ip)
