@@ -239,16 +239,11 @@ a = pop()
 b = pop()
 push(b * a)
 ```
-- `/`
+- `divmod`
 ```
 a = pop()
 b = pop()
-push(b / a)
-```
-- `mod`
-```
-a = pop()
-b = pop()
+push(b // a)
 push(b % a)
 ```
 
