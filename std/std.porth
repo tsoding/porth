@@ -5,7 +5,8 @@ macro STDERR 2 end
 
 /// Syscalls
 // Stolen from https://filippo.io/linux-syscall-table/
-// gawk '{ print "macro", "SYS_"$2, $1, "end" }' ./syscalls.in > syscalls.porth
+// Not all of the syscalls here are useful/implemented. I literally just copy-pasted them.
+// We can clean this up later.
 macro SYS_read 0 end
 macro SYS_write 1 end
 macro SYS_open 2 end
