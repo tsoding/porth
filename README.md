@@ -239,6 +239,12 @@ a = pop()
 b = pop()
 push(b * a)
 ```
+- `/`
+```
+a = pop()
+b = pop()
+push(b / a)
+```
 - `mod`
 ```
 a = pop()

@@ -1,21 +1,25 @@
 include "std.porth"
 
-// Add
+"Addition:\n" write
 34 35 + print
 
 "------------------------------\n" write
 
-// Subtract
+"Subtraction:\n" write
 500 80 - print
 
 "------------------------------\n" write
 
-// Modulo
+"Divison:\n" write
+69000 1000 / print
+
+"------------------------------\n" write
+
+"Modulo:\n" write
 5 100 mod print
 104 100 mod print
 
 "------------------------------\n" write
 
-// Multiple
-
+"Multiplication:\n" write
 42 10 * print
