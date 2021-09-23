@@ -768,7 +768,7 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str]) -> 
                     print("%s:%d:%d: NOTE: the first definition is located here" % macros[token.value].loc)
                     exit(1)
                 if token.value in INTRINSIC_NAMES:
-                    print("%s:%d:%d: ERROR: redefinition of an intrinsic word `%s`" % (token.loc + (token.value, )))
+                    print("%s:%d:%d: ERROR: redefinition of an intrinsic word `%s`. Please choose a different name for your macro." % (token.loc + (token.value, )))
                     exit(1)
                 macro = Macro(token.loc, [])
                 macros[token.value] = macro
