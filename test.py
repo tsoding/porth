@@ -4,6 +4,7 @@ import sys
 import os
 import subprocess
 import shlex
+import platform
 
 def cmd_run_echoed(cmd, **kwargs):
     print("[CMD] %s" % " ".join(map(shlex.quote, cmd)))
@@ -26,8 +27,10 @@ def test(folder):
             expected_output = None
             with open(txt_path, "rb") as f:
                 expected_output = f.read()
-
-            sim_output = cmd_run_echoed(["./porth.py", "sim", entry.path], capture_output=True).stdout
+            if platform.system() == "Windows":
+                sim_output = cmd_run_echoed(["wsl", "python3", "./porth.py", "sim", entry.path], capture_output=True).stdout.replace(b"\r\n", b"\n") # TODO: remove this dirty replace hack, it is needed since windows converts \n to \r\n
+            else:
+                sim_output = cmd_run_echoed(["./porth.py", "sim", entry.path], capture_output=True).stdout
             if sim_output != expected_output:
                 sim_failed += 1
                 print("[ERROR] Unexpected simulation output")
@@ -37,8 +40,12 @@ def test(folder):
                 print("    %s" % sim_output)
                 # exit(1)
 
-            cmd_run_echoed(["./porth.py", "com", entry.path])
-            com_output = cmd_run_echoed([entry.path[:-len(porth_ext)]], capture_output=True).stdout
+            if platform.system() == "Windows":
+                cmd_run_echoed(["python", "./porth.py", "com", entry.path])
+                com_output = cmd_run_echoed(["wsl", entry.path[:-len(porth_ext)]], capture_output=True).stdout.replace(b"\r\n", b"\n") # TODO: remove this dirty replace hack, it is needed since windows converts \n to \r\n
+            else:
+                cmd_run_echoed(["./porth.py", "com", entry.path])
+                com_output = cmd_run_echoed([entry.path[:-len(porth_ext)]], capture_output=True).stdout
             if com_output != expected_output:
                 com_failed += 1
                 print("[ERROR] Unexpected compilation output")
@@ -56,7 +63,10 @@ def record(folder):
     for entry in os.scandir(folder):
         porth_ext = '.porth'
         if entry.is_file() and entry.path.endswith(porth_ext):
-            sim_output = cmd_run_echoed(["./porth.py", "sim", entry.path], capture_output=True).stdout
+            if platform.system() == "Windows":
+                sim_output = cmd_run_echoed(["python", "./porth.py", "sim", entry.path], capture_output=True).stdout.replace(b"\r\n", b"\n") # TODO: remove this dirty replace hack, it is needed since windows converts \n to \r\n
+            else:
+                sim_output = cmd_run_echoed(["./porth.py", "sim", entry.path], capture_output=True).stdout
             txt_path = entry.path[:-len(porth_ext)] + ".txt"
             print("[INFO] Saving output to %s" % txt_path)
             with open(txt_path, "wb") as txt_file:

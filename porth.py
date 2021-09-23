@@ -4,6 +4,7 @@ import os
 import sys
 import subprocess
 import shlex
+import platform
 from os import path
 from typing import *
 from enum import Enum, auto
@@ -957,14 +958,23 @@ if __name__ == '__main__' and '__file__' in globals():
                 basename = basename[:-len(porth_ext)]
             basedir = path.dirname(program_path)
         basepath = path.join(basedir, basename)
-
+        print(f"{basepath=} {basedir=} {basename=}")
         print("[INFO] Generating %s" % (basepath + ".asm"))
         program = compile_file_to_program(program_path, include_paths);
         generate_nasm_linux_x86_64(program, basepath + ".asm")
-        cmd_call_echoed(["nasm", "-felf64", basepath + ".asm"])
-        cmd_call_echoed(["ld", "-o", basepath, basepath + ".o"])
+        if platform.system() == "Windows": # Pseudo Windows 10/11 support, requiring a wsl(version irelevant) installation with nasm and ld (gnu binutils) install on the default Distro
+            win_basepath = basepath.replace("\\", "/")
+            cmd_call_echoed(["wsl", "nasm", "-felf64", win_basepath + ".asm"])
+            cmd_call_echoed(["wsl", "ld", "-o", win_basepath, win_basepath + ".o"])
+        else:
+            cmd_call_echoed(["nasm", "-felf64", basepath + ".asm"])
+            cmd_call_echoed(["ld", "-o", basepath, basepath + ".o"])
         if run:
-            exit(cmd_call_echoed([basepath] + argv))
+            if platform.system() == "Windows": # Pseudo Windows 10/11 support, requiring a wsl(version irelevant) installation with nasm and ld (gnu binutils) install on the default Distro
+                win_basepath = basepath.replace("\\", "/")
+                exit(cmd_call_echoed(["wsl", win_basepath] + argv))
+            else:
+                exit(cmd_call_echoed([basepath] + argv))
     elif subcommand == "help":
         usage(compiler_name)
         exit(0)
