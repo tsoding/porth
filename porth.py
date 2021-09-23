@@ -649,7 +649,7 @@ class Macro:
 
 def human(typ: TokenType) -> str:
     '''Human readable representation of an object that can be used in error messages'''
-    assert len(TokenType) == 4, "Exhaustive handling of token types in human()"
+    assert len(TokenType) == 5, "Exhaustive handling of token types in human()"
     if typ == TokenType.WORD:
         return "a word"
     elif typ == TokenType.INT:
@@ -658,6 +658,8 @@ def human(typ: TokenType) -> str:
         return "a string"
     elif typ == TokenType.CHAR:
         return "a character"
+    elif typ == TokenType.KEYWORD:
+        return "a keyword"
     else:
         assert False, "unreachable"
 
