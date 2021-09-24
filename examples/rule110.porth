@@ -1,41 +1,40 @@
-// |board             |display            |
-// ^
-// mem
-
 include "std.porth"
 
+// Max width of the row
 macro N 100 end
 
-mem N 2 - + 1 .
+// Memory layout
+macro row mem end
+macro display row N + end
+
+row N 2 - + 1 .
+display N + 10 .
 
 0 while dup N 2 - < do
    0 while dup N < do
-      dup mem + , if
-         dup mem + N + '*' .
+      dup row + , if
+         dup display + '*' .
       else
-         dup mem + N + ' ' .
+         dup display + ' ' .
       end
       1 +
-   end
-   mem + N + 10 .
-   N 1 + mem N + write drop
+   end drop
 
-   // pattern
-   mem     , 1 shl
-   mem 1 + ,
+   N 1 + display write drop
+
+   row     , 1 shl
+   row 1 + ,
    bor
 
    1 while dup N 2 - < do
       swap 1 shl 7 band
-      over mem + 1 + , bor
+      over row + 1 + , bor
       2dup 110 swap shr 1 band
-      swap mem + swap .
+      swap row + swap .
       swap
 
       1 +
-   end
-   drop drop
+   end 2drop
 
    1 +
-end
-drop
+end drop
