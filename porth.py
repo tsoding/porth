@@ -830,16 +830,15 @@ def lex_line(file_path: str, row: int, line: str) -> Generator[Token, None, None
         else:
             col_end = find_col(line, col, lambda x: x.isspace())
             text_of_token = line[col:col_end]
-
-            if text_of_token.startswith("//"):
-                break
-
+            
             try:
                 yield Token(TokenType.INT, loc, int(text_of_token))
             except ValueError:
                 if text_of_token in KEYWORD_NAMES:
                     yield Token(TokenType.KEYWORD, loc, KEYWORD_NAMES[text_of_token])
                 else:
+                    if text_of_token.startswith("//"):
+                        break
                     yield Token(TokenType.WORD, loc, text_of_token)
             col = find_col(line, col_end, lambda x: not x.isspace())
 
