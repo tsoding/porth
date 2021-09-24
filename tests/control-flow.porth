@@ -4,7 +4,7 @@ include "std.porth"
 34 35 + 70 = if 69 print else 420 print end
 34 35 + 69 = if 69 print else 420 print end
 
-"------------------------------\n" write
+"------------------------------\n" stdout write
 
 // while
 10 while dup 0 > do

@@ -4,45 +4,45 @@ include "std.porth"
 10 20 30 print print print
 10 print 20 print 30 print
 
-"------------------------------\n" write
+"------------------------------\n" stdout write
 
 // push str
-"Hello, World\n" write // ascii
-"Привет, Мир!\n" write // utf-8
-"Hello, \"World\"\n" write // string with double quotes
+"Hello, World\n" stdout write // ascii
+"Привет, Мир!\n" stdout write // utf-8
+"Hello, \"World\"\n" stdout write // string with double quotes
 
-"------------------------------\n" write
+"------------------------------\n" stdout write
 
 // Characters
 'E' print
 
-"------------------------------\n" write
+"------------------------------\n" stdout write
 
 // dup
 420 dup dup print print print
 69 dup print dup print print
 
-"------------------------------\n" write
+"------------------------------\n" stdout write
 
 // 2dup
 69 420 2dup print print print print
 
-"------------------------------\n" write
+"------------------------------\n" stdout write
 
 // swap
 69 420 swap print print
 
-"------------------------------\n" write
+"------------------------------\n" stdout write
 
 // drop
 69 420 drop print
 
-"------------------------------\n" write
+"------------------------------\n" stdout write
 
 // over
 69 420 over print
 
-"------------------------------\n" write
+"------------------------------\n" stdout write
 
 // big number
 1234567890987654321 print
