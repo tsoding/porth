@@ -37,8 +37,7 @@ def test(folder):
                 print("    %s" % sim_output)
                 # exit(1)
 
-            cmd_run_echoed(["./porth.py", "com", entry.path])
-            com_output = cmd_run_echoed([entry.path[:-len(porth_ext)]], capture_output=True).stdout
+            com_output = cmd_run_echoed(["./porth.py", "com", "-r", "-s", entry.path], capture_output=True).stdout
             if com_output != expected_output:
                 com_failed += 1
                 print("[ERROR] Unexpected compilation output")
