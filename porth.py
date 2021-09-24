@@ -817,7 +817,7 @@ def lex_lines(file_path: str, lines: List[str]) -> Generator[Token, None, None]:
     while row < len(lines):
         line = lines[row]
         col = find_col(line, 0, lambda x: not x.isspace())
-        col_end = None
+        col_end = 0 
         while col < len(line):
             loc = (file_path, row + 1, col + 1)
             if line[col] == '"':
