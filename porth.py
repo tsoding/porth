@@ -64,20 +64,13 @@ class OpType(Enum):
     WHILE=auto()
     DO=auto()
 
+OpAddr=int
+
 @dataclass
 class Op:
     typ: OpType
     loc: Loc
-    # Exists only for OpType.PUSH_INT, Op.PUSH_STR. Contains the value
-    # that needs to be pushed onto the stack.
-    operand: Optional[Union[int, str, Intrinsic]] = None
-    # Exists only for block Ops like `if`, `else`, `while`,
-    # etc. Contains an index of an Op within the Program that the
-    # execution has to jump to depending on the circumstantces. In
-    # case of `if` it's the place of else branch, in case of `else`
-    # it's the end of the construction, etc.
-    # TODO: merge value and jmp
-    jmp: Optional[int] = None
+    operand: Optional[Union[int, str, Intrinsic, OpAddr]] = None
 
 Program=List[Op]
 
@@ -126,23 +119,23 @@ def simulate_little_endian_linux(program: Program):
         elif op.typ == OpType.IF:
             a = stack.pop()
             if a == 0:
-                assert op.jmp is not None, "This could be a bug in the compilation step"
-                ip = op.jmp
+                assert isinstance(op.operand, OpAddr), "This could be a bug in the compilation step"
+                ip = op.operand
             else:
                 ip += 1
         elif op.typ == OpType.ELSE:
-            assert op.jmp is not None, "This could be a bug in the compilation step"
-            ip = op.jmp
+            assert isinstance(op.operand, OpAddr), "This could be a bug in the compilation step"
+            ip = op.operand
         elif op.typ == OpType.END:
-            assert op.jmp is not None, "This could be a bug in the compilation step"
-            ip = op.jmp
+            assert isinstance(op.operand, OpAddr), "This could be a bug in the compilation step"
+            ip = op.operand
         elif op.typ == OpType.WHILE:
             ip += 1
         elif op.typ == OpType.DO:
             a = stack.pop()
             if a == 0:
-                assert op.jmp is not None, "This could be a bug in the compilation step"
-                ip = op.jmp
+                assert isinstance(op.operand, OpAddr), "This could be a bug in the compilation step"
+                ip = op.operand
             else:
                 ip += 1
         elif op.typ == OpType.INTRINSIC:
@@ -363,25 +356,25 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                 out.write("    ;; -- if --\n")
                 out.write("    pop rax\n")
                 out.write("    test rax, rax\n")
-                assert op.jmp is not None, "This could be a bug in the compilation step"
-                out.write("    jz addr_%d\n" % op.jmp)
+                assert isinstance(op.operand, int), "This could be a bug in the compilation step"
+                out.write("    jz addr_%d\n" % op.operand)
             elif op.typ == OpType.ELSE:
                 out.write("    ;; -- else --\n")
-                assert op.jmp is not None, "This could be a bug in the compilation step"
-                out.write("    jmp addr_%d\n" % op.jmp)
+                assert isinstance(op.operand, int), "This could be a bug in the compilation step"
+                out.write("    jmp addr_%d\n" % op.operand)
             elif op.typ == OpType.END:
-                assert op.jmp is not None, "This could be a bug in the compilation step"
+                assert isinstance(op.operand, int), "This could be a bug in the compilation step"
                 out.write("    ;; -- end --\n")
-                if ip + 1 != op.jmp:
-                    out.write("    jmp addr_%d\n" % op.jmp)
+                if ip + 1 != op.operand:
+                    out.write("    jmp addr_%d\n" % op.operand)
             elif op.typ == OpType.WHILE:
                 out.write("    ;; -- while --\n")
             elif op.typ == OpType.DO:
                 out.write("    ;; -- do --\n")
                 out.write("    pop rax\n")
                 out.write("    test rax, rax\n")
-                assert op.jmp is not None, "This could be a bug in the compilation step"
-                out.write("    jz addr_%d\n" % op.jmp)
+                assert isinstance(op.operand, int), "This could be a bug in the compilation step"
+                out.write("    jz addr_%d\n" % op.operand)
             elif op.typ == OpType.INTRINSIC:
                 assert len(Intrinsic) == 29, "Exhaustive intrinsic handling in generate_nasm_linux_x86_64()"
                 if op.operand == Intrinsic.PLUS:
@@ -664,11 +657,11 @@ def human(typ: TokenType) -> str:
         assert False, "unreachable"
 
 def compile_tokens_to_program(tokens: List[Token], include_paths: List[str]) -> Program:
-    stack = []
+    stack: List[OpAddr] = []
     program: List[Op] = []
-    rtokens = list(reversed(tokens))
+    rtokens: List[Token] = list(reversed(tokens))
     macros: Dict[str, Macro] = {}
-    ip = 0;
+    ip: OpAddr = 0;
     while len(rtokens) > 0:
         # TODO: some sort of safety mechanism for recursive macros
         token = rtokens.pop()
@@ -707,19 +700,19 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str]) -> 
                 if program[if_ip].typ != OpType.IF:
                     print('%s:%d:%d: ERROR: `else` can only be used in `if`-blocks' % program[if_ip].loc)
                     exit(1)
-                program[if_ip].jmp = ip + 1
+                program[if_ip].operand = ip + 1
                 stack.append(ip)
                 ip += 1
             elif token.value == Keyword.END:
                 program.append(Op(typ=OpType.END, loc=token.loc))
                 block_ip = stack.pop()
                 if program[block_ip].typ == OpType.IF or program[block_ip].typ == OpType.ELSE:
-                    program[block_ip].jmp = ip
-                    program[ip].jmp = ip + 1
+                    program[block_ip].operand = ip
+                    program[ip].operand = ip + 1
                 elif program[block_ip].typ == OpType.DO:
-                    assert program[block_ip].jmp is not None
-                    program[ip].jmp = program[block_ip].jmp
-                    program[block_ip].jmp = ip + 1
+                    assert program[block_ip].operand is not None
+                    program[ip].operand = program[block_ip].operand
+                    program[block_ip].operand = ip + 1
                 else:
                     print('%s:%d:%d: ERROR: `end` can only close `if`, `else` or `do` blocks for now' % program[block_ip].loc)
                     exit(1)
@@ -731,7 +724,7 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str]) -> 
             elif token.value == Keyword.DO:
                 program.append(Op(typ=OpType.DO, loc=token.loc))
                 while_ip = stack.pop()
-                program[ip].jmp = while_ip
+                program[ip].operand = while_ip
                 stack.append(ip)
                 ip += 1
             elif token.value == Keyword.INCLUDE:
