@@ -21,7 +21,7 @@ Hello, World:
 ```pascal
 include "std.porth"
 
-"Hello, World\n" write
+"Hello, World\n" stdout write
 ```
 
 Simple program that prints numbers from 0 to 99 in an ascending order:
@@ -126,10 +126,15 @@ Example:
 
 ```
 include "std.porth"
-"Hello, World" write
+"Hello, World" stdout write
 ```
 
-The `write` macro from `std.porth` module expects two values on the data stack: the size of the buffer it needs to print to stdout and the pointer to the beginning of the buffer. Both of the values are provided by the string `"Hello, World"`.
+The `write` macro from `std.porth` module expects three values on the data stack:
+1. the size of the buffer it needs to print,
+2. the pointer to the beginning of the buffer,
+3. and the output file descriptor where it needs to print to.
+
+The size and the pointer are provided by the string `"Hello, World"`. The file descriptor is `stdout` macro from `std.porth`.
 
 #### Character
 
