@@ -810,52 +810,68 @@ def find_string_literal_end(line: str, start: int) -> int:
         start += 1
     return start
 
-# TODO: lexer does not support new lines inside of the string literals
-def lex_line(file_path: str, row: int, line: str) -> Generator[Token, None, None]:
-    col = find_col(line, 0, lambda x: not x.isspace())
-    assert len(TokenType) == 5, 'Exhaustive handling of token types in lex_line'
-    while col < len(line):
-        loc = (file_path, row + 1, col + 1)
-        col_end = None
-        if line[col] == '"':
-            col_end = find_string_literal_end(line, col+1)
-            if col_end >= len(line) or line[col_end] != '"':
-                print("%s:%d:%d: ERROR: unclosed string literal" % loc)
-                exit(1)
-            text_of_token = line[col+1:col_end]
-            yield Token(TokenType.STR, loc, unescape_string(text_of_token))
-            col = find_col(line, col_end+1, lambda x: not x.isspace())
-        elif line[col] == "'":
-            col_end = find_col(line, col+1, lambda x: x == "'")
-            if col_end >= len(line) or line[col_end] != "'":
-                print("%s:%d:%d: ERROR: unclosed character literal" % loc)
-                exit(1)
-            char_bytes = unescape_string(line[col+1:col_end]).encode('utf-8')
-            if len(char_bytes) != 1:
-                print("%s:%d:%d: ERROR: only a single byte is allowed inside of a character literal" % loc)
-                exit(1)
-            yield Token(TokenType.CHAR, loc, char_bytes[0])
-            col = find_col(line, col_end+1, lambda x: not x.isspace())
-        else:
-            col_end = find_col(line, col, lambda x: x.isspace())
-            text_of_token = line[col:col_end]
-            
-            try:
-                yield Token(TokenType.INT, loc, int(text_of_token))
-            except ValueError:
-                if text_of_token in KEYWORD_NAMES:
-                    yield Token(TokenType.KEYWORD, loc, KEYWORD_NAMES[text_of_token])
-                else:
-                    if text_of_token.startswith("//"):
+def lex_lines(file_path: str, lines: List[str]) -> Generator[Token, None, None]:
+    assert len(TokenType) == 5, 'Exhaustive handling of token types in lex_lines'
+    row = 0
+    str_literal_buf = ""
+    while row < len(lines):
+        line = lines[row]
+        col = find_col(line, 0, lambda x: not x.isspace())
+        col_end = 0 
+        while col < len(line):
+            loc = (file_path, row + 1, col + 1)
+            if line[col] == '"':
+                while row < len(lines):
+                    start = col
+                    if str_literal_buf == "":
+                        start += 1
+                    else:
+                        line = lines[row]
+                    col_end = find_string_literal_end(line, start)
+                    if col_end >= len(line) or line[col_end] != '"':
+                        str_literal_buf += line[start:]
+                        row +=1 
+                        col = 0
+                    else:
+                        str_literal_buf += line[start:col_end]
                         break
-                    yield Token(TokenType.WORD, loc, text_of_token)
-            col = find_col(line, col_end, lambda x: not x.isspace())
+                if row >= len(lines): 
+                    print("%s:%d:%d: ERROR: unclosed string literal" % loc)
+                    exit(1)
+                text_of_token = str_literal_buf
+                str_literal_buf = ""
+                yield Token(TokenType.STR, loc, unescape_string(text_of_token))
+                col = find_col(line, col_end+1, lambda x: not x.isspace())
+            elif line[col] == "'":
+                col_end = find_col(line, col+1, lambda x: x == "'")
+                if col_end >= len(line) or line[col_end] != "'":
+                    print("%s:%d:%d: ERROR: unclosed character literal" % loc)
+                    exit(1)
+                char_bytes = unescape_string(line[col+1:col_end]).encode('utf-8')
+                if len(char_bytes) != 1:
+                    print("%s:%d:%d: ERROR: only a single byte is allowed inside of a character literal" % loc)
+                    exit(1)
+                yield Token(TokenType.CHAR, loc, char_bytes[0])
+                col = find_col(line, col_end+1, lambda x: not x.isspace())
+            else:
+                col_end = find_col(line, col, lambda x: x.isspace())
+                text_of_token = line[col:col_end]
+                
+                try:
+                    yield Token(TokenType.INT, loc, int(text_of_token))
+                except ValueError:
+                    if text_of_token in KEYWORD_NAMES:
+                        yield Token(TokenType.KEYWORD, loc, KEYWORD_NAMES[text_of_token])
+                    else:
+                        if text_of_token.startswith("//"):
+                            break
+                        yield Token(TokenType.WORD, loc, text_of_token)
+                col = find_col(line, col_end, lambda x: not x.isspace())
+        row += 1
 
 def lex_file(file_path: str) -> List[Token]:
     with open(file_path, "r", encoding='utf-8') as f:
-        return [token
-                for (row, line) in enumerate(f.readlines())
-                for token in lex_line(file_path, row, line)]
+        return [token for token in lex_lines(file_path, f.readlines())]
 
 def compile_file_to_program(file_path: str, include_paths: List[str]) -> Program:
     return compile_tokens_to_program(lex_file(file_path), include_paths)
