@@ -9,6 +9,7 @@ include "std.porth"
 // push str
 "Hello, World\n" stdout write // ascii
 "Привет, Мир!\n" stdout write // utf-8
+"Hello, \"World\"\n" stdout write // string with double quotes
 
 "------------------------------\n" stdout write
 
