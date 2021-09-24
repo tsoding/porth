@@ -800,8 +800,17 @@ def unescape_string(s: str) -> str:
     # to do this weird round trip
     return s.encode('utf-8').decode('unicode_escape').encode('latin-1').decode('utf-8')
 
+def find_string_literal_end(line: str, start: int) -> int:
+    prev = line[start]
+    while start < len(line):
+        curr = line[start]
+        if curr == '"' and prev != '\\':
+            break
+        prev = curr
+        start += 1
+    return start
+
 # TODO: lexer does not support new lines inside of the string literals
-# TODO: lexer does not support quotes inside of the string literals
 # TODO: lexer does not support // inside of string literals
 def lex_line(file_path: str, row: int, line: str) -> Generator[Token, None, None]:
     col = find_col(line, 0, lambda x: not x.isspace())
@@ -810,7 +819,7 @@ def lex_line(file_path: str, row: int, line: str) -> Generator[Token, None, None
         loc = (file_path, row + 1, col + 1)
         col_end = None
         if line[col] == '"':
-            col_end = find_col(line, col+1, lambda x: x == '"')
+            col_end = find_string_literal_end(line, col+1)
             if col_end >= len(line) or line[col_end] != '"':
                 print("%s:%d:%d: ERROR: unclosed string literal" % loc)
                 exit(1)
