@@ -1,0 +1,25 @@
+include "std.porth"
+
+macro check_less
+  < if
+    "YES\n" stdout write
+  else
+    "NO\n" stdout write
+  end
+end
+
+1 2 check_less
+2 1 check_less
+
+macro even_fibs
+  0 1 while over 1000000 < do
+    over 2 mod 0 = if
+      over print
+    end
+    swap over +
+  end
+end
+
+"------------------------------\n" stdout write
+
+even_fibs
