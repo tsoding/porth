@@ -802,7 +802,6 @@ def unescape_string(s: str) -> str:
 
 # TODO: lexer does not support new lines inside of the string literals
 # TODO: lexer does not support quotes inside of the string literals
-# TODO: lexer does not support // inside of string literals
 def lex_line(file_path: str, row: int, line: str) -> Generator[Token, None, None]:
     col = find_col(line, 0, lambda x: not x.isspace())
     assert len(TokenType) == 5, 'Exhaustive handling of token types in lex_line'
@@ -831,6 +830,10 @@ def lex_line(file_path: str, row: int, line: str) -> Generator[Token, None, None
         else:
             col_end = find_col(line, col, lambda x: x.isspace())
             text_of_token = line[col:col_end]
+
+            if text_of_token.startswith("//"):
+                break
+
             try:
                 yield Token(TokenType.INT, loc, int(text_of_token))
             except ValueError:
@@ -844,7 +847,7 @@ def lex_file(file_path: str) -> List[Token]:
     with open(file_path, "r", encoding='utf-8') as f:
         return [token
                 for (row, line) in enumerate(f.readlines())
-                for token in lex_line(file_path, row, line.split('//')[0])]
+                for token in lex_line(file_path, row, line)]
 
 def compile_file_to_program(file_path: str, include_paths: List[str]) -> Program:
     return compile_tokens_to_program(lex_file(file_path), include_paths)
