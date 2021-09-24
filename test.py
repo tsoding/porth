@@ -15,7 +15,6 @@ def cmd_run_echoed(cmd, **kwargs):
     return cmd
 
 def test(folder):
-    sim_failed = 0
     com_failed = 0
     for entry in os.scandir(folder):
         porth_ext = '.porth'
@@ -27,16 +26,6 @@ def test(folder):
             with open(txt_path, "rb") as f:
                 expected_output = f.read()
 
-            sim_output = cmd_run_echoed(["./porth.py", "sim", entry.path], capture_output=True).stdout
-            if sim_output != expected_output:
-                sim_failed += 1
-                print("[ERROR] Unexpected simulation output")
-                print("  Expected:")
-                print("    %s" % expected_output)
-                print("  Actual:")
-                print("    %s" % sim_output)
-                # exit(1)
-
             com_output = cmd_run_echoed(["./porth.py", "com", "-r", "-s", entry.path], capture_output=True).stdout
             if com_output != expected_output:
                 com_failed += 1
@@ -47,19 +36,19 @@ def test(folder):
                 print("    %s" % com_output)
                 # exit(1)
     print()
-    print("Simulation failed: %d, Compilation failed: %d" % (sim_failed, com_failed))
-    if sim_failed != 0 or com_failed != 0:
+    print("Test failed: %d" % (com_failed))
+    if com_failed != 0:
         exit(1)
 
 def record(folder):
     for entry in os.scandir(folder):
         porth_ext = '.porth'
         if entry.is_file() and entry.path.endswith(porth_ext):
-            sim_output = cmd_run_echoed(["./porth.py", "sim", entry.path], capture_output=True).stdout
+            output = cmd_run_echoed(["./porth.py", "com", "-r", "-s", entry.path], capture_output=True).stdout
             txt_path = entry.path[:-len(porth_ext)] + ".txt"
             print("[INFO] Saving output to %s" % txt_path)
             with open(txt_path, "wb") as txt_file:
-                txt_file.write(sim_output)
+                txt_file.write(output)
 
 def usage(exe_name):
     print("Usage: ./test.py [OPTIONS] [SUBCOMMAND]")

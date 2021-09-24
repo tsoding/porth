@@ -36,17 +36,6 @@ end
 
 ## Quick Start
 
-### Simulation
-
-Simulation simply interprets the program.
-
-```console
-$ cat program.porth
-34 35 + print
-$ ./porth.py sim program.porth
-69
-```
-
 ### Compilation
 
 Compilation generates assembly code, compiles it with [nasm](https://www.nasm.us/), and then links it with [GNU ld](https://www.gnu.org/software/binutils/). So make sure you have both available in your `$PATH`.
@@ -59,6 +48,15 @@ $ ./porth.py com program.porth
 [CMD] nasm -felf64 ./program.asm
 [CMD] ld -o ./program ./program.o
 $ ./program
+69
+```
+
+To compile and run simply use the command `run` which is an alias to `com -r -s`
+
+```console
+$ cat program.porth
+34 35 + print
+$ ./porth.py run program.porth
 69
 ```
 

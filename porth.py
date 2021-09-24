@@ -91,209 +91,6 @@ class Token:
 STR_CAPACITY = 640_000 # should be enough for everyone
 MEM_CAPACITY = 640_000
 
-def simulate_little_endian_linux(program: Program):
-    stack: List[int] = []
-    mem = bytearray(STR_CAPACITY + MEM_CAPACITY)
-    str_offsets = {}
-    str_size = 0
-    ip = 0
-    while ip < len(program):
-        assert len(OpType) == 8, "Exhaustive op handling in simulate_little_endian_linux"
-        op = program[ip]
-        if op.typ == OpType.PUSH_INT:
-            assert isinstance(op.operand, int), "This could be a bug in the compilation step"
-            stack.append(op.operand)
-            ip += 1
-        elif op.typ == OpType.PUSH_STR:
-            assert isinstance(op.operand, str), "This could be a bug in the compilation step"
-            value = op.operand.encode('utf-8')
-            n = len(value)
-            stack.append(n)
-            if ip not in str_offsets:
-                str_offsets[ip] = str_size
-                mem[str_size:str_size+n] = value
-                str_size += n
-                assert str_size <= STR_CAPACITY, "String buffer overflow"
-            stack.append(str_offsets[ip])
-            ip += 1
-        elif op.typ == OpType.IF:
-            a = stack.pop()
-            if a == 0:
-                assert isinstance(op.operand, OpAddr), "This could be a bug in the compilation step"
-                ip = op.operand
-            else:
-                ip += 1
-        elif op.typ == OpType.ELSE:
-            assert isinstance(op.operand, OpAddr), "This could be a bug in the compilation step"
-            ip = op.operand
-        elif op.typ == OpType.END:
-            assert isinstance(op.operand, OpAddr), "This could be a bug in the compilation step"
-            ip = op.operand
-        elif op.typ == OpType.WHILE:
-            ip += 1
-        elif op.typ == OpType.DO:
-            a = stack.pop()
-            if a == 0:
-                assert isinstance(op.operand, OpAddr), "This could be a bug in the compilation step"
-                ip = op.operand
-            else:
-                ip += 1
-        elif op.typ == OpType.INTRINSIC:
-            assert len(Intrinsic) == 29, "Exhaustive handling of intrinsic in simulate_little_endian_linux()"
-            if op.operand == Intrinsic.PLUS:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(a + b)
-                ip += 1
-            elif op.operand == Intrinsic.MINUS:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(b - a)
-                ip += 1
-            elif op.operand == Intrinsic.MUL:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(b * a)
-                ip += 1
-            elif op.operand == Intrinsic.DIVMOD:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(b // a)
-                stack.append(b % a)
-                ip += 1
-            elif op.operand == Intrinsic.EQ:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(int(a == b))
-                ip += 1
-            elif op.operand == Intrinsic.GT:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(int(b > a))
-                ip += 1
-            elif op.operand == Intrinsic.LT:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(int(b < a))
-                ip += 1
-            elif op.operand == Intrinsic.GE:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(int(b >= a))
-                ip += 1
-            elif op.operand == Intrinsic.LE:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(int(b <= a))
-                ip += 1
-            elif op.operand == Intrinsic.NE:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(int(b != a))
-                ip += 1
-            elif op.operand == Intrinsic.SHR:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(int(b >> a))
-                ip += 1
-            elif op.operand == Intrinsic.SHL:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(int(b << a))
-                ip += 1
-            elif op.operand == Intrinsic.BOR:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(int(a | b))
-                ip += 1
-            elif op.operand == Intrinsic.BAND:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(int(a & b))
-                ip += 1
-            elif op.operand == Intrinsic.PRINT:
-                a = stack.pop()
-                print(a)
-                ip += 1
-            elif op.operand == Intrinsic.DUP:
-                a = stack.pop()
-                stack.append(a)
-                stack.append(a)
-                ip += 1
-            elif op.operand == Intrinsic.SWAP:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(a)
-                stack.append(b)
-                ip += 1
-            elif op.operand == Intrinsic.DROP:
-                stack.pop()
-                ip += 1
-            elif op.operand == Intrinsic.OVER:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(b)
-                stack.append(a)
-                stack.append(b)
-                ip += 1
-            elif op.operand == Intrinsic.MEM:
-                stack.append(STR_CAPACITY)
-                ip += 1
-            elif op.operand == Intrinsic.LOAD:
-                addr = stack.pop()
-                byte = mem[addr]
-                stack.append(byte)
-                ip += 1
-            elif op.operand == Intrinsic.STORE:
-                store_value = stack.pop()
-                store_addr = stack.pop()
-                mem[store_addr] = store_value & 0xFF
-                ip += 1
-            elif op.operand == Intrinsic.SYSCALL0:
-                syscall_number = stack.pop()
-                if syscall_number == 39:
-                    stack.append(os.getpid())
-                else:
-                    assert False, "unknown syscall number %d" % syscall_number
-                ip += 1
-            elif op.operand == Intrinsic.SYSCALL1:
-                assert False, "not implemented"
-            elif op.operand == Intrinsic.SYSCALL2:
-                assert False, "not implemented"
-            elif op.operand == Intrinsic.SYSCALL3:
-                syscall_number = stack.pop()
-                arg1 = stack.pop()
-                arg2 = stack.pop()
-                arg3 = stack.pop()
-                if syscall_number == 1:
-                    fd = arg1
-                    buf = arg2
-                    count = arg3
-                    s = mem[buf:buf+count].decode('utf-8')
-                    if fd == 1:
-                        print(s, end='')
-                    elif fd == 2:
-                        print(s, end='', file=sys.stderr)
-                    else:
-                        assert False, "unknown file descriptor %d" % fd
-                    stack.append(count)
-                else:
-                    assert False, "unknown syscall number %d" % syscall_number
-                ip += 1
-            elif op.operand == Intrinsic.SYSCALL4:
-                assert False, "not implemented"
-            elif op.operand == Intrinsic.SYSCALL5:
-                assert False, "not implemented"
-            elif op.operand == Intrinsic.SYSCALL6:
-                assert False, "not implemented"
-            else:
-                assert False, "unreachable"
-        else:
-            assert False, "unreachable"
-    if debug:
-        print("[INFO] Memory dump")
-        print(mem[:20])
-
 def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
     strs: List[bytes] = []
     with open(out_file_path, "w") as out:
@@ -879,7 +676,11 @@ def compile_file_to_program(file_path: str, include_paths: List[str]) -> Program
 def cmd_call_echoed(cmd: List[str], silent: bool=False) -> int:
     if not silent:
         print("[CMD] %s" % " ".join(map(shlex.quote, cmd)))
-    return subprocess.call(cmd)
+    try:
+        return subprocess.call(cmd)
+    except FileNotFoundError:
+        print(f"ERROR: Could not run command `{' '.join(cmd)}`. Please ensure that you have `{cmd[0]}` installed and in your $PATH")
+        exit(1)
 
 def usage(compiler_name: str):
     print("Usage: %s [OPTIONS] <SUBCOMMAND> [ARGS]" % compiler_name)
@@ -887,7 +688,7 @@ def usage(compiler_name: str):
     print("    -debug                Enable debug mode.")
     print("    -I <path>             Add the path to the include search list")
     print("  SUBCOMMAND:")
-    print("    sim <file>            Simulate the program")
+    print("    run <file>            Run the program NOTE: this command is an alias to `com -r -s`")
     print("    com [OPTIONS] <file>  Compile the program")
     print("      OPTIONS:")
     print("        -r                  Run the program after successful compilation")
@@ -930,18 +731,16 @@ if __name__ == '__main__' and '__file__' in globals():
 
     program_path: Optional[str] = None
 
-    if subcommand == "sim":
-        if len(argv) < 1:
-            usage(compiler_name)
-            print("[ERROR] no input file is provided for the simulation")
-            exit(1)
-        program_path, *argv = argv
-        program = compile_file_to_program(program_path, include_paths);
-        simulate_little_endian_linux(program)
-    elif subcommand == "com":
+    # run is just an alias to `com -r -s` in some sense
+    if subcommand == "com" or subcommand == "run":
         silent = False
         run = False
         output_path = None
+
+        if subcommand == "run":
+            run = True
+            silent = True
+        
         while len(argv) > 0:
             arg, *argv = argv
             if arg == '-r':
