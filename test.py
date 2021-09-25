@@ -51,24 +51,31 @@ def test(folder):
     if sim_failed != 0 or com_failed != 0:
         exit(1)
 
-def record(folder):
+def record(folder, mode='sim'):
     for entry in os.scandir(folder):
         porth_ext = '.porth'
         if entry.is_file() and entry.path.endswith(porth_ext):
-            sim_output = cmd_run_echoed(["./porth.py", "sim", entry.path], capture_output=True).stdout
+            output = ""
+            if mode == 'sim':
+                output = cmd_run_echoed(["./porth.py", "sim", entry.path], capture_output=True).stdout
+            elif mode == 'com':
+                output = cmd_run_echoed(["./porth.py", "com", "-r", "-s", entry.path], capture_output=True).stdout
+            else:
+                print("[ERROR] Unknown record mode `%s`" % mode)
+                exit(1)
             txt_path = entry.path[:-len(porth_ext)] + ".txt"
             print("[INFO] Saving output to %s" % txt_path)
             with open(txt_path, "wb") as txt_file:
-                txt_file.write(sim_output)
+                txt_file.write(output)
 
 def usage(exe_name):
     print("Usage: ./test.py [OPTIONS] [SUBCOMMAND]")
     print("OPTIONS:")
     print("    -f <folder>   Folder with the tests. (Default: ./tests/)")
     print("SUBCOMMANDS:")
-    print("    test          Run the tests. (Default when no subcommand is provided)")
-    print("    record        Record expected output of the tests.")
-    print("    help          Print this message to stdout and exit with 0 code.")
+    print("    test             Run the tests. (Default when no subcommand is provided)")
+    print("    record [-com]    Record expected output of the tests.")
+    print("    help             Print this message to stdout and exit with 0 code.")
 
 # TODO: test compiler errors
 
@@ -90,7 +97,15 @@ if __name__ == '__main__':
             break
 
     if subcmd == 'record':
-        record(folder)
+        mode = 'sim'
+        while len(argv) > 0:
+            arg, *argv = argv
+            if arg == '-com':
+                mode = 'com'
+            else:
+                print("[ERROR] unknown flag `%s`" % arg)
+                exit(1)
+        record(folder, mode)
     elif subcmd == 'test':
         test(folder)
     elif subcmd == 'help':
