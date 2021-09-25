@@ -78,6 +78,12 @@ To updated expected output files run the `record` subcommand:
 $ ./test.py record
 ```
 
+The [./tests/errors/](./tests/errors/) folder contains broken programs that are ment for testing compiler error messages.
+
+```console
+$ ./test.py -f ./tests/errors/ test -err
+```
+
 The [./examples/](./examples/) folder contains programs that are ment for showcasing the language rather then testing it, but we still can use them for testing just like the stuff in the [./tests/](./tests/) folder:
 
 ```console
