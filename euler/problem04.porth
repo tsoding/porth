@@ -1,0 +1,31 @@
+include "std.porth"
+
+macro ans mem end
+
+100 while dup 1000 < do
+  100 while dup 1000 < do
+    2dup *
+
+    dup 0 while over 0 > do
+      10 *
+      over 10 %
+      +
+      swap 10 / swap
+    end
+    swap drop
+
+    // a b
+    2dup = if
+      dup ans load64 > if
+        ans over store64
+      end
+    end
+
+    2drop
+
+    1 +
+  end drop
+
+  1 +
+end drop
+ans load64 print
