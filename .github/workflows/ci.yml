@@ -20,4 +20,5 @@ jobs:
         run: |
           mypy ./porth.py
           python ./test.py
+          python ./test.py -f ./tests/errors/ test -err
           python ./test.py -f ./examples/
