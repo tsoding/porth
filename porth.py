@@ -780,6 +780,11 @@ if __name__ == '__main__' and '__file__' in globals():
             if basename.endswith(porth_ext):
                 basename = basename[:-len(porth_ext)]
             basedir = path.dirname(program_path)
+        
+        # if basedir is empty we should "fix" the path appending the current working directory.
+        # So we avoid `run` or `com -r` to run command from $PATH.
+        if basedir == "":
+            basedir = os.getcwd()
         basepath = path.join(basedir, basename)
 
         if not silent:
