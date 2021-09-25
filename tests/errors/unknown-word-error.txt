@@ -1,0 +1,1 @@
+./tests/errors/unknown-word-error.porth:1:1: unknown word `abcdefg`

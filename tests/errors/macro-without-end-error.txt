@@ -1,0 +1,1 @@
+./tests/errors/macro-without-end-error.porth:2:1: ERROR: expected `end` at the end of the macro definition but got `Keyword.MACRO`

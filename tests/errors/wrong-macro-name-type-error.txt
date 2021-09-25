@@ -1,0 +1,1 @@
+./tests/errors/wrong-macro-name-type-error.porth:1:7: ERROR: expected macro name to be a word but found an integer

@@ -1,0 +1,1 @@
+./tests/errors/unclosed-character-literal-error.porth:1:1: ERROR: unclosed character literal

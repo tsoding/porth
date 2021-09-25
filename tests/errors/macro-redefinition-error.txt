@@ -1,0 +1,2 @@
+./tests/errors/macro-redefinition-error.porth:2:7: ERROR: redefinition of already existing macro `test`
+./tests/errors/macro-redefinition-error.porth:1:7: NOTE: the first definition is located here

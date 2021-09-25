@@ -1,0 +1,1 @@
+./tests/errors/end-cant-close-error.porth:1:1: ERROR: `end` can only close `if`, `else` or `do` blocks for now

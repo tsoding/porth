@@ -1,0 +1,1 @@
+./tests/errors/intrinsic-redefinition-error.porth:1:7: ERROR: redefinition of an intrinsic word `+`. Please choose a different name for your macro.

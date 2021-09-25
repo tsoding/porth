@@ -1,0 +1,1 @@
+./tests/errors/else-not-inside-if-error.porth:2:1: ERROR: `else` can only be used in `if`-blocks
