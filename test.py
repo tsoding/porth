@@ -11,10 +11,9 @@ def cmd_run_echoed(cmd, **kwargs):
     if cmd.returncode != 0:
         print(cmd.stdout.decode('utf-8'), file=sys.stdout)
         print(cmd.stderr.decode('utf-8'), file=sys.stderr)
-        exit(cmd.returncode)
     return cmd
 
-def test(folder):
+def test(folder, collect_errors=False):
     sim_failed = 0
     com_failed = 0
     for entry in os.scandir(folder):
@@ -27,7 +26,11 @@ def test(folder):
             with open(txt_path, "rb") as f:
                 expected_output = f.read()
 
-            sim_output = cmd_run_echoed(["./porth.py", "sim", entry.path], capture_output=True).stdout
+            sim_result = cmd_run_echoed(["./porth.py", "sim", entry.path], capture_output=True)
+            if not collect_errors and sim_result.returncode != 0:
+                exit(sim_result.returncode)
+            sim_output = sim_result.stdout
+
             if sim_output != expected_output:
                 sim_failed += 1
                 print("[ERROR] Unexpected simulation output")
@@ -37,7 +40,11 @@ def test(folder):
                 print("    %s" % sim_output)
                 # exit(1)
 
-            com_output = cmd_run_echoed(["./porth.py", "com", "-r", "-s", entry.path], capture_output=True).stdout
+            com_result = cmd_run_echoed(["./porth.py", "com", "-r", "-s", entry.path], capture_output=True)
+            if not collect_errors and com_result.returncode != 0:
+                exit(com_result.returncode)
+            com_output = com_result.stdout
+
             if com_output != expected_output:
                 com_failed += 1
                 print("[ERROR] Unexpected compilation output")
@@ -73,7 +80,7 @@ def usage(exe_name):
     print("OPTIONS:")
     print("    -f <folder>   Folder with the tests. (Default: ./tests/)")
     print("SUBCOMMANDS:")
-    print("    test             Run the tests. (Default when no subcommand is provided)")
+    print("    test [-err]      Run the tests. (Default when no subcommand is provided)")
     print("    record [-com]    Record expected output of the tests.")
     print("    help             Print this message to stdout and exit with 0 code.")
 
@@ -107,7 +114,15 @@ if __name__ == '__main__':
                 exit(1)
         record(folder, mode)
     elif subcmd == 'test':
-        test(folder)
+        collect_errors = False
+        while len(argv) > 0:
+            arg, *argv = argv
+            if arg == '-err':
+                collect_errors = True
+            else:
+                print("[ERROR] unknown flag `%s`" % arg)
+                exit(1)
+        test(folder, collect_errors)
     elif subcmd == 'help':
         usage(exe_name)
     else:
