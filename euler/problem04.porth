@@ -2,6 +2,9 @@ include "std.porth"
 
 macro ans mem end
 
+// TODO: currently this problem is extremely slow in Simulation Mode and it is unclear why.
+// We need to investigate this
+
 100 while dup 1000 < do
   100 while dup 1000 < do
     2dup *
