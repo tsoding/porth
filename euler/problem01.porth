@@ -1,0 +1,12 @@
+include "std.porth"
+
+0 3 while dup 1000 < do
+  dup  3 mod 0 =
+  over 5 mod 0 =
+  bor if
+     swap over + swap
+  end
+  
+  1 +
+end drop
+print

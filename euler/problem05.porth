@@ -1,0 +1,54 @@
+include "std.porth"
+
+macro N 20 end
+
+// |acc          |tmp           |ans|
+macro acc mem end
+macro tmp mem 8 N * + end
+macro ans tmp 8 N * + end
+
+2 while dup N <= do
+
+  // clean up the tmp table
+  0 while dup N < do
+    tmp over 8 * + 0 store64
+    1 +
+  end drop
+  
+  // factorize
+  dup 2 while over 1 > do
+    2dup mod 0 = if
+      dup 8 * tmp + inc64
+      swap over / swap
+    else
+      1 +
+    end
+  end 2drop
+
+  0 while dup N < do
+    dup 8 * acc + load64
+    over 8 * tmp + load64
+    < if
+      dup 8 * acc +
+      over 8 * tmp + load64
+      store64
+    end
+
+    1 +
+  end drop
+
+  1 +
+end drop
+
+ans 1 store64
+
+0 while dup N < do
+  acc over 8 * + load64 while dup 0 > do
+    over ans load64 * ans swap store64
+    1 -
+  end drop
+
+  1 +
+end drop
+
+ans load64 print
