@@ -89,7 +89,8 @@ def usage(exe_name):
 # 2. Expected stdout
 # 3. Expected stderr
 #
-# This will simplify recording and replaying test cases and reduce the amount of required flags.
+# This will simplify recording and replaying test cases and reduce the
+# amount of required flags.
 #
 # We could use something like JSON, but in a long term I plan to
 # rewrite test.py in Porth too, so it has to be something that is easy
@@ -103,10 +104,13 @@ def usage(exe_name):
 # |len(stdout) bytes -- the expected stdout encoded as UTF-8|
 # |8 bytes -- length of stderr|
 # |len(stderr) bytes -- the expected stderr encoded as UTF-8|
-# Such format is easy to produce/parse in both Porth and Python (using the bytes).
 # ```
 #
-# Using binary format will also enable us to assert binary outputs of the test programs. For instances, PPM pictures.
+# Such format is easy to produce/parse in both Porth and Python (using
+# the bytes).
+#
+# Using binary format will also enable us to assert binary outputs of
+# the test programs. For instances, PPM pictures.
 
 if __name__ == '__main__':
     exe_name, *argv = sys.argv
