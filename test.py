@@ -7,12 +7,7 @@ import shlex
 
 def cmd_run_echoed(cmd, **kwargs):
     print("[CMD] %s" % " ".join(map(shlex.quote, cmd)))
-    cmd = subprocess.run(cmd, **kwargs)
-    if cmd.returncode != 0:
-        print(cmd.stdout.decode('utf-8'), file=sys.stdout)
-        print(cmd.stderr.decode('utf-8'), file=sys.stderr)
-        exit(cmd.returncode)
-    return cmd
+    return subprocess.run(cmd, **kwargs)
 
 def test(folder):
     sim_failed = 0
@@ -22,30 +17,52 @@ def test(folder):
         if entry.is_file() and entry.path.endswith(porth_ext):
             print('[INFO] Testing %s' % entry.path)
 
-            txt_path = entry.path[:-len(porth_ext)] + ".txt"
+            bin_path = entry.path[:-len(porth_ext)] + ".bin"
             expected_output = None
-            with open(txt_path, "rb") as f:
-                expected_output = f.read()
+            with open(bin_path, "rb") as f:
+                bin_file = f.read()
+                index = 0
+                expected_returncode = int.from_bytes(bin_file[index:index + 1], byteorder='little')
+                index += 1
+                expected_output_length = int.from_bytes(bin_file[index:index + 8], byteorder='little')
+                index += 8
+                expected_output = bin_file[index:index + expected_output_length]
+                index += expected_output_length
+                expected_error_length = int.from_bytes(bin_file[index:index + 8], byteorder='little')
+                index += 8
+                expected_error = bin_file[index:index + expected_error_length]
 
-            sim_output = cmd_run_echoed(["./porth.py", "sim", entry.path], capture_output=True).stdout
-            if sim_output != expected_output:
+            sim_cmd = cmd_run_echoed(["./porth.py", "sim", entry.path], capture_output=True)
+            sim_returncode = sim_cmd.returncode
+            sim_output = sim_cmd.stdout
+            sim_error = sim_cmd.stderr
+            if sim_returncode != expected_returncode or sim_output != expected_output or sim_error != expected_error:
                 sim_failed += 1
                 print("[ERROR] Unexpected simulation output")
                 print("  Expected:")
-                print("    %s" % expected_output)
+                print("    return code: %s" % expected_returncode)
+                print("    stdout: %s" % expected_output.decode("utf-8"))
+                print("    stderr: %s" % expected_error.decode("utf-8"))
                 print("  Actual:")
-                print("    %s" % sim_output)
-                # exit(1)
+                print("    return code: %s" % sim_returncode)
+                print("    stdout: %s" % sim_output.decode("utf-8"))
+                print("    stderr: %s" % sim_error.decode("utf-8"))
 
-            com_output = cmd_run_echoed(["./porth.py", "com", "-r", "-s", entry.path], capture_output=True).stdout
-            if com_output != expected_output:
+            com_cmd = cmd_run_echoed(["./porth.py", "com", "-r", "-s", entry.path], capture_output=True)
+            com_returncode = com_cmd.returncode
+            com_output = com_cmd.stdout
+            com_error = com_cmd.stderr
+            if com_returncode != expected_returncode or com_output != expected_output or com_error != expected_error:
                 com_failed += 1
                 print("[ERROR] Unexpected compilation output")
                 print("  Expected:")
-                print("    %s" % expected_output)
+                print("    return code: %s" % expected_returncode)
+                print("    stdout: %s" % expected_output.decode("utf-8"))
+                print("    stderr: %s" % expected_error.decode("utf-8"))
                 print("  Actual:")
-                print("    %s" % com_output)
-                # exit(1)
+                print("    return code: %s" % com_returncode)
+                print("    stdout: %s" % com_output.decode("utf-8"))
+                print("    stderr: %s" % com_error.decode("utf-8"))
     print()
     print("Simulation failed: %d, Compilation failed: %d" % (sim_failed, com_failed))
     if sim_failed != 0 or com_failed != 0:
@@ -55,18 +72,23 @@ def record(folder, mode='sim'):
     for entry in os.scandir(folder):
         porth_ext = '.porth'
         if entry.is_file() and entry.path.endswith(porth_ext):
-            output = ""
             if mode == 'sim':
-                output = cmd_run_echoed(["./porth.py", "sim", entry.path], capture_output=True).stdout
+                output = cmd_run_echoed(["./porth.py", "sim", entry.path], capture_output=True)
             elif mode == 'com':
-                output = cmd_run_echoed(["./porth.py", "com", "-r", "-s", entry.path], capture_output=True).stdout
+                output = cmd_run_echoed(["./porth.py", "com", "-r", "-s", entry.path], capture_output=True)
             else:
                 print("[ERROR] Unknown record mode `%s`" % mode)
                 exit(1)
-            txt_path = entry.path[:-len(porth_ext)] + ".txt"
-            print("[INFO] Saving output to %s" % txt_path)
-            with open(txt_path, "wb") as txt_file:
-                txt_file.write(output)
+            bin_path = entry.path[:-len(porth_ext)] + ".bin"
+            print("[INFO] Saving output to %s" % bin_path)
+            with open(bin_path, "wb") as bin_file:
+                bin_file.write(
+                    output.returncode.to_bytes(1, byteorder="little")
+                    + len(output.stdout).to_bytes(8, byteorder="little")
+                    + output.stdout
+                    + len(output.stderr).to_bytes(8, byteorder="little")
+                    + output.stderr
+                )
 
 def usage(exe_name):
     print("Usage: ./test.py [OPTIONS] [SUBCOMMAND]")
