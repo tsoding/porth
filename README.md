@@ -64,7 +64,7 @@ $ ./program
 
 ### Testing
 
-Test cases are located in [./tests/](./tests/) folder. The `*.txt` files are the expected outputs of the corresponding programs.
+Test cases are located in [./tests/](./tests/) folder. The `*.bin` files are the expected outputs of the corresponding programs in binary format (1 byte - return code, 8 bytes - length of output, output in utf-8 format, 8 bytes - length of error, error in utf-8 format).
 
 Run [./test.py](./test.py) script to execute the programs and assert their outputs:
 
