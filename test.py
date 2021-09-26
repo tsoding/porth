@@ -78,6 +78,35 @@ def usage(exe_name):
     print("    help             Print this message to stdout and exit with 0 code.")
 
 # TODO: test compiler errors
+#
+# It would be better if we had a different format for expected
+# outcomes of the test cases instead of just plan text files with
+# stdout.
+#
+# Something like a custom file format that contains:
+#
+# 1. Expected returncode
+# 2. Expected stdout
+# 3. Expected stderr
+#
+# This will simplify recording and replaying test cases and reduce the amount of required flags.
+#
+# We could use something like JSON, but in a long term I plan to
+# rewrite test.py in Porth too, so it has to be something that is easy
+# to parse even in such a spartan language as Porth.
+#
+# I'm thinking about a simple binary format:
+#
+# ```
+# |1 byte -- expected return code|
+# |8 bytes -- length of stdout|
+# |len(stdout) bytes -- the expected stdout encoded as UTF-8|
+# |8 bytes -- length of stderr|
+# |len(stderr) bytes -- the expected stderr encoded as UTF-8|
+# Such format is easy to produce/parse in both Porth and Python (using the bytes).
+# ```
+#
+# Using binary format will also enable us to assert binary outputs of the test programs. For instances, PPM pictures.
 
 if __name__ == '__main__':
     exe_name, *argv = sys.argv
