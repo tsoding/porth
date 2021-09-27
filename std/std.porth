@@ -336,5 +336,5 @@ macro mod % end
 macro div / end
 
 macro inc64
-  dup ,64 1 + .e64
+  dup ,64 1 + .64
 end
