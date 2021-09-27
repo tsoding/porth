@@ -260,11 +260,11 @@ def simulate_little_endian_linux(program: Program):
                 stack.append(int.from_bytes(_bytes, byteorder="little"))
                 ip += 1
             elif op.operand == Intrinsic.STORE64:
-                store_value = stack.pop()
-                store_value = store_value.to_bytes(length=8, byteorder="little")
+                store_value = stack.pop().to_bytes(length=8, byteorder="little")
                 store_addr = stack.pop()
-                for offset in range(0,8):
-                    mem[store_addr + offset] = store_value[offset]
+                for byte in store_value:
+                    mem[store_addr] = byte
+                    store_addr += 1
                 ip += 1
             elif op.operand == Intrinsic.SYSCALL0:
                 syscall_number = stack.pop()
