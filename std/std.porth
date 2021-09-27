@@ -335,30 +335,6 @@ macro % divmod swap drop end
 macro mod % end
 macro div / end
 
-// TODO: implement load64 and store64 as Porth intrinsics
-macro load64
-  7 + 0
-  8 shl over , + swap 1 - swap
-  8 shl over , + swap 1 - swap
-  8 shl over , + swap 1 - swap
-  8 shl over , + swap 1 - swap
-  8 shl over , + swap 1 - swap
-  8 shl over , + swap 1 - swap
-  8 shl over , + swap 1 - swap
-  8 shl over , + swap drop
-end
-
-macro store64
-  2dup 255 band . 8 shr swap 1 + swap
-  2dup 255 band . 8 shr swap 1 + swap
-  2dup 255 band . 8 shr swap 1 + swap
-  2dup 255 band . 8 shr swap 1 + swap
-  2dup 255 band . 8 shr swap 1 + swap
-  2dup 255 band . 8 shr swap 1 + swap
-  2dup 255 band . 8 shr swap 1 + swap
-  2dup 255 band . 8 shr 2drop
-end
-
 macro inc64
-  dup load64 1 + store64
+  dup ,64 1 + .e64
 end
