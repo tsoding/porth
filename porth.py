@@ -611,6 +611,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                 assert isinstance(op.operand, int), "This could be a bug in the compilation step"
                 out.write("    jz addr_%d\n" % op.operand)
             elif op.typ == OpType.INTRINSIC:
+                assert isinstance(op.operand, Intrinsic), "This could be a bug in the compilation step"
                 # ideally there should not be any possibility for the element not to
                 # be in the table due to the assert next to the table definition.
                 out.write(linux_x86_64_lookup[op.operand])
