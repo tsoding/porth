@@ -259,7 +259,7 @@ def simulate_little_endian_linux(program: Program):
             elif op.operand == Intrinsic.STORE64:
                 store_value = stack.pop()
                 store_addr = stack.pop()
-                mem[store_addr] = store_value & 0xFFFFFFFF
+                mem[store_addr] = store_value
                 ip += 1
             elif op.operand == Intrinsic.SYSCALL0:
                 syscall_number = stack.pop()
