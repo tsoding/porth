@@ -12,6 +12,10 @@ jobs:
       - name: install python dependencies
         run: |
           pip3 install mypy
+      - name: print version of pythons
+        run: |
+          python3 --version
+          pypy3 --version
       - name: run tests
         run: |
           mypy ./porth.py
