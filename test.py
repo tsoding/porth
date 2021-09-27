@@ -49,7 +49,7 @@ def test(folder: str):
             txt_path = entry.path[:-len(porth_ext)] + ".txt"
             (expected_returncode, expected_output, expected_error) = load_test_case(txt_path)
 
-            sim_cmd = cmd_run_echoed(["./porth.py", "sim", entry.path], capture_output=True)
+            sim_cmd = cmd_run_echoed([sys.executable, "./porth.py", "sim", entry.path], capture_output=True)
             sim_returncode = sim_cmd.returncode
             sim_output = sim_cmd.stdout
             sim_error = sim_cmd.stderr
@@ -65,7 +65,7 @@ def test(folder: str):
                 print("    stdout: %s" % sim_output.decode("utf-8"))
                 print("    stderr: %s" % sim_error.decode("utf-8"))
 
-            com_cmd = cmd_run_echoed(["./porth.py", "com", "-r", "-s", entry.path], capture_output=True)
+            com_cmd = cmd_run_echoed([sys.executable, "./porth.py", "com", "-r", "-s", entry.path], capture_output=True)
             com_returncode = com_cmd.returncode
             com_output = com_cmd.stdout
             com_error = com_cmd.stderr
@@ -90,9 +90,9 @@ def record(folder: str, mode: str='sim'):
         porth_ext = '.porth'
         if entry.is_file() and entry.path.endswith(porth_ext):
             if mode == 'sim':
-                output = cmd_run_echoed(["./porth.py", "sim", entry.path], capture_output=True)
+                output = cmd_run_echoed([sys.executable, "./porth.py", "sim", entry.path], capture_output=True)
             elif mode == 'com':
-                output = cmd_run_echoed(["./porth.py", "com", "-r", "-s", entry.path], capture_output=True)
+                output = cmd_run_echoed([sys.executable, "./porth.py", "com", "-r", "-s", entry.path], capture_output=True)
             else:
                 print("[ERROR] Unknown record mode `%s`" % mode)
                 exit(1)
