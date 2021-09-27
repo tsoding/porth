@@ -356,7 +356,7 @@ macro store64
   2dup 255 band . 8 shr swap 1 + swap
   2dup 255 band . 8 shr swap 1 + swap
   2dup 255 band . 8 shr swap 1 + swap
-  2dup 255 band . 8 shr 2drop
+  2dup 255 band . 2drop
 end
 
 macro inc64
