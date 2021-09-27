@@ -16,5 +16,5 @@ jobs:
         run: |
           mypy ./porth.py
           mypy ./test.py
-          python3 ./test.py
-          python3 ./test.py -f ./examples/
+          pypy3 ./test.py
+          pypy3 ./test.py -f ./examples/
