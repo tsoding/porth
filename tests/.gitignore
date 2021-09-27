@@ -6,3 +6,4 @@ memory
 stack
 comments
 macros
+dead-recursive-macro

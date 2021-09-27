@@ -8,10 +8,13 @@ from os import path
 from typing import *
 from enum import Enum, auto
 from dataclasses import dataclass
+from copy import copy
 
 debug=False
 
 Loc=Tuple[str, int, int]
+
+DEFAULT_EXPANSION_LIMIT=1000
 
 class Keyword(Enum):
     IF=auto()
@@ -89,6 +92,7 @@ class Token:
     typ: TokenType
     loc: Loc
     value: Union[int, str, Keyword]
+    expanded: int = 0
 
 STR_CAPACITY = 640_000 # should be enough for everyone
 MEM_CAPACITY = 640_000
@@ -686,7 +690,13 @@ def human(typ: TokenType) -> str:
     else:
         assert False, "unreachable"
 
-def compile_tokens_to_program(tokens: List[Token], include_paths: List[str]) -> Program:
+def expand_macro(macro: Macro, expanded: int) -> List[Token]:
+    result = list(map(lambda x: copy(x), macro.tokens))
+    for token in result:
+        token.expanded = expanded
+    return result
+
+def compile_tokens_to_program(tokens: List[Token], include_paths: List[str], expansion_limit: int) -> Program:
     stack: List[OpAddr] = []
     program: List[Op] = []
     rtokens: List[Token] = list(reversed(tokens))
@@ -702,7 +712,10 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str]) -> 
                 program.append(Op(typ=OpType.INTRINSIC, loc=token.loc, operand=INTRINSIC_NAMES[token.value]))
                 ip += 1
             elif token.value in macros:
-                rtokens += reversed(macros[token.value].tokens)
+                if token.expanded >= expansion_limit:
+                    print("%s:%d:%d: ERROR: the macro exceeded the expansion limit (it expanded %d times)" % (token.loc + (token.expanded, )), file=sys.stderr)
+                    exit(1)
+                rtokens += reversed(expand_macro(macros[token.value], token.expanded + 1))
             else:
                 print("%s:%d:%d: ERROR: unknown word `%s`" % (token.loc + (token.value, )), file=sys.stderr)
                 exit(1)
@@ -770,7 +783,10 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str]) -> 
                 file_included = False
                 for include_path in include_paths:
                     try:
-                        rtokens += reversed(lex_file(path.join(include_path, token.value)))
+                        if token.expanded >= expansion_limit:
+                            print("%s:%d:%d: ERROR: the include exceeded the expansion limit (it expanded %d times)" % (token.loc + (token.expanded, )), file=sys.stderr)
+                            exit(1)
+                        rtokens += reversed(lex_file(path.join(include_path, token.value), token.expanded + 1))
                         file_included = True
                         break
                     except FileNotFoundError:
@@ -851,7 +867,7 @@ def lex_lines(file_path: str, lines: List[str]) -> Generator[Token, None, None]:
     while row < len(lines):
         line = lines[row]
         col = find_col(line, 0, lambda x: not x.isspace())
-        col_end = 0 
+        col_end = 0
         while col < len(line):
             loc = (file_path, row + 1, col + 1)
             if line[col] == '"':
@@ -864,12 +880,12 @@ def lex_lines(file_path: str, lines: List[str]) -> Generator[Token, None, None]:
                     col_end = find_string_literal_end(line, start)
                     if col_end >= len(line) or line[col_end] != '"':
                         str_literal_buf += line[start:]
-                        row +=1 
+                        row +=1
                         col = 0
                     else:
                         str_literal_buf += line[start:col_end]
                         break
-                if row >= len(lines): 
+                if row >= len(lines):
                     print("%s:%d:%d: ERROR: unclosed string literal" % loc, file=sys.stderr)
                     exit(1)
                 text_of_token = str_literal_buf
@@ -890,7 +906,7 @@ def lex_lines(file_path: str, lines: List[str]) -> Generator[Token, None, None]:
             else:
                 col_end = find_col(line, col, lambda x: x.isspace())
                 text_of_token = line[col:col_end]
-                
+
                 try:
                     yield Token(TokenType.INT, loc, int(text_of_token))
                 except ValueError:
@@ -903,12 +919,15 @@ def lex_lines(file_path: str, lines: List[str]) -> Generator[Token, None, None]:
                 col = find_col(line, col_end, lambda x: not x.isspace())
         row += 1
 
-def lex_file(file_path: str) -> List[Token]:
+def lex_file(file_path: str, expanded: int = 0) -> List[Token]:
     with open(file_path, "r", encoding='utf-8') as f:
-        return [token for token in lex_lines(file_path, f.readlines())]
+        result = [token for token in lex_lines(file_path, f.readlines())]
+        for token in result:
+            token.expanded = expanded
+        return result
 
-def compile_file_to_program(file_path: str, include_paths: List[str]) -> Program:
-    return compile_tokens_to_program(lex_file(file_path), include_paths)
+def compile_file_to_program(file_path: str, include_paths: List[str], expansion_limit: int) -> Program:
+    return compile_tokens_to_program(lex_file(file_path), include_paths, expansion_limit)
 
 def cmd_call_echoed(cmd: List[str], silent: bool=False) -> int:
     if not silent:
@@ -920,6 +939,7 @@ def usage(compiler_name: str):
     print("  OPTIONS:")
     print("    -debug                Enable debug mode.")
     print("    -I <path>             Add the path to the include search list")
+    print("    -E <expansion-limit>  Macro and include expansion limit. (Default %d)" % DEFAULT_EXPANSION_LIMIT)
     print("  SUBCOMMAND:")
     print("    sim <file>            Simulate the program")
     print("    com [OPTIONS] <file>  Compile the program")
@@ -937,6 +957,7 @@ if __name__ == '__main__' and '__file__' in globals():
     compiler_name, *argv = argv
 
     include_paths = ['.', './std/']
+    expansion_limit = DEFAULT_EXPANSION_LIMIT
 
     while len(argv) > 0:
         if argv[0] == '-debug':
@@ -950,6 +971,14 @@ if __name__ == '__main__' and '__file__' in globals():
                 exit(1)
             include_path, *argv = argv
             include_paths.append(include_path)
+        elif argv[0] == '-E':
+            argv = argv[1:]
+            if len(argv) == 0:
+                usage(compiler_name)
+                print("[ERROR] no value is provided for `-E` flag", file=sys.stderr)
+                exit(1)
+            arg, *argv = argv
+            expansion_limit = int(arg)
         else:
             break
 
@@ -970,7 +999,7 @@ if __name__ == '__main__' and '__file__' in globals():
             print("[ERROR] no input file is provided for the simulation", file=sys.stderr)
             exit(1)
         program_path, *argv = argv
-        program = compile_file_to_program(program_path, include_paths);
+        program = compile_file_to_program(program_path, include_paths, expansion_limit);
         simulate_little_endian_linux(program)
     elif subcommand == "com":
         silent = False
@@ -1015,7 +1044,7 @@ if __name__ == '__main__' and '__file__' in globals():
             if basename.endswith(porth_ext):
                 basename = basename[:-len(porth_ext)]
             basedir = path.dirname(program_path)
-        
+
         # if basedir is empty we should "fix" the path appending the current working directory.
         # So we avoid `com -r` to run command from $PATH.
         if basedir == "":
@@ -1024,7 +1053,7 @@ if __name__ == '__main__' and '__file__' in globals():
 
         if not silent:
             print("[INFO] Generating %s" % (basepath + ".asm"))
-        program = compile_file_to_program(program_path, include_paths);
+        program = compile_file_to_program(program_path, include_paths, expansion_limit);
         generate_nasm_linux_x86_64(program, basepath + ".asm")
         cmd_call_echoed(["nasm", "-felf64", basepath + ".asm"], silent)
         cmd_call_echoed(["ld", "-o", basepath, basepath + ".o"], silent)
