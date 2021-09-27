@@ -12,7 +12,14 @@ jobs:
       - name: install python dependencies
         run: |
           pip3 install mypy
+      - name: cache pypy
+        id: cache-pypy
+        uses: actions/cache@v2
+        with:
+          path: pypy3.7-v7.3.5-linux64
+          key: ${{ runner.os }}-pypy
       - name: install pypy from the official website
+        if: steps.cache-pypy.outputs.cache-hit != 'true'
         run: |
           wget https://downloads.python.org/pypy/pypy3.7-v7.3.5-linux64.tar.bz2
           tar fvx pypy3.7-v7.3.5-linux64.tar.bz2
