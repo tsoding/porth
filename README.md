@@ -64,7 +64,7 @@ $ ./program
 
 ### Testing
 
-Test cases are located in [./tests/](./tests/) folder. The `*.txt` files are the expected outputs of the corresponding programs.
+Test cases are located in [./tests/](./tests/) folder. The `*.txt` files contain expected outcomes of the corresponding programs (exit code, stdout, stderr).
 
 Run [./test.py](./test.py) script to execute the programs and assert their outputs:
 

@@ -1,0 +1,6 @@
+: returncode 1
+: stdout 0
+
+: stderr 108
+./tests/wrong-macro-name-type-error.porth:1:7: ERROR: expected macro name to be a word but found an integer
+

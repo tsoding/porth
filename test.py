@@ -4,17 +4,41 @@ import sys
 import os
 import subprocess
 import shlex
+from typing import BinaryIO, Tuple
 
 def cmd_run_echoed(cmd, **kwargs):
     print("[CMD] %s" % " ".join(map(shlex.quote, cmd)))
-    cmd = subprocess.run(cmd, **kwargs)
-    if cmd.returncode != 0:
-        print(cmd.stdout.decode('utf-8'), file=sys.stdout)
-        print(cmd.stderr.decode('utf-8'), file=sys.stderr)
-        exit(cmd.returncode)
-    return cmd
+    return subprocess.run(cmd, **kwargs)
 
-def test(folder):
+def read_field(f: BinaryIO, name: bytes) -> bytes:
+    line = f.readline()
+    field = b': ' + name + b' '
+    assert line.startswith(field)
+    assert line.endswith(b'\n')
+    return line[len(field):-1]
+
+def load_test_case(file_path: str) -> Tuple[int, bytes, bytes]:
+    with open(file_path, "rb") as f:
+        returncode = int(read_field(f, b'returncode'))
+        stdout_len = int(read_field(f, b'stdout'))
+        stdout = f.read(stdout_len)
+        assert f.read(1) == b'\n'
+        stderr_len = int(read_field(f, b'stderr'))
+        stderr = f.read(stderr_len)
+        assert f.read(1) == b'\n'
+        return (returncode, stdout, stderr)
+
+def save_test_case(file_path: str, returncode: int, stdout: bytes, stderr: bytes):
+    with open(file_path, "wb") as f:
+        f.write(b": returncode %d\n" % returncode)
+        f.write(b": stdout %d\n" % len(stdout))
+        f.write(stdout)
+        f.write(b"\n")
+        f.write(b": stderr %d\n" % len(stderr))
+        f.write(stderr)
+        f.write(b"\n")
+
+def test(folder: str):
     sim_failed = 0
     com_failed = 0
     for entry in os.scandir(folder):
@@ -23,52 +47,60 @@ def test(folder):
             print('[INFO] Testing %s' % entry.path)
 
             txt_path = entry.path[:-len(porth_ext)] + ".txt"
-            expected_output = None
-            with open(txt_path, "rb") as f:
-                expected_output = f.read()
+            (expected_returncode, expected_output, expected_error) = load_test_case(txt_path)
 
-            sim_output = cmd_run_echoed(["./porth.py", "sim", entry.path], capture_output=True).stdout
-            if sim_output != expected_output:
+            sim_cmd = cmd_run_echoed(["./porth.py", "sim", entry.path], capture_output=True)
+            sim_returncode = sim_cmd.returncode
+            sim_output = sim_cmd.stdout
+            sim_error = sim_cmd.stderr
+            if sim_returncode != expected_returncode or sim_output != expected_output or sim_error != expected_error:
                 sim_failed += 1
                 print("[ERROR] Unexpected simulation output")
                 print("  Expected:")
-                print("    %s" % expected_output)
+                print("    return code: %s" % expected_returncode)
+                print("    stdout: %s" % expected_output.decode("utf-8"))
+                print("    stderr: %s" % expected_error.decode("utf-8"))
                 print("  Actual:")
-                print("    %s" % sim_output)
-                # exit(1)
+                print("    return code: %s" % sim_returncode)
+                print("    stdout: %s" % sim_output.decode("utf-8"))
+                print("    stderr: %s" % sim_error.decode("utf-8"))
 
-            com_output = cmd_run_echoed(["./porth.py", "com", "-r", "-s", entry.path], capture_output=True).stdout
-            if com_output != expected_output:
+            com_cmd = cmd_run_echoed(["./porth.py", "com", "-r", "-s", entry.path], capture_output=True)
+            com_returncode = com_cmd.returncode
+            com_output = com_cmd.stdout
+            com_error = com_cmd.stderr
+            if com_returncode != expected_returncode or com_output != expected_output or com_error != expected_error:
                 com_failed += 1
                 print("[ERROR] Unexpected compilation output")
                 print("  Expected:")
-                print("    %s" % expected_output)
+                print("    return code: %s" % expected_returncode)
+                print("    stdout: %s" % expected_output.decode("utf-8"))
+                print("    stderr: %s" % expected_error.decode("utf-8"))
                 print("  Actual:")
-                print("    %s" % com_output)
-                # exit(1)
+                print("    return code: %s" % com_returncode)
+                print("    stdout: %s" % com_output.decode("utf-8"))
+                print("    stderr: %s" % com_error.decode("utf-8"))
     print()
     print("Simulation failed: %d, Compilation failed: %d" % (sim_failed, com_failed))
     if sim_failed != 0 or com_failed != 0:
         exit(1)
 
-def record(folder, mode='sim'):
+def record(folder: str, mode: str='sim'):
     for entry in os.scandir(folder):
         porth_ext = '.porth'
         if entry.is_file() and entry.path.endswith(porth_ext):
-            output = ""
             if mode == 'sim':
-                output = cmd_run_echoed(["./porth.py", "sim", entry.path], capture_output=True).stdout
+                output = cmd_run_echoed(["./porth.py", "sim", entry.path], capture_output=True)
             elif mode == 'com':
-                output = cmd_run_echoed(["./porth.py", "com", "-r", "-s", entry.path], capture_output=True).stdout
+                output = cmd_run_echoed(["./porth.py", "com", "-r", "-s", entry.path], capture_output=True)
             else:
                 print("[ERROR] Unknown record mode `%s`" % mode)
                 exit(1)
             txt_path = entry.path[:-len(porth_ext)] + ".txt"
             print("[INFO] Saving output to %s" % txt_path)
-            with open(txt_path, "wb") as txt_file:
-                txt_file.write(output)
+            save_test_case(txt_path, output.returncode, output.stdout, output.stderr)
 
-def usage(exe_name):
+def usage(exe_name: str):
     print("Usage: ./test.py [OPTIONS] [SUBCOMMAND]")
     print("OPTIONS:")
     print("    -f <folder>   Folder with the tests. (Default: ./tests/)")
@@ -76,41 +108,6 @@ def usage(exe_name):
     print("    test             Run the tests. (Default when no subcommand is provided)")
     print("    record [-com]    Record expected output of the tests.")
     print("    help             Print this message to stdout and exit with 0 code.")
-
-# TODO: test compiler errors
-#
-# It would be better if we had a different format for expected
-# outcomes of the test cases instead of just plan text files with
-# stdout.
-#
-# Something like a custom file format that contains:
-#
-# 1. Expected returncode
-# 2. Expected stdout
-# 3. Expected stderr
-#
-# This will simplify recording and replaying test cases and reduce the
-# amount of required flags.
-#
-# We could use something like JSON, but in a long term I plan to
-# rewrite test.py in Porth too, so it has to be something that is easy
-# to parse even in such a spartan language as Porth.
-#
-# I'm thinking about a simple binary format:
-#
-# ```
-# |1 byte -- expected return code|
-# |8 bytes -- length of stdout|
-# |len(stdout) bytes -- the expected stdout encoded as UTF-8|
-# |8 bytes -- length of stderr|
-# |len(stderr) bytes -- the expected stderr encoded as UTF-8|
-# ```
-#
-# Such format is easy to produce/parse in both Porth and Python (using
-# the bytes).
-#
-# Using binary format will also enable us to assert binary outputs of
-# the test programs. For instances, PPM pictures.
 
 if __name__ == '__main__':
     exe_name, *argv = sys.argv

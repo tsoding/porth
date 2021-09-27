@@ -1,1 +1,6 @@
+: returncode 0
+: stdout 7
 906609
+
+: stderr 0
+
