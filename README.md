@@ -290,16 +290,28 @@ push(b & a)
 ```
 push(mem_addr)
 ```
-- `.` - store a given byte at the given address.
+- `.` - store a given byte at the address on the stack.
 ```
 byte = pop()
 addr = pop()
 store(addr, byte)
 ```
-- `,` - load a byte from the given address.
+- `,` - load a byte from the address on the stack.
 ```
 addr = pop()
 byte = load(addr)
+push(byte)
+```
+- `.64` - store an 8-byte word at the address on the stack.
+```
+word = pop()
+addr = pop()
+store(addr, word)
+```
+- `,64` - load an 8-byte word from the address on the stack.
+```
+word = pop()
+byte = load(word)
 push(byte)
 ```
 
