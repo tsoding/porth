@@ -4,12 +4,41 @@ import sys
 import os
 import subprocess
 import shlex
+from typing import BinaryIO, Tuple
 
 def cmd_run_echoed(cmd, **kwargs):
     print("[CMD] %s" % " ".join(map(shlex.quote, cmd)))
     return subprocess.run(cmd, **kwargs)
 
-def test(folder):
+def read_field(f: BinaryIO, name: bytes) -> bytes:
+    line = f.readline()
+    field = b': ' + name + b' '
+    assert line.startswith(field)
+    assert line.endswith(b'\n')
+    return line[len(field):-1]
+
+def load_test_case(file_path: str) -> Tuple[int, bytes, bytes]:
+    with open(file_path, "rb") as f:
+        returncode = int(read_field(f, b'returncode'))
+        stdout_len = int(read_field(f, b'stdout'))
+        stdout = f.read(stdout_len)
+        assert f.read(1) == b'\n'
+        stderr_len = int(read_field(f, b'stderr'))
+        stderr = f.read(stderr_len)
+        assert f.read(1) == b'\n'
+        return (returncode, stdout, stderr)
+
+def save_test_case(file_path: str, returncode: int, stdout: bytes, stderr: bytes):
+    with open(file_path, "wb") as f:
+        f.write(b": returncode %d\n" % returncode)
+        f.write(b": stdout %d\n" % len(stdout))
+        f.write(stdout)
+        f.write(b"\n")
+        f.write(b": stderr %d\n" % len(stderr))
+        f.write(stderr)
+        f.write(b"\n")
+
+def test(folder: str):
     sim_failed = 0
     com_failed = 0
     for entry in os.scandir(folder):
@@ -17,20 +46,8 @@ def test(folder):
         if entry.is_file() and entry.path.endswith(porth_ext):
             print('[INFO] Testing %s' % entry.path)
 
-            bin_path = entry.path[:-len(porth_ext)] + ".bin"
-            expected_output = None
-            with open(bin_path, "rb") as f:
-                bin_file = f.read()
-                index = 0
-                expected_returncode = int.from_bytes(bin_file[index:index + 1], byteorder='little')
-                index += 1
-                expected_output_length = int.from_bytes(bin_file[index:index + 8], byteorder='little')
-                index += 8
-                expected_output = bin_file[index:index + expected_output_length]
-                index += expected_output_length
-                expected_error_length = int.from_bytes(bin_file[index:index + 8], byteorder='little')
-                index += 8
-                expected_error = bin_file[index:index + expected_error_length]
+            txt_path = entry.path[:-len(porth_ext)] + ".txt"
+            (expected_returncode, expected_output, expected_error) = load_test_case(txt_path)
 
             sim_cmd = cmd_run_echoed(["./porth.py", "sim", entry.path], capture_output=True)
             sim_returncode = sim_cmd.returncode
@@ -68,7 +85,7 @@ def test(folder):
     if sim_failed != 0 or com_failed != 0:
         exit(1)
 
-def record(folder, mode='sim'):
+def record(folder: str, mode: str='sim'):
     for entry in os.scandir(folder):
         porth_ext = '.porth'
         if entry.is_file() and entry.path.endswith(porth_ext):
@@ -79,18 +96,11 @@ def record(folder, mode='sim'):
             else:
                 print("[ERROR] Unknown record mode `%s`" % mode)
                 exit(1)
-            bin_path = entry.path[:-len(porth_ext)] + ".bin"
-            print("[INFO] Saving output to %s" % bin_path)
-            with open(bin_path, "wb") as bin_file:
-                bin_file.write(
-                    output.returncode.to_bytes(1, byteorder="little")
-                    + len(output.stdout).to_bytes(8, byteorder="little")
-                    + output.stdout
-                    + len(output.stderr).to_bytes(8, byteorder="little")
-                    + output.stderr
-                )
+            txt_path = entry.path[:-len(porth_ext)] + ".txt"
+            print("[INFO] Saving output to %s" % txt_path)
+            save_test_case(txt_path, output.returncode, output.stdout, output.stderr)
 
-def usage(exe_name):
+def usage(exe_name: str):
     print("Usage: ./test.py [OPTIONS] [SUBCOMMAND]")
     print("OPTIONS:")
     print("    -f <folder>   Folder with the tests. (Default: ./tests/)")

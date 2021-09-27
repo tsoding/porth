@@ -1,0 +1,6 @@
+: returncode 0
+: stdout 5
+6857
+
+: stderr 0
+

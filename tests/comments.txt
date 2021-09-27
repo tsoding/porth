@@ -1,0 +1,6 @@
+: returncode 0
+: stdout 16
+Hello, // World
+
+: stderr 0
+

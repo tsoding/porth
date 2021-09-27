@@ -1,0 +1,9 @@
+: returncode 0
+: stdout 12
+abc
+4
+bcd
+4
+
+: stderr 0
+

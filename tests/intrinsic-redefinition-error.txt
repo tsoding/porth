@@ -1,0 +1,6 @@
+: returncode 1
+: stdout 0
+
+: stderr 141
+./tests/intrinsic-redefinition-error.porth:1:7: ERROR: redefinition of an intrinsic word `+`. Please choose a different name for your macro.
+
