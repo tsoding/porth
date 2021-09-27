@@ -93,6 +93,7 @@ class Token:
 STR_CAPACITY = 640_000 # should be enough for everyone
 MEM_CAPACITY = 640_000
 
+# TODO: introduce the profiler mode
 def simulate_little_endian_linux(program: Program):
     stack: List[int] = []
     mem = bytearray(STR_CAPACITY + MEM_CAPACITY)
