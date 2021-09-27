@@ -1,5 +1,0 @@
-: returncode 1
-: stdout 23
-I could not do anything
-: stderr 20
-Something went wrong
