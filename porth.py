@@ -14,7 +14,7 @@ debug=False
 
 Loc=Tuple[str, int, int]
 
-EXPANDED_THRESHOLD=1000
+DEFAULT_EXPANSION_LIMIT=1000
 
 class Keyword(Enum):
     IF=auto()
@@ -691,12 +691,12 @@ def human(typ: TokenType) -> str:
         assert False, "unreachable"
 
 def expand_macro(macro: Macro, expanded: int) -> List[Token]:
-    result = list(map(copy, macro.tokens))
+    result = list(map(lambda x: copy(x), macro.tokens))
     for token in result:
         token.expanded = expanded
     return result
 
-def compile_tokens_to_program(tokens: List[Token], include_paths: List[str]) -> Program:
+def compile_tokens_to_program(tokens: List[Token], include_paths: List[str], expansion_limit: int) -> Program:
     stack: List[OpAddr] = []
     program: List[Op] = []
     rtokens: List[Token] = list(reversed(tokens))
@@ -712,8 +712,8 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str]) -> 
                 program.append(Op(typ=OpType.INTRINSIC, loc=token.loc, operand=INTRINSIC_NAMES[token.value]))
                 ip += 1
             elif token.value in macros:
-                if token.expanded >= EXPANDED_THRESHOLD:
-                    print("%s:%d:%d: ERROR: the macro exceeded the expansion threshold" % token.loc, file=sys.stderr)
+                if token.expanded >= expansion_limit:
+                    print("%s:%d:%d: ERROR: the macro exceeded the expansion limit (it expanded %d times)" % (token.loc + (token.expanded, )), file=sys.stderr)
                     exit(1)
                 rtokens += reversed(expand_macro(macros[token.value], token.expanded + 1))
             else:
@@ -783,8 +783,8 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str]) -> 
                 file_included = False
                 for include_path in include_paths:
                     try:
-                        if token.expanded >= EXPANDED_THRESHOLD:
-                            print("%s:%d:%d: ERROR: the include exceeded the expansion threshold" % token.loc, file=sys.stderr)
+                        if token.expanded >= expansion_limit:
+                            print("%s:%d:%d: ERROR: the include exceeded the expansion limit (it expanded %d times)" % (token.loc + (token.expanded, )), file=sys.stderr)
                             exit(1)
                         rtokens += reversed(lex_file(path.join(include_path, token.value), token.expanded + 1))
                         file_included = True
@@ -926,8 +926,8 @@ def lex_file(file_path: str, expanded: int = 0) -> List[Token]:
             token.expanded = expanded
         return result
 
-def compile_file_to_program(file_path: str, include_paths: List[str]) -> Program:
-    return compile_tokens_to_program(lex_file(file_path), include_paths)
+def compile_file_to_program(file_path: str, include_paths: List[str], expansion_limit: int) -> Program:
+    return compile_tokens_to_program(lex_file(file_path), include_paths, expansion_limit)
 
 def cmd_call_echoed(cmd: List[str], silent: bool=False) -> int:
     if not silent:
@@ -939,6 +939,7 @@ def usage(compiler_name: str):
     print("  OPTIONS:")
     print("    -debug                Enable debug mode.")
     print("    -I <path>             Add the path to the include search list")
+    print("    -E <expansion-limit>  Macro and include expansion limit. (Default %d)" % DEFAULT_EXPANSION_LIMIT)
     print("  SUBCOMMAND:")
     print("    sim <file>            Simulate the program")
     print("    com [OPTIONS] <file>  Compile the program")
@@ -956,6 +957,7 @@ if __name__ == '__main__' and '__file__' in globals():
     compiler_name, *argv = argv
 
     include_paths = ['.', './std/']
+    expansion_limit = DEFAULT_EXPANSION_LIMIT
 
     while len(argv) > 0:
         if argv[0] == '-debug':
@@ -969,6 +971,14 @@ if __name__ == '__main__' and '__file__' in globals():
                 exit(1)
             include_path, *argv = argv
             include_paths.append(include_path)
+        elif argv[0] == '-E':
+            argv = argv[1:]
+            if len(argv) == 0:
+                usage(compiler_name)
+                print("[ERROR] no value is provided for `-E` flag", file=sys.stderr)
+                exit(1)
+            arg, *argv = argv
+            expansion_limit = int(arg)
         else:
             break
 
@@ -989,7 +999,7 @@ if __name__ == '__main__' and '__file__' in globals():
             print("[ERROR] no input file is provided for the simulation", file=sys.stderr)
             exit(1)
         program_path, *argv = argv
-        program = compile_file_to_program(program_path, include_paths);
+        program = compile_file_to_program(program_path, include_paths, expansion_limit);
         simulate_little_endian_linux(program)
     elif subcommand == "com":
         silent = False
@@ -1043,7 +1053,7 @@ if __name__ == '__main__' and '__file__' in globals():
 
         if not silent:
             print("[INFO] Generating %s" % (basepath + ".asm"))
-        program = compile_file_to_program(program_path, include_paths);
+        program = compile_file_to_program(program_path, include_paths, expansion_limit);
         generate_nasm_linux_x86_64(program, basepath + ".asm")
         cmd_call_echoed(["nasm", "-felf64", basepath + ".asm"], silent)
         cmd_call_echoed(["ld", "-o", basepath, basepath + ".o"], silent)
