@@ -8,7 +8,7 @@ jobs:
       - name: install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -qq nasm
+          sudo apt-get install -qq nasm gcc cmake g++
       - uses: actions/setup-python@v2
         with:
           python-version: 'pypy-3.7'
