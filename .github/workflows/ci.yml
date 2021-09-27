@@ -11,10 +11,10 @@ jobs:
           sudo apt-get install -qq nasm gcc cmake g++
       - name: install python dependencies
         run: |
-          pip install mypy
+          pip3 install mypy
       - name: run tests
         run: |
           mypy ./porth.py
           mypy ./test.py
-          python ./test.py
-          python ./test.py -f ./examples/
+          python3 ./test.py
+          python3 ./test.py -f ./examples/
