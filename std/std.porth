@@ -338,3 +338,9 @@ macro div / end
 macro inc64
   dup ,64 1 + .64
 end
+
+macro strlen
+  0 swap while dup , 0 != do
+    1 + swap 1 + swap
+  end drop
+end
