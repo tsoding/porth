@@ -315,6 +315,220 @@ def simulate_little_endian_linux(program: Program):
         print("[INFO] Memory dump")
         print(mem[:20])
 
+linux_x86_64_lookup = { 
+    Intrinsic.PLUS: (
+        "    ;; -- plus --\n"
+        "    pop rax\n"
+        "    pop rbx\n"
+        "    add rax, rbx\n"
+        "    push rax\n"), 
+    Intrinsic.MINUS: (
+        "    ;; -- minus --\n"
+        "    pop rax\n"
+        "    pop rbx\n"
+        "    sub rbx, rax\n"
+        "    push rbx\n"), 
+    Intrinsic.MUL: (
+        "    ;; -- mul --\n"
+        "    pop rax\n"
+        "    pop rbx\n"
+        "    mul rbx\n"
+        "    push rax\n"), 
+    Intrinsic.DIVMOD: (
+        "    ;; -- mod --\n"
+        "    xor rdx, rdx\n"
+        "    pop rbx\n"
+        "    pop rax\n"
+        "    div rbx\n"
+        "    push rax\n"
+        "    push rdx\n"), 
+    Intrinsic.SHR: (
+        "    ;; -- shr --\n"
+        "    pop rcx\n"
+        "    pop rbx\n"
+        "    shr rbx, cl\n"
+        "    push rbx\n"), 
+    Intrinsic.SHL: (
+        "    ;; -- shl --\n"
+        "    pop rcx\n"
+        "    pop rbx\n"
+        "    shl rbx, cl\n"
+        "    push rbx\n"), 
+    Intrinsic.BOR: (
+        "    ;; -- bor --\n"
+        "    pop rax\n"
+        "    pop rbx\n"
+        "    or rbx, rax\n"
+        "    push rbx\n"), 
+    Intrinsic.BAND: (
+        "    ;; -- band --\n"
+        "    pop rax\n"
+        "    pop rbx\n"
+        "    and rbx, rax\n"
+        "    push rbx\n"), 
+    Intrinsic.PRINT: (
+        "    ;; -- print --\n"
+        "    pop rdi\n"
+        "    call print\n"), 
+    Intrinsic.EQ: (
+        "    ;; -- equal -- \n"
+        "    mov rcx, 0\n"
+        "    mov rdx, 1\n"
+        "    pop rax\n"
+        "    pop rbx\n"
+        "    cmp rax, rbx\n"
+        "    cmove rcx, rdx\n"
+        "    push rcx\n"), 
+    Intrinsic.GT: (
+        "    ;; -- gt --\n"
+        "    mov rcx, 0\n"
+        "    mov rdx, 1\n"
+        "    pop rbx\n"
+        "    pop rax\n"
+        "    cmp rax, rbx\n"
+        "    cmovg rcx, rdx\n"
+        "    push rcx\n"), 
+    Intrinsic.LT: (
+        "    ;; -- gt --\n"
+        "    mov rcx, 0\n"
+        "    mov rdx, 1\n"
+        "    pop rbx\n"
+        "    pop rax\n"
+        "    cmp rax, rbx\n"
+        "    cmovl rcx, rdx\n"
+        "    push rcx\n"), 
+    Intrinsic.GE: (
+        "    ;; -- gt --\n"
+        "    mov rcx, 0\n"
+        "    mov rdx, 1\n"
+        "    pop rbx\n"
+        "    pop rax\n"
+        "    cmp rax, rbx\n"
+        "    cmovge rcx, rdx\n"
+        "    push rcx\n"), 
+    Intrinsic.LE: (
+        "    ;; -- gt --\n"
+        "    mov rcx, 0\n"
+        "    mov rdx, 1\n"
+        "    pop rbx\n"
+        "    pop rax\n"
+        "    cmp rax, rbx\n"
+        "    cmovle rcx, rdx\n"
+        "    push rcx\n"), 
+    Intrinsic.NE: (
+        "    ;; -- ne --\n"
+        "    mov rcx, 0\n"
+        "    mov rdx, 1\n"
+        "    pop rbx\n"
+        "    pop rax\n"
+        "    cmp rax, rbx\n"
+        "    cmovne rcx, rdx\n"
+        "    push rcx\n"), 
+    Intrinsic.DUP: (
+        "    ;; -- dup -- \n"
+        "    pop rax\n"
+        "    push rax\n"
+        "    push rax\n"), 
+    Intrinsic.SWAP: (
+        "    ;; -- swap --\n"
+        "    pop rax\n"
+        "    pop rbx\n"
+        "    push rax\n"
+        "    push rbx\n"), 
+    Intrinsic.DROP: (
+        "    ;; -- drop --\n"
+        "    pop rax\n"), 
+    Intrinsic.OVER: (
+        "    ;; -- over --\n"
+        "    pop rax\n"
+        "    pop rbx\n"
+        "    push rbx\n"
+        "    push rax\n"
+        "    push rbx\n"), 
+    Intrinsic.MEM: (
+        "    ;; -- mem --\n"
+        "    push mem\n"), 
+    Intrinsic.LOAD: (
+        "    ;; -- load --\n"
+        "    pop rax\n"
+        "    xor rbx, rbx\n"
+        "    mov bl, [rax]\n"
+        "    push rbx\n"), 
+    Intrinsic.STORE: (
+        "    ;; -- store --\n"
+        "    pop rbx\n"
+        "    pop rax\n"
+        "    mov [rax], bl\n"), 
+    Intrinsic.LOAD64: (
+        "    ;; -- load --\n"
+        "    pop rax\n"
+        "    xor rbx, rbx\n"
+        "    mov rbx, [rax]\n"
+        "    push rbx\n"), 
+    Intrinsic.STORE64: (
+        "    ;; -- store --\n"
+        "    pop rbx\n"
+        "    pop rax\n"
+        "    mov [rax], rbx\n"), 
+    Intrinsic.SYSCALL0: (
+        "    ;; -- syscall0 --\n"
+        "    pop rax\n"
+        "    syscall\n"
+        "    push rax\n"), 
+    Intrinsic.SYSCALL1: (
+        "    ;; -- syscall1 --\n"
+        "    pop rax\n"
+        "    pop rdi\n"
+        "    syscall\n"
+        "    push rax\n"), 
+    Intrinsic.SYSCALL2: (
+        "    ;; -- syscall2 -- \n"
+        "    pop rax\n"
+        "    pop rdi\n"
+        "    pop rsi\n"
+        "    syscall\n"
+        "    push rax\n"), 
+    Intrinsic.SYSCALL3: (
+        "    ;; -- syscall3 --\n"
+        "    pop rax\n"
+        "    pop rdi\n"
+        "    pop rsi\n"
+        "    pop rdx\n"
+        "    syscall\n"
+        "    push rax\n"), 
+    Intrinsic.SYSCALL4: (
+        "    ;; -- syscall4 --\n"
+        "    pop rax\n"
+        "    pop rdi\n"
+        "    pop rsi\n"
+        "    pop rdx\n"
+        "    pop r10\n"
+        "    syscall\n"
+        "    push rax\n"), 
+    Intrinsic.SYSCALL5: (
+        "    ;; -- syscall5 --\n"
+        "    pop rax\n"
+        "    pop rdi\n"
+        "    pop rsi\n"
+        "    pop rdx\n"
+        "    pop r10\n"
+        "    pop r8\n"
+        "    syscall\n"
+        "    push rax\n"), 
+    Intrinsic.SYSCALL6: (
+        "    ;; -- syscall6 --\n"
+        "    pop rax\n"
+        "    pop rdi\n"
+        "    pop rsi\n"
+        "    pop rdx\n"
+        "    pop r10\n"
+        "    pop r8\n"
+        "    pop r9\n"
+        "    syscall\n"
+        "    push rax\n")
+}
+assert len(Intrinsic) == len(linux_x86_64_lookup), "Exhaustive intrinsic handling in generate_nasm_linux_x86_64()"
+
 def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
     strs: List[bytes] = []
     with open(out_file_path, "w") as out:
@@ -397,219 +611,9 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                 assert isinstance(op.operand, int), "This could be a bug in the compilation step"
                 out.write("    jz addr_%d\n" % op.operand)
             elif op.typ == OpType.INTRINSIC:
-                assert len(Intrinsic) == 31, "Exhaustive intrinsic handling in generate_nasm_linux_x86_64()"
-                if op.operand == Intrinsic.PLUS:
-                    out.write("    ;; -- plus --\n")
-                    out.write("    pop rax\n")
-                    out.write("    pop rbx\n")
-                    out.write("    add rax, rbx\n")
-                    out.write("    push rax\n")
-                elif op.operand == Intrinsic.MINUS:
-                    out.write("    ;; -- minus --\n")
-                    out.write("    pop rax\n")
-                    out.write("    pop rbx\n")
-                    out.write("    sub rbx, rax\n")
-                    out.write("    push rbx\n")
-                elif op.operand == Intrinsic.MUL:
-                    out.write("    ;; -- mul --\n")
-                    out.write("    pop rax\n")
-                    out.write("    pop rbx\n")
-                    out.write("    mul rbx\n")
-                    out.write("    push rax\n")
-                elif op.operand == Intrinsic.DIVMOD:
-                    out.write("    ;; -- mod --\n")
-                    out.write("    xor rdx, rdx\n")
-                    out.write("    pop rbx\n")
-                    out.write("    pop rax\n")
-                    out.write("    div rbx\n")
-                    out.write("    push rax\n");
-                    out.write("    push rdx\n");
-                elif op.operand == Intrinsic.SHR:
-                    out.write("    ;; -- shr --\n")
-                    out.write("    pop rcx\n")
-                    out.write("    pop rbx\n")
-                    out.write("    shr rbx, cl\n")
-                    out.write("    push rbx\n")
-                elif op.operand == Intrinsic.SHL:
-                    out.write("    ;; -- shl --\n")
-                    out.write("    pop rcx\n")
-                    out.write("    pop rbx\n")
-                    out.write("    shl rbx, cl\n")
-                    out.write("    push rbx\n")
-                elif op.operand == Intrinsic.BOR:
-                    out.write("    ;; -- bor --\n")
-                    out.write("    pop rax\n")
-                    out.write("    pop rbx\n")
-                    out.write("    or rbx, rax\n")
-                    out.write("    push rbx\n")
-                elif op.operand == Intrinsic.BAND:
-                    out.write("    ;; -- band --\n")
-                    out.write("    pop rax\n")
-                    out.write("    pop rbx\n")
-                    out.write("    and rbx, rax\n")
-                    out.write("    push rbx\n")
-                elif op.operand == Intrinsic.PRINT:
-                    out.write("    ;; -- print --\n")
-                    out.write("    pop rdi\n")
-                    out.write("    call print\n")
-                elif op.operand == Intrinsic.EQ:
-                    out.write("    ;; -- equal -- \n")
-                    out.write("    mov rcx, 0\n");
-                    out.write("    mov rdx, 1\n");
-                    out.write("    pop rax\n");
-                    out.write("    pop rbx\n");
-                    out.write("    cmp rax, rbx\n");
-                    out.write("    cmove rcx, rdx\n");
-                    out.write("    push rcx\n")
-                elif op.operand == Intrinsic.GT:
-                    out.write("    ;; -- gt --\n")
-                    out.write("    mov rcx, 0\n");
-                    out.write("    mov rdx, 1\n");
-                    out.write("    pop rbx\n");
-                    out.write("    pop rax\n");
-                    out.write("    cmp rax, rbx\n");
-                    out.write("    cmovg rcx, rdx\n");
-                    out.write("    push rcx\n")
-                elif op.operand == Intrinsic.LT:
-                    out.write("    ;; -- gt --\n")
-                    out.write("    mov rcx, 0\n");
-                    out.write("    mov rdx, 1\n");
-                    out.write("    pop rbx\n");
-                    out.write("    pop rax\n");
-                    out.write("    cmp rax, rbx\n");
-                    out.write("    cmovl rcx, rdx\n");
-                    out.write("    push rcx\n")
-                elif op.operand == Intrinsic.GE:
-                    out.write("    ;; -- gt --\n")
-                    out.write("    mov rcx, 0\n");
-                    out.write("    mov rdx, 1\n");
-                    out.write("    pop rbx\n");
-                    out.write("    pop rax\n");
-                    out.write("    cmp rax, rbx\n");
-                    out.write("    cmovge rcx, rdx\n");
-                    out.write("    push rcx\n")
-                elif op.operand == Intrinsic.LE:
-                    out.write("    ;; -- gt --\n")
-                    out.write("    mov rcx, 0\n");
-                    out.write("    mov rdx, 1\n");
-                    out.write("    pop rbx\n");
-                    out.write("    pop rax\n");
-                    out.write("    cmp rax, rbx\n");
-                    out.write("    cmovle rcx, rdx\n");
-                    out.write("    push rcx\n")
-                elif op.operand == Intrinsic.NE:
-                    out.write("    ;; -- ne --\n")
-                    out.write("    mov rcx, 0\n")
-                    out.write("    mov rdx, 1\n")
-                    out.write("    pop rbx\n")
-                    out.write("    pop rax\n")
-                    out.write("    cmp rax, rbx\n")
-                    out.write("    cmovne rcx, rdx\n")
-                    out.write("    push rcx\n")
-                elif op.operand == Intrinsic.DUP:
-                    out.write("    ;; -- dup -- \n")
-                    out.write("    pop rax\n")
-                    out.write("    push rax\n")
-                    out.write("    push rax\n")
-                elif op.operand == Intrinsic.SWAP:
-                    out.write("    ;; -- swap --\n")
-                    out.write("    pop rax\n")
-                    out.write("    pop rbx\n")
-                    out.write("    push rax\n")
-                    out.write("    push rbx\n")
-                elif op.operand == Intrinsic.DROP:
-                    out.write("    ;; -- drop --\n")
-                    out.write("    pop rax\n")
-                elif op.operand == Intrinsic.OVER:
-                    out.write("    ;; -- over --\n")
-                    out.write("    pop rax\n")
-                    out.write("    pop rbx\n")
-                    out.write("    push rbx\n")
-                    out.write("    push rax\n")
-                    out.write("    push rbx\n")
-                elif op.operand == Intrinsic.MEM:
-                    out.write("    ;; -- mem --\n")
-                    out.write("    push mem\n")
-                elif op.operand == Intrinsic.LOAD:
-                    out.write("    ;; -- load --\n")
-                    out.write("    pop rax\n")
-                    out.write("    xor rbx, rbx\n")
-                    out.write("    mov bl, [rax]\n")
-                    out.write("    push rbx\n")
-                elif op.operand == Intrinsic.STORE:
-                    out.write("    ;; -- store --\n")
-                    out.write("    pop rbx\n");
-                    out.write("    pop rax\n");
-                    out.write("    mov [rax], bl\n");
-                elif op.operand == Intrinsic.LOAD64:
-                    out.write("    ;; -- load --\n")
-                    out.write("    pop rax\n")
-                    out.write("    xor rbx, rbx\n")
-                    out.write("    mov rbx, [rax]\n")
-                    out.write("    push rbx\n")
-                elif op.operand == Intrinsic.STORE64:
-                    out.write("    ;; -- store --\n")
-                    out.write("    pop rbx\n");
-                    out.write("    pop rax\n");
-                    out.write("    mov [rax], rbx\n");
-                elif op.operand == Intrinsic.SYSCALL0:
-                    out.write("    ;; -- syscall0 --\n")
-                    out.write("    pop rax\n")
-                    out.write("    syscall\n")
-                    out.write("    push rax\n")
-                elif op.operand == Intrinsic.SYSCALL1:
-                    out.write("    ;; -- syscall1 --\n")
-                    out.write("    pop rax\n")
-                    out.write("    pop rdi\n")
-                    out.write("    syscall\n")
-                    out.write("    push rax\n")
-                elif op.operand == Intrinsic.SYSCALL2:
-                    out.write("    ;; -- syscall2 -- \n")
-                    out.write("    pop rax\n");
-                    out.write("    pop rdi\n");
-                    out.write("    pop rsi\n");
-                    out.write("    syscall\n");
-                    out.write("    push rax\n")
-                elif op.operand == Intrinsic.SYSCALL3:
-                    out.write("    ;; -- syscall3 --\n")
-                    out.write("    pop rax\n")
-                    out.write("    pop rdi\n")
-                    out.write("    pop rsi\n")
-                    out.write("    pop rdx\n")
-                    out.write("    syscall\n")
-                    out.write("    push rax\n")
-                elif op.operand == Intrinsic.SYSCALL4:
-                    out.write("    ;; -- syscall4 --\n")
-                    out.write("    pop rax\n")
-                    out.write("    pop rdi\n")
-                    out.write("    pop rsi\n")
-                    out.write("    pop rdx\n")
-                    out.write("    pop r10\n")
-                    out.write("    syscall\n")
-                    out.write("    push rax\n")
-                elif op.operand == Intrinsic.SYSCALL5:
-                    out.write("    ;; -- syscall5 --\n")
-                    out.write("    pop rax\n")
-                    out.write("    pop rdi\n")
-                    out.write("    pop rsi\n")
-                    out.write("    pop rdx\n")
-                    out.write("    pop r10\n")
-                    out.write("    pop r8\n")
-                    out.write("    syscall\n")
-                    out.write("    push rax\n")
-                elif op.operand == Intrinsic.SYSCALL6:
-                    out.write("    ;; -- syscall6 --\n")
-                    out.write("    pop rax\n")
-                    out.write("    pop rdi\n")
-                    out.write("    pop rsi\n")
-                    out.write("    pop rdx\n")
-                    out.write("    pop r10\n")
-                    out.write("    pop r8\n")
-                    out.write("    pop r9\n")
-                    out.write("    syscall\n")
-                    out.write("    push rax\n")
-                else:
-                    assert False, "unreachable"
+                # ideally there should not be any possibility for the element not to
+                # be in the table due to the assert next to the table definition.
+                out.write(linux_x86_64_lookup[op.operand])
             else:
                 assert False, "unreachable"
 
