@@ -1,3 +1,5 @@
+: returncode 0
+: stdout 198
 Addition:
 69
 ------------------------------
@@ -13,3 +15,6 @@ Modulo:
 ------------------------------
 Multiplication:
 420
+
+: stderr 0
+

@@ -1,0 +1,6 @@
+: returncode 1
+: stdout 0
+
+: stderr 83
+./tests/include-file-not-found-error.porth:1:9: ERROR: file `aids.porth` not found
+

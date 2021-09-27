@@ -1,0 +1,7 @@
+: returncode 1
+: stdout 0
+
+: stderr 184
+./tests/macro-redefinition-error.porth:2:7: ERROR: redefinition of already existing macro `test`
+./tests/macro-redefinition-error.porth:1:7: NOTE: the first definition is located here
+

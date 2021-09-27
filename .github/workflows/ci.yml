@@ -19,5 +19,6 @@ jobs:
       - name: run tests
         run: |
           mypy ./porth.py
+          mypy ./test.py
           python ./test.py
           python ./test.py -f ./examples/

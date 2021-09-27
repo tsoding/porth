@@ -1,0 +1,6 @@
+: returncode 1
+: stdout 0
+
+: stderr 62
+./tests/unclosed-block-error.porth:1:1: ERROR: unclosed block
+

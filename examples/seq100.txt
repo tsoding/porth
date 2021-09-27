@@ -1,3 +1,5 @@
+: returncode 0
+: stdout 290
 0
 1
 2
@@ -98,3 +100,6 @@
 97
 98
 99
+
+: stderr 0
+
