@@ -9,6 +9,15 @@ mem 3 + 10 .
 // print "abc" to stdout
 4 mem stdout write print
 
+// print 1000...0001 (64 bit word)
+mem 1 63 shl 
+1 + .64
+mem ,64 print
+
+// print UINT64_MAX (64 bit word)
+mem 18446744073709551615 .64 
+mem ,64 print
+
 // increament each character by 1 making it "bcd"
 mem 0 + dup , 1 + .
 mem 1 + dup , 1 + .
