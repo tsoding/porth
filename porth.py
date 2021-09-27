@@ -94,15 +94,28 @@ class Token:
     value: Union[int, str, Keyword]
     expanded: int = 0
 
+NULL_POINTER_PADDING = 1 # just a little bit of a padding at the beginning of the memory to make 0 an invalid address
 STR_CAPACITY = 640_000 # should be enough for everyone
 MEM_CAPACITY = 640_000
 
 # TODO: introduce the profiler mode
-def simulate_little_endian_linux(program: Program):
+def simulate_little_endian_linux(program: Program, argv: List[str]):
     stack: List[int] = []
-    mem = bytearray(STR_CAPACITY + MEM_CAPACITY)
+    mem = bytearray(NULL_POINTER_PADDING + STR_CAPACITY + MEM_CAPACITY)
     str_offsets = {}
-    str_size = 0
+    str_size = NULL_POINTER_PADDING
+
+    stack.append(0)
+    for arg in reversed(argv):
+        value = arg.encode('utf-8')
+        n = len(value)
+        mem[str_size:str_size+n] = value
+        mem[str_size+n] = 0
+        stack.append(str_size)
+        str_size += n + 1
+        assert str_size <= STR_CAPACITY, "String buffer overflow"
+    stack.append(len(argv))
+
     ip = 0
     while ip < len(program):
         assert len(OpType) == 8, "Exhaustive op handling in simulate_little_endian_linux"
@@ -1000,7 +1013,7 @@ if __name__ == '__main__' and '__file__' in globals():
             exit(1)
         program_path, *argv = argv
         program = compile_file_to_program(program_path, include_paths, expansion_limit);
-        simulate_little_endian_linux(program)
+        simulate_little_endian_linux(program, [program_path] + argv)
     elif subcommand == "com":
         silent = False
         run = False
