@@ -19,8 +19,8 @@ macro ans mem end
 
     // a b
     2dup = if
-      dup ans load64 > if
-        ans over store64
+      dup ans ,64 > if
+        ans over .64
       end
     end
 
@@ -31,4 +31,4 @@ macro ans mem end
 
   1 +
 end drop
-ans load64 print
+ans ,64 print
