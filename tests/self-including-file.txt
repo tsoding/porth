@@ -1,0 +1,6 @@
+: returncode 1
+: stdout 0
+
+: stderr 91
+./tests/self-including-file.porth:1:9: ERROR: file `./self-including-file.porth` not found
+

@@ -8,10 +8,13 @@ from os import path
 from typing import *
 from enum import Enum, auto
 from dataclasses import dataclass
+from copy import copy
 
 debug=False
 
 Loc=Tuple[str, int, int]
+
+EXPANDED_THRESHOLD=1000
 
 class Keyword(Enum):
     IF=auto()
@@ -89,6 +92,7 @@ class Token:
     typ: TokenType
     loc: Loc
     value: Union[int, str, Keyword]
+    expanded: int = 0
 
 STR_CAPACITY = 640_000 # should be enough for everyone
 MEM_CAPACITY = 640_000
@@ -686,6 +690,12 @@ def human(typ: TokenType) -> str:
     else:
         assert False, "unreachable"
 
+def expand_macro(macro: Macro, expanded: int) -> List[Token]:
+    result = list(map(copy, macro.tokens))
+    for token in result:
+        token.expanded = expanded
+    return result
+
 def compile_tokens_to_program(tokens: List[Token], include_paths: List[str]) -> Program:
     stack: List[OpAddr] = []
     program: List[Op] = []
@@ -702,7 +712,10 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str]) -> 
                 program.append(Op(typ=OpType.INTRINSIC, loc=token.loc, operand=INTRINSIC_NAMES[token.value]))
                 ip += 1
             elif token.value in macros:
-                rtokens += reversed(macros[token.value].tokens)
+                if token.expanded >= EXPANDED_THRESHOLD:
+                    print("%s:%d:%d: ERROR: the macro exceeded the expansion threshold" % token.loc, file=sys.stderr)
+                    exit(1)
+                rtokens += reversed(expand_macro(macros[token.value], token.expanded + 1))
             else:
                 print("%s:%d:%d: ERROR: unknown word `%s`" % (token.loc + (token.value, )), file=sys.stderr)
                 exit(1)
@@ -770,7 +783,10 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str]) -> 
                 file_included = False
                 for include_path in include_paths:
                     try:
-                        rtokens += reversed(lex_file(path.join(include_path, token.value)))
+                        if token.expanded >= EXPANDED_THRESHOLD:
+                            print("%s:%d:%d: ERROR: the include exceeded the expansion threshold" % token.loc, file=sys.stderr)
+                            exit(1)
+                        rtokens += reversed(lex_file(path.join(include_path, token.value), token.expanded + 1))
                         file_included = True
                         break
                     except FileNotFoundError:
@@ -851,7 +867,7 @@ def lex_lines(file_path: str, lines: List[str]) -> Generator[Token, None, None]:
     while row < len(lines):
         line = lines[row]
         col = find_col(line, 0, lambda x: not x.isspace())
-        col_end = 0 
+        col_end = 0
         while col < len(line):
             loc = (file_path, row + 1, col + 1)
             if line[col] == '"':
@@ -864,12 +880,12 @@ def lex_lines(file_path: str, lines: List[str]) -> Generator[Token, None, None]:
                     col_end = find_string_literal_end(line, start)
                     if col_end >= len(line) or line[col_end] != '"':
                         str_literal_buf += line[start:]
-                        row +=1 
+                        row +=1
                         col = 0
                     else:
                         str_literal_buf += line[start:col_end]
                         break
-                if row >= len(lines): 
+                if row >= len(lines):
                     print("%s:%d:%d: ERROR: unclosed string literal" % loc, file=sys.stderr)
                     exit(1)
                 text_of_token = str_literal_buf
@@ -890,7 +906,7 @@ def lex_lines(file_path: str, lines: List[str]) -> Generator[Token, None, None]:
             else:
                 col_end = find_col(line, col, lambda x: x.isspace())
                 text_of_token = line[col:col_end]
-                
+
                 try:
                     yield Token(TokenType.INT, loc, int(text_of_token))
                 except ValueError:
@@ -903,9 +919,12 @@ def lex_lines(file_path: str, lines: List[str]) -> Generator[Token, None, None]:
                 col = find_col(line, col_end, lambda x: not x.isspace())
         row += 1
 
-def lex_file(file_path: str) -> List[Token]:
+def lex_file(file_path: str, expanded: int = 0) -> List[Token]:
     with open(file_path, "r", encoding='utf-8') as f:
-        return [token for token in lex_lines(file_path, f.readlines())]
+        result = [token for token in lex_lines(file_path, f.readlines())]
+        for token in result:
+            token.expanded = expanded
+        return result
 
 def compile_file_to_program(file_path: str, include_paths: List[str]) -> Program:
     return compile_tokens_to_program(lex_file(file_path), include_paths)
@@ -1015,7 +1034,7 @@ if __name__ == '__main__' and '__file__' in globals():
             if basename.endswith(porth_ext):
                 basename = basename[:-len(porth_ext)]
             basedir = path.dirname(program_path)
-        
+
         # if basedir is empty we should "fix" the path appending the current working directory.
         # So we avoid `com -r` to run command from $PATH.
         if basedir == "":

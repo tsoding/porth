@@ -1,0 +1,6 @@
+: returncode 0
+: stdout 85
+Dead recursive macros should not cause any problems. Because they are never expanded
+
+: stderr 0
+

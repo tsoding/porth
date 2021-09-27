@@ -1,0 +1,6 @@
+: returncode 1
+: stdout 0
+
+: stderr 95
+./tests/mutually-recursive-macros.porth:2:3: ERROR: the macro exceeded the expansion threshold
+
