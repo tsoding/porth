@@ -2,23 +2,35 @@ name: CI
 on: [push, pull_request]
 jobs:
   builds:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v1
-      - name: install dependencies
+      - name: install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -qq nasm
-      - uses: actions/setup-python@v2
-        with:
-          python-version: '3.7'
-          architecture: x64
-      - name: install dependencies
+      - name: install python dependencies
         run: |
-          pip install mypy
+          pip3 install mypy
+      - name: cache pypy
+        id: cache-pypy
+        uses: actions/cache@v2
+        with:
+          path: pypy3.7-v7.3.5-linux64
+          key: ${{ runner.os }}-pypy
+      - name: install pypy from the official website
+        if: steps.cache-pypy.outputs.cache-hit != 'true'
+        run: |
+          wget https://downloads.python.org/pypy/pypy3.7-v7.3.5-linux64.tar.bz2
+          tar fvx pypy3.7-v7.3.5-linux64.tar.bz2
+      - name: print version of pythons
+        run: |
+          python3 --version
+          ./pypy3.7-v7.3.5-linux64/bin/pypy3 --version
       - name: run tests
         run: |
           mypy ./porth.py
           mypy ./test.py
-          python ./test.py
-          python ./test.py -f ./examples/
+          ./pypy3.7-v7.3.5-linux64/bin/pypy3 ./test.py
+          ./pypy3.7-v7.3.5-linux64/bin/pypy3 ./test.py -f ./examples/
+          ./pypy3.7-v7.3.5-linux64/bin/pypy3 ./test.py -f ./euler/
