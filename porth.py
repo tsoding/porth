@@ -99,8 +99,8 @@ def simulate_little_endian_linux(program: Program):
     str_offsets = {}
     str_size = 0
     ip = 0
+    assert len(OpType) == 8, "Exhaustive op handling in simulate_little_endian_linux"
     while ip < len(program):
-        assert len(OpType) == 8, "Exhaustive op handling in simulate_little_endian_linux"
         op = program[ip]
         if op.typ == OpType.PUSH_INT:
             assert isinstance(op.operand, int), "This could be a bug in the compilation step"
@@ -350,9 +350,9 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
         out.write("    ret\n")
         out.write("global _start\n")
         out.write("_start:\n")
+        assert len(OpType) == 8, "Exhaustive ops handling in generate_nasm_linux_x86_64"
         for ip in range(len(program)):
             op = program[ip]
-            assert len(OpType) == 8, "Exhaustive ops handling in generate_nasm_linux_x86_64"
             out.write("addr_%d:\n" % ip)
             if op.typ == OpType.PUSH_INT:
                 assert isinstance(op.operand, int), "This could be a bug in the compilation step"
@@ -691,10 +691,10 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str]) -> 
     rtokens: List[Token] = list(reversed(tokens))
     macros: Dict[str, Macro] = {}
     ip: OpAddr = 0;
+    assert len(TokenType) == 5, "Exhaustive token handling in compile_tokens_to_program"
     while len(rtokens) > 0:
         # TODO: some sort of safety mechanism for recursive macros
         token = rtokens.pop()
-        assert len(TokenType) == 5, "Exhaustive token handling in compile_tokens_to_program"
         if token.typ == TokenType.WORD:
             assert isinstance(token.value, str), "This could be a bug in the lexer"
             if token.value in INTRINSIC_NAMES:
