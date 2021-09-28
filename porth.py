@@ -721,7 +721,6 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str], exp
     macros: Dict[str, Macro] = {}
     ip: OpAddr = 0;
     while len(rtokens) > 0:
-        # TODO: some sort of safety mechanism for recursive macros
         token = rtokens.pop()
         assert len(TokenType) == 5, "Exhaustive token handling in compile_tokens_to_program"
         if token.typ == TokenType.WORD:
@@ -797,7 +796,6 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str], exp
                     print("%s:%d:%d: ERROR: expected path to the include file to be %s but found %s" % (token.loc + (human(TokenType.STR), human(token.typ))), file=sys.stderr)
                     exit(1)
                 assert isinstance(token.value, str), "This is probably a bug in the lexer"
-                # TODO: safety mechanism for recursive includes
                 file_included = False
                 for include_path in include_paths:
                     try:
@@ -966,8 +964,6 @@ def usage(compiler_name: str):
     print("        -o <file|dir>       Customize the output path")
     print("        -s                  Silent mode. Don't print any info about compilation phases.")
     print("    help                  Print this help to stdout and exit with 0 code")
-
-# TODO: there is no way to access command line arguments
 
 if __name__ == '__main__' and '__file__' in globals():
     argv = sys.argv
