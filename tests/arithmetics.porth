@@ -10,7 +10,7 @@ include "std.porth"
 
 "------------------------------\n" stdout write
 
-"Divison:\n" stdout write
+"Division:\n" stdout write
 69000 1000 / print
 
 "------------------------------\n" stdout write
