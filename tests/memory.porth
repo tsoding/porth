@@ -9,7 +9,7 @@ mem 3 + 10 .
 // print "abc" to stdout
 4 mem stdout write print
 
-// increament each character by 1 making it "bcd"
+// increment each character by 1 making it "bcd"
 mem 0 + dup , 1 + .
 mem 1 + dup , 1 + .
 mem 2 + dup , 1 + .
