@@ -46,7 +46,6 @@ class Intrinsic(Enum):
     DROP=auto()
     OVER=auto()
     MEM=auto()
-    # TODO: implement typing for load/store operations
     LOAD=auto()
     STORE=auto()
     LOAD64=auto()
