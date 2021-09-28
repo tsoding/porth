@@ -21,6 +21,12 @@ mem swap .
     //read stdin
     255 mem 20 + stdin read
 
+    //exit if response is empty
+    dup 2 < if
+        "Goodbye" stdout write
+        1 exit
+    end
+
 
     //parse string to int
     1 - 
