@@ -19,7 +19,7 @@ mem swap .
     mem 10 + 1 .64
 
     //read stdin
-    255 mem 20 + stdin SYS_read syscall3
+    255 mem 20 + stdin read
 
 
     //parse string to int
