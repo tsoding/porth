@@ -1,0 +1,78 @@
+include "std.porth"
+
+//mem 0 = rand
+//mem 1 = guess (64bit)
+//mem 10 = digit_num (64bit)
+//mem 20-255 = s
+
+// drop argc
+drop
+
+// "random" value (from pointer)
+dup 24 shr 127 band 
+mem swap .
+
+"Guess a number from 0 to 255\n" stdin write
+
+1 while dup do
+    mem 1 + 0 .64
+    mem 10 + 1 .64
+
+    //read stdin
+    255 mem 20 + stdin SYS_read syscall3
+
+
+    //parse string to int
+    1 - 
+    0 
+    swap
+    while 2dup > 1 - do
+        // get char
+        dup 20 + mem + , 
+        // ignore non 0-9
+        dup
+        dup 47 > swap 58 < band if
+            //char to int
+            dup 48 -
+
+            // load current multiplier
+            mem 10 + ,64
+
+            // multiplier * 10
+            dup
+            10
+            *
+            // next_multiplier = multiplier * 10
+            mem 10 + swap .64
+            // digit * multiplier
+            *
+
+            // load current sum
+            mem 1 + ,64
+            // add digit * multiplier
+            +
+
+            // store new sum
+            mem 1 + swap .64
+        end
+        drop
+        1 -
+    end
+
+    // load guess
+    mem 1 + ,64 
+    // load random
+    mem 0 + ,
+
+    2dup < if
+        "Too low\n" stdin write
+        1
+    else 2dup > if
+        "Too high\n" stdin write
+        1
+        else
+        "You win!\n" stdin write
+        0
+        end
+    end
+end
