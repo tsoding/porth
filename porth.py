@@ -291,7 +291,12 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                     assert False, "unknown syscall number %d" % syscall_number
                 ip += 1
             elif op.operand == Intrinsic.SYSCALL1:
-                assert False, "not implemented"
+                syscall_number = stack.pop()
+                arg1 = stack.pop()
+                if syscall_number == 60:
+                    exit(arg1)
+                else:
+                    assert False, "unknown syscall number %d" % syscall_number
             elif op.operand == Intrinsic.SYSCALL2:
                 assert False, "not implemented"
             elif op.operand == Intrinsic.SYSCALL3:
