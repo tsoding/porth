@@ -41,45 +41,48 @@ def save_test_case(file_path: str, returncode: int, stdout: bytes, stderr: bytes
 def test(folder: str):
     sim_failed = 0
     com_failed = 0
-    for entry in os.scandir(folder):
-        porth_ext = '.porth'
-        if entry.is_file() and entry.path.endswith(porth_ext):
-            print('[INFO] Testing %s' % entry.path)
+    arch_list = ["x86_64", "aarch64"]
 
-            txt_path = entry.path[:-len(porth_ext)] + ".txt"
-            (expected_returncode, expected_output, expected_error) = load_test_case(txt_path)
+    for arch in arch_list:
+        for entry in os.scandir(folder):
+            porth_ext = '.porth'
+            if entry.is_file() and entry.path.endswith(porth_ext):
+                print('[INFO] Testing %s for arch %s' % (entry.path, arch))
 
-            sim_cmd = cmd_run_echoed([sys.executable, "./porth.py", "-I", folder, "sim", entry.path], capture_output=True)
-            sim_returncode = sim_cmd.returncode
-            sim_output = sim_cmd.stdout
-            sim_error = sim_cmd.stderr
-            if sim_returncode != expected_returncode or sim_output != expected_output or sim_error != expected_error:
-                sim_failed += 1
-                print("[ERROR] Unexpected simulation output")
-                print("  Expected:")
-                print("    return code: %s" % expected_returncode)
-                print("    stdout: %s" % expected_output.decode("utf-8"))
-                print("    stderr: %s" % expected_error.decode("utf-8"))
-                print("  Actual:")
-                print("    return code: %s" % sim_returncode)
-                print("    stdout: %s" % sim_output.decode("utf-8"))
-                print("    stderr: %s" % sim_error.decode("utf-8"))
+                txt_path = entry.path[:-len(porth_ext)] + ".txt"
+                (expected_returncode, expected_output, expected_error) = load_test_case(txt_path)
 
-            com_cmd = cmd_run_echoed([sys.executable, "./porth.py", "-I", folder, "com", "-r", "-s", entry.path], capture_output=True)
-            com_returncode = com_cmd.returncode
-            com_output = com_cmd.stdout
-            com_error = com_cmd.stderr
-            if com_returncode != expected_returncode or com_output != expected_output or com_error != expected_error:
-                com_failed += 1
-                print("[ERROR] Unexpected compilation output")
-                print("  Expected:")
-                print("    return code: %s" % expected_returncode)
-                print("    stdout: %s" % expected_output.decode("utf-8"))
-                print("    stderr: %s" % expected_error.decode("utf-8"))
-                print("  Actual:")
-                print("    return code: %s" % com_returncode)
-                print("    stdout: %s" % com_output.decode("utf-8"))
-                print("    stderr: %s" % com_error.decode("utf-8"))
+                sim_cmd = cmd_run_echoed([sys.executable, "./porth.py", "-I", folder, "sim", entry.path], capture_output=True)
+                sim_returncode = sim_cmd.returncode
+                sim_output = sim_cmd.stdout
+                sim_error = sim_cmd.stderr
+                if sim_returncode != expected_returncode or sim_output != expected_output or sim_error != expected_error:
+                    sim_failed += 1
+                    print("[ERROR] Unexpected simulation output")
+                    print("  Expected:")
+                    print("    return code: %s" % expected_returncode)
+                    print("    stdout: %s" % expected_output.decode("utf-8"))
+                    print("    stderr: %s" % expected_error.decode("utf-8"))
+                    print("  Actual:")
+                    print("    return code: %s" % sim_returncode)
+                    print("    stdout: %s" % sim_output.decode("utf-8"))
+                    print("    stderr: %s" % sim_error.decode("utf-8"))
+
+                com_cmd = cmd_run_echoed([sys.executable, "./porth.py", "-ARCH", arch, "-I", folder, "com", "-r", "-s", entry.path], capture_output=True)
+                com_returncode = com_cmd.returncode
+                com_output = com_cmd.stdout
+                com_error = com_cmd.stderr
+                if com_returncode != expected_returncode or com_output != expected_output or com_error != expected_error:
+                    com_failed += 1
+                    print("[ERROR] Unexpected compilation output for arch %s" % arch)
+                    print("  Expected:")
+                    print("    return code: %s" % expected_returncode)
+                    print("    stdout: %s" % expected_output.decode("utf-8"))
+                    print("    stderr: %s" % expected_error.decode("utf-8"))
+                    print("  Actual:")
+                    print("    return code: %s" % com_returncode)
+                    print("    stdout: %s" % com_output.decode("utf-8"))
+                    print("    stderr: %s" % com_error.decode("utf-8"))
     print()
     print("Simulation failed: %d, Compilation failed: %d" % (sim_failed, com_failed))
     if sim_failed != 0 or com_failed != 0:

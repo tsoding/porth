@@ -649,7 +649,7 @@ def generate_nasm_linux_aarch64(program: Program, out_file_path: str):
         out.write(".section .text\n")
         out.write("print:\n")
         out.write("    ldr     x9, =-3689348814741910323\n")
-        out.write("    sub     sp, sp, 40\n")
+        out.write("    sub     sp, sp, 60\n")
         out.write("    mov     x3, #10\n")
         out.write("    strb    w3, [sp, #31]\n")
         out.write("    add     x3, sp, #30\n")
@@ -682,7 +682,7 @@ def generate_nasm_linux_aarch64(program: Program, out_file_path: str):
         out.write("    mov     x2, x8\n")
         out.write("    mov     x8, #64\n")
         out.write("    svc     #0\n")
-        out.write("    add     sp, sp, 40\n")
+        out.write("    add     sp, sp, 60\n")
         out.write("    ret\n")
 
         out.write(".globl _start\n")
@@ -898,13 +898,13 @@ def generate_nasm_linux_aarch64(program: Program, out_file_path: str):
                     out.write("    //;; -- load --\n")
                     out.write("    ldr  x0, [sp], #8\n")
                     out.write("    mov  x1, #0\n")
-                    out.write("    ldrb w1, [x0, #0]")
+                    out.write("    ldrb w1, [x0, #0]\n")
                     out.write("    str  x1, [sp, #-8]!\n")
                 elif op.operand == Intrinsic.STORE:
                     out.write("    //;; -- store --\n")
                     out.write("    ldr  x0, [sp], #8\n")
                     out.write("    ldr  x1, [sp], #8\n")
-                    out.write("    strb w1, [x0, #0]")
+                    out.write("    strb w0, [x1, #0]\n")
                 elif op.operand == Intrinsic.LOAD64:
                     out.write("    //;; -- load64 --\n")
                     out.write("    ldr  x0, [sp], #8\n")
@@ -915,7 +915,7 @@ def generate_nasm_linux_aarch64(program: Program, out_file_path: str):
                     out.write("    //;; -- store64 --\n")
                     out.write("    ldr  x0, [sp], #8\n")
                     out.write("    ldr  x1, [sp], #8\n")
-                    out.write("    str  x1, [x0, #0]\n")
+                    out.write("    str  x0, [x1, #0]\n")
                 elif op.operand == Intrinsic.SYSCALL0:
                     out.write("    //;; -- syscall0 --\n")
                     out.write("    ldr  x8, [sp], #8\n")
@@ -1354,7 +1354,7 @@ if __name__ == '__main__' and '__file__' in globals():
         else:
             break
     if(not arch):
-        print("[INFO] no arch spesified! Defaulting to platform arch : %s" % platform_arch, file=sys.stderr)
+        # print("[INFO] no arch spesified! Defaulting to platform arch : %s" % platform_arch, file=sys.stderr)
         include_paths.append("./std/" + platform_arch + "/")
         arch = platform_arch
 
