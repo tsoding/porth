@@ -809,7 +809,6 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str], exp
                 if not file_included:
                     print("%s:%d:%d: ERROR: file `%s` not found" % (token.loc + (token.value, )), file=sys.stderr)
                     exit(1)
-            # TODO: capability to define macros from command line
             elif token.value == Keyword.MACRO:
                 if len(rtokens) == 0:
                     print("%s:%d:%d: ERROR: expected macro name but found nothing" % token.loc, file=sys.stderr)
