@@ -1300,7 +1300,7 @@ def usage(compiler_name: str):
     print("Usage: %s [OPTIONS] <SUBCOMMAND> [ARGS]" % compiler_name)
     print("  OPTIONS:")
     print("    -debug                Enable debug mode.")
-    print("    -ARCH <arch>          Architecture for native code(arm64, x86_64). Default: platform architecture")
+    print("    -ARCH <arch>          Architecture for native code(aarch64, x86_64). Default: platform architecture")
     print("    -I <path>             Add the path to the include search list")
     print("    -E <expansion-limit>  Macro and include expansion limit. (Default %d)" % DEFAULT_EXPANSION_LIMIT)
     print("  SUBCOMMAND:")
@@ -1434,12 +1434,12 @@ if __name__ == '__main__' and '__file__' in globals():
             generate_nasm_linux_x86_64(program, basepath + ".asm")
             cmd_call_echoed(["nasm", "-felf64", basepath + ".asm"], silent)
             cmd_call_echoed(["ld", "-o", basepath, basepath + ".o"], silent)
-        elif(arch == "arm64"):
+        elif(arch == "aarch64"):
             generate_nasm_linux_aarch64(program, basepath + ".S")
             cmd_call_echoed(["aarch64-linux-gnu-as", basepath + ".S", "-o", basepath+".o"], silent)
             cmd_call_echoed(["aarch64-linux-gnu-ld", "-o", basepath, basepath + ".o"], silent)
-        if run and arch == platform_arch:
-            exit(cmd_call_echoed([basepath] + argv, silent))
+        if run:
+            exit(cmd_call_echoed(["qemu-" + arch, basepath] + argv, silent))
     elif subcommand == "help":
         usage(compiler_name)
         exit(0)
