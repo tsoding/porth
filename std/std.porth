@@ -340,7 +340,7 @@ macro inc64
 end
 
 macro strlen
-  0 swap while dup , 0 != do
-    1 + swap 1 + swap
-  end drop
+  dup
+  while dup , 0 != do 1 + end
+  swap -
 end
