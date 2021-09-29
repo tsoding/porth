@@ -10,6 +10,8 @@ from enum import Enum, auto
 from dataclasses import dataclass
 from copy import copy
 
+PORTH_EXT = '.porth'
+
 debug=False
 
 Loc=Tuple[str, int, int]
@@ -1024,6 +1026,7 @@ if __name__ == '__main__' and '__file__' in globals():
             print("[ERROR] no input file is provided for the simulation", file=sys.stderr)
             exit(1)
         program_path, *argv = argv
+        include_paths.append(path.dirname(program_path))
         program = compile_file_to_program(program_path, include_paths, expansion_limit);
         simulate_little_endian_linux(program, [program_path] + argv)
     elif subcommand == "com":
@@ -1056,18 +1059,16 @@ if __name__ == '__main__' and '__file__' in globals():
         if output_path is not None:
             if path.isdir(output_path):
                 basename = path.basename(program_path)
-                porth_ext = '.porth'
-                if basename.endswith(porth_ext):
-                    basename = basename[:-len(porth_ext)]
+                if basename.endswith(PORTH_EXT):
+                    basename = basename[:-len(PORTH_EXT)]
                 basedir = path.dirname(output_path)
             else:
                 basename = path.basename(output_path)
                 basedir = path.dirname(output_path)
         else:
             basename = path.basename(program_path)
-            porth_ext = '.porth'
-            if basename.endswith(porth_ext):
-                basename = basename[:-len(porth_ext)]
+            if basename.endswith(PORTH_EXT):
+                basename = basename[:-len(PORTH_EXT)]
             basedir = path.dirname(program_path)
 
         # if basedir is empty we should "fix" the path appending the current working directory.
@@ -1078,6 +1079,9 @@ if __name__ == '__main__' and '__file__' in globals():
 
         if not silent:
             print("[INFO] Generating %s" % (basepath + ".asm"))
+
+        include_paths.append(path.dirname(program_path))
+
         program = compile_file_to_program(program_path, include_paths, expansion_limit);
         generate_nasm_linux_x86_64(program, basepath + ".asm")
         cmd_call_echoed(["nasm", "-felf64", basepath + ".asm"], silent)
