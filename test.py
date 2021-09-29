@@ -80,7 +80,7 @@ def test(folder: str):
             # TODO: the test case input is not provided during the test
             tc = load_test_case(tc_path)
 
-            sim = cmd_run_echoed([sys.executable, "./porth.py", "-I", folder, "sim", entry.path, *tc.argv], capture_output=True)
+            sim = cmd_run_echoed([sys.executable, "./porth.py", "-I", folder, "sim", entry.path, *tc.argv], input=tc.stdin, capture_output=True)
             if sim.returncode != tc.returncode or sim.stdout != tc.stdout or sim.stderr != tc.stderr:
                 sim_failed += 1
                 print("[ERROR] Unexpected simulation output")
@@ -93,7 +93,7 @@ def test(folder: str):
                 print("    stdout: %s" % sim.stdout.decode("utf-8"))
                 print("    stderr: %s" % sim.stderr.decode("utf-8"))
 
-            com = cmd_run_echoed([sys.executable, "./porth.py", "-I", folder, "com", "-r", "-s", entry.path, *tc.argv], capture_output=True)
+            com = cmd_run_echoed([sys.executable, "./porth.py", "-I", folder, "com", "-r", "-s", entry.path, *tc.argv], input=tc.stdin, capture_output=True)
             if com.returncode != tc.returncode or com.stdout != tc.stdout or com.stderr != tc.stderr:
                 com_failed += 1
                 print("[ERROR] Unexpected compilation output")
@@ -116,11 +116,13 @@ def record_input_for_file(file_path: str, argv: List[str]):
     tc_path = file_path[:-len(porth_ext)] + ".txt"
     tc = load_test_case(tc_path)
 
-    print("[INFO] Saving input to %s" % tc_path)
+    print("[INFO] Provide the stdin for the test case. Press ^D when you are done...")
 
-    # TODO: recording stdin is not implemented
+    stdin = sys.stdin.buffer.read()
+
+    print("[INFO] Saving input to %s" % tc_path)
     save_test_case(tc_path,
-                   argv, tc.stdin,
+                   argv, stdin,
                    tc.returncode, tc.stdout, tc.stderr)
 
 def record_output_for_folder(folder: str):
@@ -130,7 +132,7 @@ def record_output_for_folder(folder: str):
             tc_path = entry.path[:-len(porth_ext)] + ".txt"
             tc = load_test_case(tc_path)
 
-            output = cmd_run_echoed([sys.executable, "./porth.py", "-I", folder, "sim", entry.path, *tc.argv], capture_output=True)
+            output = cmd_run_echoed([sys.executable, "./porth.py", "-I", folder, "sim", entry.path, *tc.argv], input=tc.stdin, capture_output=True)
             print("[INFO] Saving output to %s" % tc_path)
             save_test_case(tc_path,
                            tc.argv, tc.stdin,
