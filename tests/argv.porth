@@ -1,7 +1,5 @@
 include "./std.porth"
 
-// TODO: come up with a way to test command line arguments
-
 drop drop
 while dup 0 > do
   dup strlen swap
