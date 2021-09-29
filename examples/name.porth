@@ -1,0 +1,20 @@
+include "std.porth"
+
+macro NAME_CAPACITY 256 end
+macro name mem end
+
+"What is your name? " stdout write drop
+
+NAME_CAPACITY name stdin read
+dup 0 <= if
+  "ERROR: could not read your name, sorry ( ._.)\n" stderr write drop
+  1 exit
+end
+
+name over + 1 - , '\n' = if
+  1 -
+end
+
+"Hello, " stdout write drop
+name stdout write drop
+"! ( ^-^)/\n" stdout write drop
