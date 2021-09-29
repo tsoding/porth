@@ -77,6 +77,7 @@ def test(folder: str):
             print('[INFO] Testing %s' % entry.path)
 
             txt_path = entry.path[:-len(porth_ext)] + ".txt"
+            # TODO: the test case input is not provided during the test
             tc = load_test_case(txt_path)
 
             sim = cmd_run_echoed([sys.executable, "./porth.py", "-I", folder, "sim", entry.path], capture_output=True)
