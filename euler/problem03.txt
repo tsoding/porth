@@ -1,6 +1,9 @@
-: returncode 0
-: stdout 5
+:i argc 0
+:b stdin 0
+
+:i returncode 0
+:b stdout 5
 6857
 
-: stderr 0
+:b stderr 0
 

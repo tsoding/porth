@@ -1,5 +1,8 @@
-: returncode 0
-: stdout 405
+:i argc 0
+:b stdin 0
+
+:i returncode 0
+:b stdout 405
 30
 20
 10
@@ -38,5 +41,5 @@ string
 ------------------------------
 1234567890987654321
 
-: stderr 0
+:b stderr 0
 
