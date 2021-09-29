@@ -120,7 +120,7 @@ def record_input_for_file(file_path: str, argv: List[str]):
 
     # TODO: recording stdin is not implemented
     save_test_case(tc_path,
-                   argv, stdin,
+                   argv, tc.stdin,
                    tc.returncode, tc.stdout, tc.stderr)
 
 def record_output_for_folder(folder: str):
