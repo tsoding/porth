@@ -122,6 +122,7 @@ def record(folder: str, mode: str='sim'):
                 exit(1)
             txt_path = entry.path[:-len(porth_ext)] + ".txt"
             print("[INFO] Saving output to %s" % txt_path)
+            # TODO: there is no way to record the test case input
             save_test_case(txt_path, [], b"", output.returncode, output.stdout, output.stderr)
 
 def usage(exe_name: str):
