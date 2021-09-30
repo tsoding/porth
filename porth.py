@@ -1192,7 +1192,7 @@ if __name__ == '__main__' and '__file__' in globals():
     assert len(argv) >= 1
     compiler_name, *argv = argv
 
-    include_paths = ['.', './std/']
+    include_paths = ['.', './std', '/usr/include/porth']
     expansion_limit = DEFAULT_EXPANSION_LIMIT
     check = False
 
