@@ -209,13 +209,13 @@ if __name__ == '__main__':
         elif subsubcommand == 'input':
             if len(argv) == 0:
                 usage(exe_name)
-                print("[ERROR] no file is provided for `record input` subcommand", file=sys.stderr)
+                print("[ERROR] no file is provided for `%s %s` subcommand" % (subcommand, subsubcommand), file=sys.stderr)
                 exit(1)
             file_path, *argv = argv
             update_input_for_file(file_path, argv)
         else:
             usage(exe_name)
-            print("[ERROR] unknown subcommand `record %s`" % subsubcommand, file=sys.stderr)
+            print("[ERROR] unknown subcommand `%s %s`. Available commands are `%s input` or `%s output`" % (subcommand, subsubcommand, subcommand, subcommand), file=sys.stderr)
             exit(1)
     elif subcommand == 'run' or subcommand == 'test':
         target = './tests/'
