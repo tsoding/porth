@@ -1,0 +1,44 @@
+include "./std.porth"
+
+macro ,node/value ,64 end
+macro ,node/prev 8 + ,64 end
+macro .node/value .64 end
+macro .node/prev swap 8 + swap .64 end
+macro sizeof(node) 16 end
+
+macro list_a mem end
+macro list_b list_a 8 + end
+
+macro nodes_count list_b 8 + end
+macro nodes nodes_count 8 + end
+
+macro alloc_node
+  nodes_count ,64 sizeof(node) * nodes +
+  nodes_count dup ,64 1 + .64
+end
+
+macro push_node
+  over alloc_node 2dup swap ,64 .node/prev .64
+  swap ,64 swap .node/value
+end
+
+macro pop_node
+  dup ,64 ,node/value swap
+  dup ,64 ,node/prev .64
+end
+
+// initialize list_a
+0 while dup 5 < do
+  list_a over push_node
+  1 +
+end drop
+
+// reverse list_a into list_b
+while list_a ,64 0 != do
+  list_a pop_node list_b swap push_node
+end
+
+// print list_b
+while list_b ,64 0 != do
+  list_b pop_node print
+end
