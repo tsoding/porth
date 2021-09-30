@@ -280,7 +280,7 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                 stack.append(b)
                 ip += 1
             elif op.operand == Intrinsic.MEM:
-                stack.append(STR_CAPACITY)
+                stack.append(mem_buf_ptr)
                 ip += 1
             elif op.operand == Intrinsic.LOAD:
                 addr = stack.pop()
