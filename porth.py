@@ -50,6 +50,8 @@ class Intrinsic(Enum):
     MEM=auto()
     LOAD=auto()
     STORE=auto()
+    LOAD16=auto()
+    STORE16=auto()
     LOAD64=auto()
     STORE64=auto()
     ARGC=auto()
@@ -181,7 +183,7 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
             else:
                 ip += 1
         elif op.typ == OpType.INTRINSIC:
-            assert len(Intrinsic) == 33, "Exhaustive handling of intrinsic in simulate_little_endian_linux()"
+            assert len(Intrinsic) == 35, "Exhaustive handling of intrinsic in simulate_little_endian_linux()"
             if op.operand == Intrinsic.PLUS:
                 a = stack.pop()
                 b = stack.pop()
@@ -291,6 +293,20 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                 store_value = stack.pop()
                 store_addr = stack.pop()
                 mem[store_addr] = store_value & 0xFF
+                ip += 1
+            elif op.operand == Intrinsic.LOAD16:
+                addr = stack.pop()
+                _bytes = bytearray(2)
+                for offset in range(0,2):
+                    _bytes[offset] = mem[addr + offset]
+                stack.append(int.from_bytes(_bytes, byteorder="little"))
+                ip += 1
+            elif op.operand == Intrinsic.STORE16:
+                store_value16 = stack.pop().to_bytes(length=8, byteorder="little")
+                store_addr16 = stack.pop()
+                for index in range(0, 2):
+                    mem[store_addr16] = store_value16[index]
+                    store_addr16 += 1
                 ip += 1
             elif op.operand == Intrinsic.LOAD64:
                 addr = stack.pop()
@@ -624,7 +640,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                 assert isinstance(op.operand, int), "This could be a bug in the compilation step"
                 out.write("    jz addr_%d\n" % op.operand)
             elif op.typ == OpType.INTRINSIC:
-                assert len(Intrinsic) == 33, "Exhaustive intrinsic handling in generate_nasm_linux_x86_64()"
+                assert len(Intrinsic) == 35, "Exhaustive intrinsic handling in generate_nasm_linux_x86_64()"
                 if op.operand == Intrinsic.PLUS:
                     out.write("    ;; -- plus --\n")
                     out.write("    pop rax\n")
@@ -765,9 +781,9 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                     out.write("    push rbx\n")
                 elif op.operand == Intrinsic.STORE:
                     out.write("    ;; -- store --\n")
-                    out.write("    pop rbx\n");
-                    out.write("    pop rax\n");
-                    out.write("    mov [rax], bl\n");
+                    out.write("    pop rbx\n")
+                    out.write("    pop rax\n")
+                    out.write("    mov [rax], bl\n")
                 elif op.operand == Intrinsic.ARGC:
                     out.write("    ;; -- argc --\n")
                     out.write("    mov rax, [args_ptr]\n")
@@ -778,6 +794,18 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                     out.write("    mov rax, [args_ptr]\n")
                     out.write("    add rax, 8\n")
                     out.write("    push rax\n")
+                elif op.operand == Intrinsic.LOAD16:
+                    out.write("    ;; -- load --\n")
+                    out.write("    pop rax\n")
+                    out.write("    xor rbx, rbx\n")
+                    out.write("    mov bx, [rax]\n")
+                    out.write("    push rbx\n")
+                elif op.operand == Intrinsic.STORE16:
+                    out.write("    ;; -- store --\n")
+                    out.write("    pop rbx\n")
+                    out.write("    pop rax\n")
+                    out.write("    mov [rax], bx\n")
+
                 elif op.operand == Intrinsic.LOAD64:
                     out.write("    ;; -- load --\n")
                     out.write("    pop rax\n")
@@ -872,7 +900,7 @@ KEYWORD_NAMES = {
     'include': Keyword.INCLUDE,
 }
 
-assert len(Intrinsic) == 33, "Exhaustive INTRINSIC_NAMES definition"
+assert len(Intrinsic) == 35, "Exhaustive INTRINSIC_NAMES definition"
 INTRINSIC_NAMES = {
     '+': Intrinsic.PLUS,
     '-': Intrinsic.MINUS,
@@ -896,6 +924,8 @@ INTRINSIC_NAMES = {
     'mem': Intrinsic.MEM,
     '.': Intrinsic.STORE,
     ',': Intrinsic.LOAD,
+    '.16': Intrinsic.STORE16,
+    ',16': Intrinsic.LOAD16,
     '.64': Intrinsic.STORE64,
     ',64': Intrinsic.LOAD64,
     'argc': Intrinsic.ARGC,
