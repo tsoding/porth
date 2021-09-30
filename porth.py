@@ -122,7 +122,7 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
         2: sys.stderr.buffer,
     }
 
-    for arg in reversed(argv):
+    for arg in argv:
         value = arg.encode('utf-8')
         n = len(value)
 
@@ -307,9 +307,11 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                     store_addr64 += 1;
                 ip += 1
             elif op.operand == Intrinsic.ARGC:
-                assert False, "not implemented";
+                stack.append(argc)
+                ip += 1
             elif op.operand == Intrinsic.ARGV:
-                assert False, "not implemented";
+                stack.append(argv_buf_ptr)
+                ip += 1
             elif op.operand == Intrinsic.SYSCALL0:
                 syscall_number = stack.pop();
                 if syscall_number == 39: # SYS_getpid
@@ -406,6 +408,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
         out.write("    ret\n")
         out.write("global _start\n")
         out.write("_start:\n")
+        out.write("    mov [args_ptr], rsp\n")
         for ip in range(len(program)):
             op = program[ip]
             assert len(OpType) == 8, "Exhaustive ops handling in generate_nasm_linux_x86_64"
@@ -593,9 +596,15 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                     out.write("    pop rax\n");
                     out.write("    mov [rax], bl\n");
                 elif op.operand == Intrinsic.ARGC:
-                    assert False, "not implemented"
+                    out.write("    ;; -- argc --\n")
+                    out.write("    mov rax, [args_ptr]\n")
+                    out.write("    mov rax, [rax]\n")
+                    out.write("    push rax\n")
                 elif op.operand == Intrinsic.ARGV:
-                    assert False, "not implemented"
+                    out.write("    ;; -- argv --\n")
+                    out.write("    mov rax, [args_ptr]\n")
+                    out.write("    add rax, 8\n")
+                    out.write("    push rax\n")
                 elif op.operand == Intrinsic.LOAD64:
                     out.write("    ;; -- load --\n")
                     out.write("    pop rax\n")
@@ -676,6 +685,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
         for index, s in enumerate(strs):
             out.write("str_%d: db %s\n" % (index, ','.join(map(hex, list(s)))))
         out.write("segment .bss\n")
+        out.write("args_ptr: resq 1\n")
         out.write("mem: resb %d\n" % MEM_CAPACITY)
 
 assert len(Keyword) == 7, "Exhaustive KEYWORD_NAMES definition."
