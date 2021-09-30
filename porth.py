@@ -368,25 +368,25 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
         print("[INFO] Memory dump")
         print(mem[:20])
 
-class Type(IntEnum):
+class DataType(IntEnum):
     INT=auto()
     BOOL=auto()
     PTR=auto()
 
 def type_check_program(program: Program):
-    stack: List[Tuple[Type, Loc]] = []
+    stack: List[Tuple[DataType, Loc]] = []
     for ip in range(len(program)):
         op = program[ip]
         assert len(OpType) == 8, "Exhaustive ops handling in type_check_program()"
         if op.typ == OpType.PUSH_INT:
-            stack.append((Type.INT, op.loc))
+            stack.append((DataType.INT, op.loc))
         elif op.typ == OpType.PUSH_STR:
-            stack.append((Type.INT, op.loc))
-            stack.append((Type.PTR, op.loc))
+            stack.append((DataType.INT, op.loc))
+            stack.append((DataType.PTR, op.loc))
         elif op.typ == OpType.INTRINSIC:
             assert len(Intrinsic) == 33, "Exhaustive intrinsic handling in type_check_program()"
             if op.operand == Intrinsic.PLUS:
-                assert len(Type) == 3, "Exhaustive type handling in PLUS intrinsic"
+                assert len(DataType) == 3, "Exhaustive type handling in PLUS intrinsic"
                 if len(stack) < 2:
                     # TODO: use human readable representation of intrinsics in error reporting
                     print("%s:%d:%d: ERROR: not enough arguments for the PLUS intrinsic" % op.loc, file=sys.stderr)
@@ -394,12 +394,12 @@ def type_check_program(program: Program):
                 a_type, a_loc = stack.pop()
                 b_type, b_loc = stack.pop()
 
-                if a_type == Type.INT and b_type == Type.INT:
-                    stack.append((Type.INT, op.loc))
-                elif a_type == Type.INT and b_type == Type.PTR:
-                    stack.append((Type.PTR, op.loc))
-                elif a_type == Type.PTR and b_type == Type.INT:
-                    stack.append((Type.PTR, op.loc))
+                if a_type == DataType.INT and b_type == DataType.INT:
+                    stack.append((DataType.INT, op.loc))
+                elif a_type == DataType.INT and b_type == DataType.PTR:
+                    stack.append((DataType.PTR, op.loc))
+                elif a_type == DataType.PTR and b_type == DataType.INT:
+                    stack.append((DataType.PTR, op.loc))
                 else:
                     print("%s:%d:%d: ERROR: invalid argument types for PLUS intrinsic %s %s" % (op.loc + (a_type, b_type)), file=sys.stderr)
                     exit(1)
@@ -419,8 +419,8 @@ def type_check_program(program: Program):
                 a_type, a_loc = stack.pop()
                 b_type, b_loc = stack.pop()
 
-                if a_type == b_type and (a_type == Type.INT or a_type == Type.PTR):
-                    stack.append((Type.BOOL, op.loc))
+                if a_type == b_type and (a_type == DataType.INT or a_type == DataType.PTR):
+                    stack.append((DataType.BOOL, op.loc))
                 else:
                     print("%s:%d:%d: ERROR: invalid argument type for GT intrinsic" % op.loc, file=sys.stderr)
                     exit(1)
@@ -489,28 +489,28 @@ def type_check_program(program: Program):
                     exit(1)
                 for i in range(1):
                     stack.pop()
-                stack.append((Type.INT, op.loc))
+                stack.append((DataType.INT, op.loc))
             elif op.operand == Intrinsic.SYSCALL1:
                 if len(stack) < 2:
                     print("%s:%d:%d: ERROR: not enough arguments for SYSCALL1 intrinsic" % op.loc, file=sys.stderr)
                     exit(1)
                 for i in range(2):
                     stack.pop()
-                stack.append((Type.INT, op.loc))
+                stack.append((DataType.INT, op.loc))
             elif op.operand == Intrinsic.SYSCALL2:
                 if len(stack) < 3:
                     print("%s:%d:%d: ERROR: not enough arguments for SYSCALL2 intrinsic" % op.loc, file=sys.stderr)
                     exit(1)
                 for i in range(3):
                     stack.pop()
-                stack.append((Type.INT, op.loc))
+                stack.append((DataType.INT, op.loc))
             elif op.operand == Intrinsic.SYSCALL3:
                 if len(stack) < 4:
                     print("%s:%d:%d: ERROR: not enough arguments for SYSCALL3 intrinsic" % op.loc, file=sys.stderr)
                     exit(1)
                 for i in range(4):
                     stack.pop()
-                stack.append((Type.INT, op.loc))
+                stack.append((DataType.INT, op.loc))
             elif op.operand == Intrinsic.SYSCALL4:
                 assert False, "not implemented"
             elif op.operand == Intrinsic.SYSCALL5:
@@ -532,7 +532,7 @@ def type_check_program(program: Program):
                 print("%s:%d:%d: ERROR: not enough arguments for DO operation" % op.loc, file=sys.stderr)
                 exit(1)
             a_type, a_loc = stack.pop()
-            if a_type != Type.BOOL:
+            if a_type != DataType.BOOL:
                 print("%s:%d:%d: ERROR: DO operation expects BOOL argument" % op.loc, file=sys.stderr)
                 exit(1)
         else:
