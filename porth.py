@@ -6,7 +6,7 @@ import subprocess
 import shlex
 from os import path
 from typing import *
-from enum import Enum, auto
+from enum import IntEnum, Enum, auto
 from dataclasses import dataclass
 from copy import copy
 
@@ -52,6 +52,8 @@ class Intrinsic(Enum):
     STORE=auto()
     LOAD64=auto()
     STORE64=auto()
+    ARGC=auto()
+    ARGV=auto()
     SYSCALL0=auto()
     SYSCALL1=auto()
     SYSCALL2=auto()
@@ -96,15 +98,23 @@ class Token:
     expanded: int = 0
 
 NULL_POINTER_PADDING = 1 # just a little bit of a padding at the beginning of the memory to make 0 an invalid address
-STR_CAPACITY = 640_000 # should be enough for everyone
-MEM_CAPACITY = 640_000
+STR_CAPACITY  = 640_000 # should be enough for everyone
+MEM_CAPACITY  = 640_000
+ARGV_CAPACITY = 640_000
 
 # TODO: introduce the profiler mode
 def simulate_little_endian_linux(program: Program, argv: List[str]):
     stack: List[int] = []
-    mem = bytearray(NULL_POINTER_PADDING + STR_CAPACITY + MEM_CAPACITY)
-    str_offsets: Dict[int, int] = {}
-    str_size = NULL_POINTER_PADDING
+    mem = bytearray(NULL_POINTER_PADDING + STR_CAPACITY + ARGV_CAPACITY + MEM_CAPACITY)
+
+    str_buf_ptr  = NULL_POINTER_PADDING
+    str_ptrs: Dict[int, int] = {}
+    str_size = 0
+
+    argv_buf_ptr = NULL_POINTER_PADDING + STR_CAPACITY
+    argc = 0
+
+    mem_buf_ptr  = NULL_POINTER_PADDING + STR_CAPACITY + ARGV_CAPACITY
 
     fds: Dict[int, BinaryIO] = {
         0: sys.stdin.buffer,
@@ -112,16 +122,20 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
         2: sys.stderr.buffer,
     }
 
-    stack.append(0)
-    for arg in reversed(argv):
+    for arg in argv:
         value = arg.encode('utf-8')
         n = len(value)
-        mem[str_size:str_size+n] = value
-        mem[str_size+n] = 0
-        stack.append(str_size)
+
+        arg_ptr = str_buf_ptr + str_size
+        mem[arg_ptr:arg_ptr+n] = value
+        mem[arg_ptr+n] = 0
         str_size += n + 1
         assert str_size <= STR_CAPACITY, "String buffer overflow"
-    stack.append(len(argv))
+
+        argv_ptr = argv_buf_ptr+argc*8
+        mem[argv_ptr:argv_ptr+8] = arg_ptr.to_bytes(8, byteorder='little')
+        argc += 1
+        assert argc*8 <= ARGV_CAPACITY, "Argv buffer, overflow"
 
     ip = 0
     while ip < len(program):
@@ -136,12 +150,13 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
             value = op.operand.encode('utf-8')
             n = len(value)
             stack.append(n)
-            if ip not in str_offsets:
-                str_offsets[ip] = str_size
-                mem[str_size:str_size+n] = value
+            if ip not in str_ptrs:
+                str_ptr = str_buf_ptr+str_size
+                str_ptrs[ip] = str_ptr
+                mem[str_ptr:str_ptr+n] = value
                 str_size += n
                 assert str_size <= STR_CAPACITY, "String buffer overflow"
-            stack.append(str_offsets[ip])
+            stack.append(str_ptrs[ip])
             ip += 1
         elif op.typ == OpType.IF:
             a = stack.pop()
@@ -166,7 +181,7 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
             else:
                 ip += 1
         elif op.typ == OpType.INTRINSIC:
-            assert len(Intrinsic) == 31, "Exhaustive handling of intrinsic in simulate_little_endian_linux()"
+            assert len(Intrinsic) == 33, "Exhaustive handling of intrinsic in simulate_little_endian_linux()"
             if op.operand == Intrinsic.PLUS:
                 a = stack.pop()
                 b = stack.pop()
@@ -265,7 +280,7 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                 stack.append(b)
                 ip += 1
             elif op.operand == Intrinsic.MEM:
-                stack.append(STR_CAPACITY)
+                stack.append(mem_buf_ptr)
                 ip += 1
             elif op.operand == Intrinsic.LOAD:
                 addr = stack.pop()
@@ -285,16 +300,22 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                 stack.append(int.from_bytes(_bytes, byteorder="little"))
                 ip += 1
             elif op.operand == Intrinsic.STORE64:
-                store_value64 = stack.pop().to_bytes(length=8, byteorder="little")
-                store_addr64 = stack.pop()
+                store_value64 = stack.pop().to_bytes(length=8, byteorder="little");
+                store_addr64 = stack.pop();
                 for byte in store_value64:
-                    mem[store_addr64] = byte
-                    store_addr64 += 1
+                    mem[store_addr64] = byte;
+                    store_addr64 += 1;
+                ip += 1
+            elif op.operand == Intrinsic.ARGC:
+                stack.append(argc)
+                ip += 1
+            elif op.operand == Intrinsic.ARGV:
+                stack.append(argv_buf_ptr)
                 ip += 1
             elif op.operand == Intrinsic.SYSCALL0:
-                syscall_number = stack.pop()
+                syscall_number = stack.pop();
                 if syscall_number == 39: # SYS_getpid
-                    stack.append(os.getpid())
+                    stack.append(os.getpid());
                 else:
                     assert False, "unknown syscall number %d" % syscall_number
                 ip += 1
@@ -347,6 +368,179 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
         print("[INFO] Memory dump")
         print(mem[:20])
 
+class DataType(IntEnum):
+    INT=auto()
+    BOOL=auto()
+    PTR=auto()
+
+def type_check_program(program: Program):
+    stack: List[Tuple[DataType, Loc]] = []
+    for ip in range(len(program)):
+        op = program[ip]
+        assert len(OpType) == 8, "Exhaustive ops handling in type_check_program()"
+        if op.typ == OpType.PUSH_INT:
+            stack.append((DataType.INT, op.loc))
+        elif op.typ == OpType.PUSH_STR:
+            stack.append((DataType.INT, op.loc))
+            stack.append((DataType.PTR, op.loc))
+        elif op.typ == OpType.INTRINSIC:
+            assert len(Intrinsic) == 33, "Exhaustive intrinsic handling in type_check_program()"
+            if op.operand == Intrinsic.PLUS:
+                assert len(DataType) == 3, "Exhaustive type handling in PLUS intrinsic"
+                if len(stack) < 2:
+                    # TODO: use human readable representation of intrinsics in error reporting
+                    print("%s:%d:%d: ERROR: not enough arguments for the PLUS intrinsic" % op.loc, file=sys.stderr)
+                    exit(1)
+                a_type, a_loc = stack.pop()
+                b_type, b_loc = stack.pop()
+
+                if a_type == DataType.INT and b_type == DataType.INT:
+                    stack.append((DataType.INT, op.loc))
+                elif a_type == DataType.INT and b_type == DataType.PTR:
+                    stack.append((DataType.PTR, op.loc))
+                elif a_type == DataType.PTR and b_type == DataType.INT:
+                    stack.append((DataType.PTR, op.loc))
+                else:
+                    print("%s:%d:%d: ERROR: invalid argument types for PLUS intrinsic %s %s" % (op.loc + (a_type, b_type)), file=sys.stderr)
+                    exit(1)
+            elif op.operand == Intrinsic.MINUS:
+                assert False, "not implemented"
+            elif op.operand == Intrinsic.MUL:
+                assert False, "not implemented"
+            elif op.operand == Intrinsic.DIVMOD:
+                assert False, "not implemented"
+            elif op.operand == Intrinsic.EQ:
+                assert False, "not implemented"
+            elif op.operand == Intrinsic.GT:
+                if len(stack) < 2:
+                    print("%s:%d:%d: ERROR: not enough arguments for the GT intrinsic" % op.loc, file=sys.stderr)
+                    exit(1)
+                # b a
+                a_type, a_loc = stack.pop()
+                b_type, b_loc = stack.pop()
+
+                if a_type == b_type and (a_type == DataType.INT or a_type == DataType.PTR):
+                    stack.append((DataType.BOOL, op.loc))
+                else:
+                    print("%s:%d:%d: ERROR: invalid argument type for GT intrinsic" % op.loc, file=sys.stderr)
+                    exit(1)
+            elif op.operand == Intrinsic.LT:
+                assert False, "not implemented"
+            elif op.operand == Intrinsic.GE:
+                assert False, "not implemented"
+            elif op.operand == Intrinsic.LE:
+                assert False, "not implemented"
+            elif op.operand == Intrinsic.NE:
+                assert False, "not implemented"
+            elif op.operand == Intrinsic.SHR:
+                assert False, "not implemented"
+            elif op.operand == Intrinsic.SHL:
+                assert False, "not implemented"
+            elif op.operand == Intrinsic.BOR:
+                assert False, "not implemented"
+            elif op.operand == Intrinsic.BAND:
+                assert False, "not implemented"
+            elif op.operand == Intrinsic.PRINT:
+                if len(stack) < 1:
+                    print("%s:%d:%d: ERROR: not enough arguments for the PRINT intrinsic" % op.loc, file=sys.stderr)
+                    exit(1)
+                stack.pop()
+            elif op.operand == Intrinsic.DUP:
+                if len(stack) < 1:
+                    print("%s:%d:%d: ERROR: not enough arguments for the DUP intrinsic" % op.loc, file=sys.stderr)
+                    exit(1)
+                a = stack.pop()
+                stack.append(a)
+                stack.append(a)
+            elif op.operand == Intrinsic.SWAP:
+                assert False, "not implemented"
+            elif op.operand == Intrinsic.DROP:
+                if len(stack) < 1:
+                    print("%s:%d:%d: ERROR: not enough arguments for the DROP intrinsic" % op.loc, file=sys.stderr)
+                    exit(1)
+                stack.pop()
+            elif op.operand == Intrinsic.OVER:
+                if len(stack) < 2:
+                    print("%s:%d:%d: ERROR: not enough arguments for the OVER intrinsic" % op.loc, file=sys.stderr)
+                    exit(1)
+                a = stack.pop()
+                b = stack.pop()
+                stack.append(b)
+                stack.append(a)
+                stack.append(b)
+            elif op.operand == Intrinsic.MEM:
+                assert False, "not implemented"
+            elif op.operand == Intrinsic.LOAD:
+                assert False, "not implemented"
+            elif op.operand == Intrinsic.STORE:
+                assert False, "not implemented"
+            elif op.operand == Intrinsic.LOAD64:
+                assert False, "not implemented"
+            elif op.operand == Intrinsic.STORE64:
+                assert False, "not implemented"
+            elif op.operand == Intrinsic.ARGC:
+                assert False, "not implemented"
+            elif op.operand == Intrinsic.ARGV:
+                assert False, "not implemented"
+            # TODO: figure out how to type check syscall arguments and return types
+            elif op.operand == Intrinsic.SYSCALL0:
+                if len(stack) < 1:
+                    print("%s:%d:%d: ERROR: not enough arguments for SYSCALL0 intrinsic" % op.loc, file=sys.stderr)
+                    exit(1)
+                for i in range(1):
+                    stack.pop()
+                stack.append((DataType.INT, op.loc))
+            elif op.operand == Intrinsic.SYSCALL1:
+                if len(stack) < 2:
+                    print("%s:%d:%d: ERROR: not enough arguments for SYSCALL1 intrinsic" % op.loc, file=sys.stderr)
+                    exit(1)
+                for i in range(2):
+                    stack.pop()
+                stack.append((DataType.INT, op.loc))
+            elif op.operand == Intrinsic.SYSCALL2:
+                if len(stack) < 3:
+                    print("%s:%d:%d: ERROR: not enough arguments for SYSCALL2 intrinsic" % op.loc, file=sys.stderr)
+                    exit(1)
+                for i in range(3):
+                    stack.pop()
+                stack.append((DataType.INT, op.loc))
+            elif op.operand == Intrinsic.SYSCALL3:
+                if len(stack) < 4:
+                    print("%s:%d:%d: ERROR: not enough arguments for SYSCALL3 intrinsic" % op.loc, file=sys.stderr)
+                    exit(1)
+                for i in range(4):
+                    stack.pop()
+                stack.append((DataType.INT, op.loc))
+            elif op.operand == Intrinsic.SYSCALL4:
+                assert False, "not implemented"
+            elif op.operand == Intrinsic.SYSCALL5:
+                assert False, "not implemented"
+            elif op.operand == Intrinsic.SYSCALL6:
+                assert False, "not implemented"
+            else:
+                assert False, "unreachable"
+        elif op.typ == OpType.IF:
+            assert False, "not implemented"
+        elif op.typ == OpType.END:
+            assert False, "not implemented"
+        elif op.typ == OpType.ELSE:
+            assert False, "not implemented"
+        elif op.typ == OpType.WHILE:
+            pass
+        elif op.typ == OpType.DO:
+            if len(stack) < 1:
+                print("%s:%d:%d: ERROR: not enough arguments for DO operation" % op.loc, file=sys.stderr)
+                exit(1)
+            a_type, a_loc = stack.pop()
+            if a_type != DataType.BOOL:
+                print("%s:%d:%d: ERROR: DO operation expects BOOL argument" % op.loc, file=sys.stderr)
+                exit(1)
+        else:
+            assert False, "unreachable"
+    if len(stack) != 0:
+        print("%s:%d:%d: ERROR: unhandled data on the stack" % stack.pop()[1], file=sys.stderr)
+        exit(1)
+
 def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
     strs: List[bytes] = []
     with open(out_file_path, "w") as out:
@@ -387,6 +581,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
         out.write("    ret\n")
         out.write("global _start\n")
         out.write("_start:\n")
+        out.write("    mov [args_ptr], rsp\n")
         for ip in range(len(program)):
             op = program[ip]
             assert len(OpType) == 8, "Exhaustive ops handling in generate_nasm_linux_x86_64"
@@ -429,7 +624,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                 assert isinstance(op.operand, int), "This could be a bug in the compilation step"
                 out.write("    jz addr_%d\n" % op.operand)
             elif op.typ == OpType.INTRINSIC:
-                assert len(Intrinsic) == 31, "Exhaustive intrinsic handling in generate_nasm_linux_x86_64()"
+                assert len(Intrinsic) == 33, "Exhaustive intrinsic handling in generate_nasm_linux_x86_64()"
                 if op.operand == Intrinsic.PLUS:
                     out.write("    ;; -- plus --\n")
                     out.write("    pop rax\n")
@@ -573,6 +768,16 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                     out.write("    pop rbx\n");
                     out.write("    pop rax\n");
                     out.write("    mov [rax], bl\n");
+                elif op.operand == Intrinsic.ARGC:
+                    out.write("    ;; -- argc --\n")
+                    out.write("    mov rax, [args_ptr]\n")
+                    out.write("    mov rax, [rax]\n")
+                    out.write("    push rax\n")
+                elif op.operand == Intrinsic.ARGV:
+                    out.write("    ;; -- argv --\n")
+                    out.write("    mov rax, [args_ptr]\n")
+                    out.write("    add rax, 8\n")
+                    out.write("    push rax\n")
                 elif op.operand == Intrinsic.LOAD64:
                     out.write("    ;; -- load --\n")
                     out.write("    pop rax\n")
@@ -653,6 +858,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
         for index, s in enumerate(strs):
             out.write("str_%d: db %s\n" % (index, ','.join(map(hex, list(s)))))
         out.write("segment .bss\n")
+        out.write("args_ptr: resq 1\n")
         out.write("mem: resb %d\n" % MEM_CAPACITY)
 
 assert len(Keyword) == 7, "Exhaustive KEYWORD_NAMES definition."
@@ -666,7 +872,7 @@ KEYWORD_NAMES = {
     'include': Keyword.INCLUDE,
 }
 
-assert len(Intrinsic) == 31, "Exhaustive INTRINSIC_NAMES definition"
+assert len(Intrinsic) == 33, "Exhaustive INTRINSIC_NAMES definition"
 INTRINSIC_NAMES = {
     '+': Intrinsic.PLUS,
     '-': Intrinsic.MINUS,
@@ -692,6 +898,8 @@ INTRINSIC_NAMES = {
     ',': Intrinsic.LOAD,
     '.64': Intrinsic.STORE64,
     ',64': Intrinsic.LOAD64,
+    'argc': Intrinsic.ARGC,
+    'argv': Intrinsic.ARGV,
     'syscall0': Intrinsic.SYSCALL0,
     'syscall1': Intrinsic.SYSCALL1,
     'syscall2': Intrinsic.SYSCALL2,
@@ -969,6 +1177,7 @@ def usage(compiler_name: str):
     print("    -debug                Enable debug mode.")
     print("    -I <path>             Add the path to the include search list")
     print("    -E <expansion-limit>  Macro and include expansion limit. (Default %d)" % DEFAULT_EXPANSION_LIMIT)
+    print("    -check                Type check the program")
     print("  SUBCOMMAND:")
     print("    sim <file>            Simulate the program")
     print("    com [OPTIONS] <file>  Compile the program")
@@ -985,6 +1194,7 @@ if __name__ == '__main__' and '__file__' in globals():
 
     include_paths = ['.', './std/']
     expansion_limit = DEFAULT_EXPANSION_LIMIT
+    check = False
 
     while len(argv) > 0:
         if argv[0] == '-debug':
@@ -1006,6 +1216,9 @@ if __name__ == '__main__' and '__file__' in globals():
                 exit(1)
             arg, *argv = argv
             expansion_limit = int(arg)
+        elif argv[0] == '-check':
+            argv = argv[1:]
+            check = True
         else:
             break
 
@@ -1028,6 +1241,8 @@ if __name__ == '__main__' and '__file__' in globals():
         program_path, *argv = argv
         include_paths.append(path.dirname(program_path))
         program = compile_file_to_program(program_path, include_paths, expansion_limit);
+        if check:
+            type_check_program(program)
         simulate_little_endian_linux(program, [program_path] + argv)
     elif subcommand == "com":
         silent = False
@@ -1083,6 +1298,8 @@ if __name__ == '__main__' and '__file__' in globals():
         include_paths.append(path.dirname(program_path))
 
         program = compile_file_to_program(program_path, include_paths, expansion_limit);
+        if check:
+            type_check_program(program)
         generate_nasm_linux_x86_64(program, basepath + ".asm")
         cmd_call_echoed(["nasm", "-felf64", basepath + ".asm"], silent)
         cmd_call_echoed(["ld", "-o", basepath, basepath + ".o"], silent)
