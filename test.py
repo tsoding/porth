@@ -48,16 +48,19 @@ class TestCase:
     stderr: bytes
 
 def load_test_case(file_path: str) -> TestCase:
-    with open(file_path, "rb") as f:
-        argv = []
-        argc = read_int_field(f, b'argc')
-        for index in range(argc):
-            argv.append(read_blob_field(f, b'arg%d' % index).decode('utf-8'))
-        stdin = read_blob_field(f, b'stdin')
-        returncode = read_int_field(f, b'returncode')
-        stdout = read_blob_field(f, b'stdout')
-        stderr = read_blob_field(f, b'stderr')
-        return TestCase(argv, stdin, returncode, stdout, stderr)
+    try:
+        with open(file_path, "rb") as f:
+            argv = []
+            argc = read_int_field(f, b'argc')
+            for index in range(argc):
+                argv.append(read_blob_field(f, b'arg%d' % index).decode('utf-8'))
+            stdin = read_blob_field(f, b'stdin')
+            returncode = read_int_field(f, b'returncode')
+            stdout = read_blob_field(f, b'stdout')
+            stderr = read_blob_field(f, b'stderr')
+            return TestCase(argv, stdin, returncode, stdout, stderr)
+    except FileNotFoundError:
+        return TestCase(argv=[], stdin=bytes(), returncode=0, stdout=bytes(), stderr=bytes())
 
 def save_test_case(file_path: str,
                    argv: List[str], stdin: bytes,
