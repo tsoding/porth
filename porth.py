@@ -76,7 +76,7 @@ OpAddr=int
 class Op:
     typ: OpType
     loc: Loc
-    operand: Optional[Union[int, str, Intrinsic, OpAddr]] = None
+    operand: Union[None, int, str, Intrinsic, OpAddr] = None
 
 Program=List[Op]
 
@@ -99,18 +99,20 @@ NULL_POINTER_PADDING = 1 # just a little bit of a padding at the beginning of th
 STR_CAPACITY = 640_000 # should be enough for everyone
 MEM_CAPACITY = 640_000
 
+fds: Dict[int, BinaryIO] = {
+    0: sys.stdin.buffer,
+    1: sys.stdout.buffer,
+    2: sys.stderr.buffer,
+}
+
 # TODO: introduce the profiler mode
-def simulate_little_endian_linux(program: Program, argv: List[str]):
+def simulate_little_endian_linux(program: Program, argv: List[str]) -> None:
     stack: List[int] = []
     mem = bytearray(NULL_POINTER_PADDING + STR_CAPACITY + MEM_CAPACITY)
     str_offsets: Dict[int, int] = {}
     str_size = NULL_POINTER_PADDING
 
-    fds: Dict[int, BinaryIO] = {
-        0: sys.stdin.buffer,
-        1: sys.stdout.buffer,
-        2: sys.stderr.buffer,
-    }
+    assert len(OpType) == 8, "Exhaustive op handling in simulate_little_endian_linux"
 
     stack.append(0)
     for arg in reversed(argv):
@@ -125,7 +127,6 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
 
     ip = 0
     while ip < len(program):
-        assert len(OpType) == 8, "Exhaustive op handling in simulate_little_endian_linux"
         op = program[ip]
         if op.typ == OpType.PUSH_INT:
             assert isinstance(op.operand, int), "This could be a bug in the compilation step"
@@ -166,189 +167,160 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
             else:
                 ip += 1
         elif op.typ == OpType.INTRINSIC:
-            assert len(Intrinsic) == 31, "Exhaustive handling of intrinsic in simulate_little_endian_linux()"
-            if op.operand == Intrinsic.PLUS:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(a + b)
-                ip += 1
-            elif op.operand == Intrinsic.MINUS:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(b - a)
-                ip += 1
-            elif op.operand == Intrinsic.MUL:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(b * a)
-                ip += 1
-            elif op.operand == Intrinsic.DIVMOD:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(b // a)
-                stack.append(b % a)
-                ip += 1
-            elif op.operand == Intrinsic.EQ:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(int(a == b))
-                ip += 1
-            elif op.operand == Intrinsic.GT:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(int(b > a))
-                ip += 1
-            elif op.operand == Intrinsic.LT:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(int(b < a))
-                ip += 1
-            elif op.operand == Intrinsic.GE:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(int(b >= a))
-                ip += 1
-            elif op.operand == Intrinsic.LE:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(int(b <= a))
-                ip += 1
-            elif op.operand == Intrinsic.NE:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(int(b != a))
-                ip += 1
-            elif op.operand == Intrinsic.SHR:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(int(b >> a))
-                ip += 1
-            elif op.operand == Intrinsic.SHL:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(int(b << a))
-                ip += 1
-            elif op.operand == Intrinsic.BOR:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(int(a | b))
-                ip += 1
-            elif op.operand == Intrinsic.BAND:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(int(a & b))
-                ip += 1
-            elif op.operand == Intrinsic.PRINT:
-                a = stack.pop()
-                fds[1].write(b"%d\n" % a)
-                fds[1].flush()
-                ip += 1
-            elif op.operand == Intrinsic.DUP:
-                a = stack.pop()
-                stack.append(a)
-                stack.append(a)
-                ip += 1
-            elif op.operand == Intrinsic.SWAP:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(a)
-                stack.append(b)
-                ip += 1
-            elif op.operand == Intrinsic.DROP:
-                stack.pop()
-                ip += 1
-            elif op.operand == Intrinsic.OVER:
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(b)
-                stack.append(a)
-                stack.append(b)
-                ip += 1
-            elif op.operand == Intrinsic.MEM:
-                stack.append(STR_CAPACITY)
-                ip += 1
-            elif op.operand == Intrinsic.LOAD:
-                addr = stack.pop()
-                byte = mem[addr]
-                stack.append(byte)
-                ip += 1
-            elif op.operand == Intrinsic.STORE:
-                store_value = stack.pop()
-                store_addr = stack.pop()
-                mem[store_addr] = store_value & 0xFF
-                ip += 1
-            elif op.operand == Intrinsic.LOAD64:
-                addr = stack.pop()
-                _bytes = bytearray(8)
-                for offset in range(0,8):
-                    _bytes[offset] = mem[addr + offset]
-                stack.append(int.from_bytes(_bytes, byteorder="little"))
-                ip += 1
-            elif op.operand == Intrinsic.STORE64:
-                store_value64 = stack.pop().to_bytes(length=8, byteorder="little")
-                store_addr64 = stack.pop()
-                for byte in store_value64:
-                    mem[store_addr64] = byte
-                    store_addr64 += 1
-                ip += 1
-            elif op.operand == Intrinsic.SYSCALL0:
-                syscall_number = stack.pop()
-                if syscall_number == 39: # SYS_getpid
-                    stack.append(os.getpid())
-                else:
-                    assert False, "unknown syscall number %d" % syscall_number
-                ip += 1
-            elif op.operand == Intrinsic.SYSCALL1:
-                syscall_number = stack.pop()
-                arg1 = stack.pop()
-                if syscall_number == 60: # SYS_exit
-                    exit(arg1)
-                else:
-                    assert False, "unknown syscall number %d" % syscall_number
-            elif op.operand == Intrinsic.SYSCALL2:
-                assert False, "not implemented"
-            elif op.operand == Intrinsic.SYSCALL3:
-                syscall_number = stack.pop()
-                arg1 = stack.pop()
-                arg2 = stack.pop()
-                arg3 = stack.pop()
-                if syscall_number == 0: # SYS_read
-                    fd = arg1
-                    buf = arg2
-                    count = arg3
-                    # NOTE: trying to behave like a POSIX tty in canonical mode by making the data available
-                    # on each newline
-                    # https://en.wikipedia.org/wiki/POSIX_terminal_interface#Canonical_mode_processing
-                    # TODO: maybe this behavior should be customizable
-                    data = fds[fd].readline(count)
-                    mem[buf:buf+len(data)] = data
-                    stack.append(len(data))
-                elif syscall_number == 1: # SYS_write
-                    fd = arg1
-                    buf = arg2
-                    count = arg3
-                    fds[fd].write(mem[buf:buf+count])
-                    fds[fd].flush()
-                    stack.append(count)
-                else:
-                    assert False, "unknown syscall number %d" % syscall_number
-                ip += 1
-            elif op.operand == Intrinsic.SYSCALL4:
-                assert False, "not implemented"
-            elif op.operand == Intrinsic.SYSCALL5:
-                assert False, "not implemented"
-            elif op.operand == Intrinsic.SYSCALL6:
-                assert False, "not implemented"
-            else:
+            assert isinstance(op.operand, Intrinsic)
+            f = _simulate_intrinsic_map.get(op.operand)
+            if f is None:
                 assert False, "unreachable"
+            f(stack, mem=mem)
+            ip += 1
         else:
             assert False, "unreachable"
     if debug:
         print("[INFO] Memory dump")
         print(mem[:20])
 
-def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
+
+def _generate_simple_intrinsic(f: Callable[[int, int], int]) -> Callable[..., None]:
+    def ret(stack: List[int], **kwargs: Any) -> None:
+        a = stack.pop()
+        b = stack.pop()
+        stack.append(f(a, b))
+
+    return ret
+
+def _unimplemented_intrinsic(name: str) -> Callable[..., None]:
+    def ret() -> None:
+        assert False, f'Unimplemented intrinsic {name}'
+
+    return ret
+
+def _simulate_divmod(stack: List[int], **kwargs: Any) -> None:
+    a = stack.pop()
+    b = stack.pop()
+    stack.extend(divmod(b, a))
+
+def _simulate_print(stack: List[int], **kwargs: Any) -> None:
+    a = stack.pop()
+    fds[1].write(b"%d\n" % a)
+    fds[1].flush()
+
+def _simulate_dup(stack: List[int], **kwargs: Any) -> None:
+    stack.append(stack[-1])
+
+def _simulate_swap(stack: List[int], **kwargs: Any) -> None:
+    a = stack.pop()
+    b = stack.pop()
+    stack.append(a)
+    stack.append(b)
+
+def _simulate_drop(stack: List[int], **kwargs: Any) -> None:
+    stack.pop()
+
+def _simulate_over(stack: List[int], **kwargs: Any) -> None:
+    stack.append(stack[-2])
+
+def _simulate_mem(stack: List[int], **kwargs: Any) -> None:
+    stack.append(STR_CAPACITY)
+
+def _simulate_load(stack: List[int], mem: bytearray, **kwargs: Any) -> None:
+    addr = stack.pop()
+    stack.append(mem[addr])
+
+def _simulate_store(stack: List[int], mem: bytearray, **kwargs: Any) -> None:
+    value = stack.pop()
+    addr = stack.pop()
+    mem[addr] = value & 0xFF
+
+def _simulate_load64(stack: List[int], mem: bytearray, **kwargs: Any) -> None:
+    addr = stack.pop()
+    data = mem[addr:addr+8]
+    stack.append(int.from_bytes(data, byteorder='little'))
+
+def _simulate_store64(stack: List[int], mem: bytearray, **kwargs: Any) -> None:
+    value = stack.pop().to_bytes(length=8, byteorder='little')
+    addr = stack.pop()
+    mem[addr:addr+8] = value
+
+def _simulate_syscall0(stack: List[int], **kwargs: Any) -> None:
+    syscall_number = stack.pop()
+    if syscall_number == 39: # SYS_getpid
+        stack.append(os.getpid())
+    else:
+        assert False, f'unknown syscall number {syscall_number}'
+
+def _simulate_syscall1(stack: List[int], **kwargs: Any) -> None:
+    syscall_number = stack.pop()
+    arg1 = stack.pop()
+    if syscall_number == 60: # SYS_exit
+        exit(arg1)
+    else:
+        assert False, f'unknown syscall number {syscall_number}'
+
+def _simulate_syscall3(stack: List[int], mem: bytearray, **kwargs: Any) -> None:
+    syscall_number = stack.pop()
+    arg1 = stack.pop()
+    arg2 = stack.pop()
+    arg3 = stack.pop()
+    if syscall_number == 0: # SYS_read
+        fd = arg1
+        buf = arg2
+        count = arg3
+        # NOTE: trying to behave like a POSIX tty in canonical mode by making the data available
+        # on each newline
+        # https://en.wikipedia.org/wiki/POSIX_terminal_interface#Canonical_mode_processing
+        # TODO: maybe this behavior should be customizable
+        data = fds[fd].readline(count)
+        mem[buf:buf+len(data)] = data
+        stack.append(len(data))
+
+    elif syscall_number == 1:  # SYS_write
+        fd, buf, count = arg1, arg2, arg3
+        fds[fd].write(mem[buf:buf+count])
+        fds[fd].flush()
+        stack.append(count)
+    else:
+        assert False, f'unknown syscall number {syscall_number}'
+
+_simulate_intrinsic_map: Dict[Intrinsic, Callable[..., None]] = {
+    Intrinsic.PLUS:     _generate_simple_intrinsic(lambda a, b: b + a),
+    Intrinsic.MINUS:    _generate_simple_intrinsic(lambda a, b: b - a),
+    Intrinsic.MUL:      _generate_simple_intrinsic(lambda a, b: b * a),
+    Intrinsic.DIVMOD:   _simulate_divmod,
+    Intrinsic.EQ:       _generate_simple_intrinsic(lambda a, b: int(b == a)),
+    Intrinsic.GT:       _generate_simple_intrinsic(lambda a, b: int(b > a)),
+    Intrinsic.LT:       _generate_simple_intrinsic(lambda a, b: int(b < a)),
+    Intrinsic.GE:       _generate_simple_intrinsic(lambda a, b: int(b >= a)),
+    Intrinsic.LE:       _generate_simple_intrinsic(lambda a, b: int(b <= a)),
+    Intrinsic.NE:       _generate_simple_intrinsic(lambda a, b: int(b != a)),
+    Intrinsic.SHR:      _generate_simple_intrinsic(lambda a, b: b >> a),
+    Intrinsic.SHL:      _generate_simple_intrinsic(lambda a, b: b << a),
+    Intrinsic.BOR:      _generate_simple_intrinsic(lambda a, b: b | a),
+    Intrinsic.BAND:     _generate_simple_intrinsic(lambda a, b: b & a),
+    Intrinsic.PRINT:    _simulate_print,
+    Intrinsic.DUP:      _simulate_dup,
+    Intrinsic.SWAP:     _simulate_swap,
+    Intrinsic.DROP:     _simulate_drop,
+    Intrinsic.OVER:     _simulate_over,
+    Intrinsic.MEM:      _simulate_mem,
+    Intrinsic.LOAD:     _simulate_load,
+    Intrinsic.STORE:    _simulate_store,
+    Intrinsic.LOAD64:   _simulate_load64,
+    Intrinsic.STORE64:  _simulate_store64,
+    Intrinsic.SYSCALL0: _simulate_syscall0,
+    Intrinsic.SYSCALL1: _simulate_syscall1,
+    Intrinsic.SYSCALL2: _unimplemented_intrinsic('syscall2'),
+    Intrinsic.SYSCALL3: _simulate_syscall3,
+    Intrinsic.SYSCALL4: _unimplemented_intrinsic('syscall4'),
+    Intrinsic.SYSCALL5: _unimplemented_intrinsic('syscall5'),
+    Intrinsic.SYSCALL6: _unimplemented_intrinsic('syscall6'),
+}
+
+assert len(Intrinsic) == len(_simulate_intrinsic_map), "Exhaustive handling of intrinsic in simulate_little_endian_linux()"
+
+def generate_nasm_linux_x86_64(program: Program, out_file_path: str) -> None:
     strs: List[bytes] = []
+    assert len(OpType) == 8, "Exhaustive ops handling in generate_nasm_linux_x86_64"
+    assert len(Intrinsic) == 31, "Exhaustive intrinsic handling in generate_nasm_linux_x86_64()"
     with open(out_file_path, "w") as out:
         out.write("BITS 64\n")
         out.write("segment .text\n")
@@ -387,39 +359,36 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
         out.write("    ret\n")
         out.write("global _start\n")
         out.write("_start:\n")
-        for ip in range(len(program)):
-            op = program[ip]
-            assert len(OpType) == 8, "Exhaustive ops handling in generate_nasm_linux_x86_64"
-            out.write("addr_%d:\n" % ip)
+        for ip, op in enumerate(program):
+            out.write(f"addr_{ip}:\n")
             if op.typ == OpType.PUSH_INT:
                 assert isinstance(op.operand, int), "This could be a bug in the compilation step"
-                out.write("    ;; -- push int %d --\n" % op.operand)
-                out.write("    mov rax, %d\n" % op.operand)
+                out.write(f"    ;; -- push int {op.operand} --\n")
+                out.write(f"    mov rax, {op.operand}\n")
                 out.write("    push rax\n")
             elif op.typ == OpType.PUSH_STR:
                 assert isinstance(op.operand, str), "This could be a bug in the compilation step"
                 value = op.operand.encode('utf-8')
-                n = len(value)
                 out.write("    ;; -- push str --\n")
-                out.write("    mov rax, %d\n" % n)
+                out.write(f"    mov rax, {len(value)}\n")
                 out.write("    push rax\n")
-                out.write("    push str_%d\n" % len(strs))
+                out.write(f"    push str_{len(strs)}\n")
                 strs.append(value)
             elif op.typ == OpType.IF:
                 out.write("    ;; -- if --\n")
                 out.write("    pop rax\n")
                 out.write("    test rax, rax\n")
                 assert isinstance(op.operand, int), "This could be a bug in the compilation step"
-                out.write("    jz addr_%d\n" % op.operand)
+                out.write(f"    jz addr_{op.operand}\n")
             elif op.typ == OpType.ELSE:
                 out.write("    ;; -- else --\n")
                 assert isinstance(op.operand, int), "This could be a bug in the compilation step"
-                out.write("    jmp addr_%d\n" % op.operand)
+                out.write(f"    jmp addr_{op.operand}\n")
             elif op.typ == OpType.END:
                 assert isinstance(op.operand, int), "This could be a bug in the compilation step"
                 out.write("    ;; -- end --\n")
                 if ip + 1 != op.operand:
-                    out.write("    jmp addr_%d\n" % op.operand)
+                    out.write(f"    jmp addr_{op.operand}\n")
             elif op.typ == OpType.WHILE:
                 out.write("    ;; -- while --\n")
             elif op.typ == OpType.DO:
@@ -427,9 +396,8 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                 out.write("    pop rax\n")
                 out.write("    test rax, rax\n")
                 assert isinstance(op.operand, int), "This could be a bug in the compilation step"
-                out.write("    jz addr_%d\n" % op.operand)
+                out.write(f"    jz addr_{op.operand}\n")
             elif op.typ == OpType.INTRINSIC:
-                assert len(Intrinsic) == 31, "Exhaustive intrinsic handling in generate_nasm_linux_x86_64()"
                 if op.operand == Intrinsic.PLUS:
                     out.write("    ;; -- plus --\n")
                     out.write("    pop rax\n")
@@ -645,17 +613,16 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
             else:
                 assert False, "unreachable"
 
-        out.write("addr_%d:\n" % len(program))
+        out.write(f"addr_{len(program)}:\n")
         out.write("    mov rax, 60\n")
         out.write("    mov rdi, 0\n")
         out.write("    syscall\n")
         out.write("segment .data\n")
         for index, s in enumerate(strs):
-            out.write("str_%d: db %s\n" % (index, ','.join(map(hex, list(s)))))
+            out.write(f"str_{index}: db {','.join(hex(c) for c in s)}\n")
         out.write("segment .bss\n")
-        out.write("mem: resb %d\n" % MEM_CAPACITY)
+        out.write(f"mem: resb {MEM_CAPACITY}\n")
 
-assert len(Keyword) == 7, "Exhaustive KEYWORD_NAMES definition."
 KEYWORD_NAMES = {
     'if': Keyword.IF,
     'end': Keyword.END,
@@ -665,8 +632,8 @@ KEYWORD_NAMES = {
     'macro': Keyword.MACRO,
     'include': Keyword.INCLUDE,
 }
+assert len(Keyword) == len(KEYWORD_NAMES), "Exhaustive KEYWORD_NAMES definition."
 
-assert len(Intrinsic) == 31, "Exhaustive INTRINSIC_NAMES definition"
 INTRINSIC_NAMES = {
     '+': Intrinsic.PLUS,
     '-': Intrinsic.MINUS,
@@ -700,27 +667,29 @@ INTRINSIC_NAMES = {
     'syscall5': Intrinsic.SYSCALL5,
     'syscall6': Intrinsic.SYSCALL6,
 }
+assert len(Intrinsic) == len(INTRINSIC_NAMES), "Exhaustive INTRINSIC_NAMES definition"
 
 @dataclass
 class Macro:
     loc: Loc
     tokens: List[Token]
 
+_token_str_map = {
+    TokenType.WORD: "a word",
+    TokenType.INT: "an integer",
+    TokenType.STR: "a string",
+    TokenType.CHAR: "a character",
+    TokenType.KEYWORD: "a keyword",
+}
+assert len(TokenType) == len(_token_str_map), "Exhaustive handling of token types in human()"
+
 def human(typ: TokenType) -> str:
     '''Human readable representation of an object that can be used in error messages'''
-    assert len(TokenType) == 5, "Exhaustive handling of token types in human()"
-    if typ == TokenType.WORD:
-        return "a word"
-    elif typ == TokenType.INT:
-        return "an integer"
-    elif typ == TokenType.STR:
-        return "a string"
-    elif typ == TokenType.CHAR:
-        return "a character"
-    elif typ == TokenType.KEYWORD:
-        return "a keyword"
-    else:
+    s = _token_str_map.get(typ)
+    if s is None:
         assert False, "unreachable"
+
+    return s
 
 def expand_macro(macro: Macro, expanded: int) -> List[Token]:
     result = list(map(lambda x: copy(x), macro.tokens))
@@ -733,10 +702,11 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str], exp
     program: List[Op] = []
     rtokens: List[Token] = list(reversed(tokens))
     macros: Dict[str, Macro] = {}
-    ip: OpAddr = 0;
+    ip: OpAddr = 0
+    assert len(TokenType) == 5, "Exhaustive token handling in compile_tokens_to_program"
+    assert len(Keyword) == 7, "Exhaustive keywords handling in compile_tokens_to_program"
     while len(rtokens) > 0:
         token = rtokens.pop()
-        assert len(TokenType) == 5, "Exhaustive token handling in compile_tokens_to_program"
         if token.typ == TokenType.WORD:
             assert isinstance(token.value, str), "This could be a bug in the lexer"
             if token.value in INTRINSIC_NAMES:
@@ -763,7 +733,6 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str], exp
             program.append(Op(typ=OpType.PUSH_INT, operand=token.value, loc=token.loc));
             ip += 1
         elif token.typ == TokenType.KEYWORD:
-            assert len(Keyword) == 7, "Exhaustive keywords handling in compile_tokens_to_program()"
             if token.value == Keyword.IF:
                 program.append(Op(typ=OpType.IF, loc=token.loc))
                 stack.append(ip)
@@ -960,15 +929,15 @@ def compile_file_to_program(file_path: str, include_paths: List[str], expansion_
 
 def cmd_call_echoed(cmd: List[str], silent: bool=False) -> int:
     if not silent:
-        print("[CMD] %s" % " ".join(map(shlex.quote, cmd)))
+        print(f"[CMD] {' '.join(shlex.quote(s) for s in cmd)}")
     return subprocess.call(cmd)
 
-def usage(compiler_name: str):
-    print("Usage: %s [OPTIONS] <SUBCOMMAND> [ARGS]" % compiler_name)
+def usage(compiler_name: str) -> None:
+    print(f"Usage: {compiler_name} [OPTIONS] <SUBCOMMAND> [ARGS]")
     print("  OPTIONS:")
     print("    -debug                Enable debug mode.")
     print("    -I <path>             Add the path to the include search list")
-    print("    -E <expansion-limit>  Macro and include expansion limit. (Default %d)" % DEFAULT_EXPANSION_LIMIT)
+    print(f"    -E <expansion-limit>  Macro and include expansion limit. (Default {DEFAULT_EXPANSION_LIMIT})")
     print("  SUBCOMMAND:")
     print("    sim <file>            Simulate the program")
     print("    com [OPTIONS] <file>  Compile the program")
@@ -1076,15 +1045,15 @@ if __name__ == '__main__' and '__file__' in globals():
         if basedir == "":
             basedir = os.getcwd()
         basepath = path.join(basedir, basename)
+        asm_name = f'{basepath}.asm'
 
         if not silent:
-            print("[INFO] Generating %s" % (basepath + ".asm"))
+            print(f"[INFO] Generating {asm_name}")
 
         include_paths.append(path.dirname(program_path))
-
         program = compile_file_to_program(program_path, include_paths, expansion_limit);
-        generate_nasm_linux_x86_64(program, basepath + ".asm")
-        cmd_call_echoed(["nasm", "-felf64", basepath + ".asm"], silent)
+        generate_nasm_linux_x86_64(program, asm_name)
+        cmd_call_echoed(["nasm", "-felf64", asm_name], silent)
         cmd_call_echoed(["ld", "-o", basepath, basepath + ".o"], silent)
         if run:
             exit(cmd_call_echoed([basepath] + argv, silent))
@@ -1093,5 +1062,5 @@ if __name__ == '__main__' and '__file__' in globals():
         exit(0)
     else:
         usage(compiler_name)
-        print("[ERROR] unknown subcommand %s" % (subcommand), file=sys.stderr)
+        print(f"[ERROR] unknown subcommand {subcommand}", file=sys.stderr)
         exit(1)
