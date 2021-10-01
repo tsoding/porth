@@ -515,11 +515,26 @@ def type_check_program(program: Program):
                     stack.pop()
                 stack.append((DataType.INT, op.loc))
             elif op.operand == Intrinsic.SYSCALL4:
-                assert False, "not implemented"
+                if len(stack) < 5:
+                    not_enough_arguments_for_intrinsic(op.operand, op.loc)
+                    exit(1)
+                for i in range(5):
+                    stack.pop()
+                stack.append((DataType.INT, op.loc))
             elif op.operand == Intrinsic.SYSCALL5:
-                assert False, "not implemented"
+                if len(stack) < 6:
+                    not_enough_arguments_for_intrinsic(op.operand, op.loc)
+                    exit(1)
+                for i in range(6):
+                    stack.pop()
+                stack.append((DataType.INT, op.loc))
             elif op.operand == Intrinsic.SYSCALL6:
-                assert False, "not implemented"
+                if len(stack) < 7:
+                    not_enough_arguments_for_intrinsic(op.operand, op.loc)
+                    exit(1)
+                for i in range(7):
+                    stack.pop()
+                stack.append((DataType.INT, op.loc))
             else:
                 assert False, "unreachable"
         elif op.typ == OpType.IF:
