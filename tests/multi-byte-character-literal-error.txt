@@ -1,6 +1,9 @@
-: returncode 1
-: stdout 0
+:i argc 0
+:b stdin 0
 
-: stderr 121
+:i returncode 1
+:b stdout 0
+
+:b stderr 121
 ./tests/multi-byte-character-literal-error.porth:1:1: ERROR: only a single byte is allowed inside of a character literal
 

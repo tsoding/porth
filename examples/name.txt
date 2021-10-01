@@ -1,0 +1,10 @@
+:i argc 0
+:b stdin 7
+Alexey
+
+:i returncode 0
+:b stdout 42
+What is your name? Hello, Alexey! ( ^-^)/
+
+:b stderr 0
+

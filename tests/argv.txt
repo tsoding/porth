@@ -1,0 +1,17 @@
+:i argc 3
+:b arg0 3
+foo
+:b arg1 3
+bar
+:b arg2 3
+baz
+:b stdin 0
+
+:i returncode 0
+:b stdout 12
+foo
+bar
+baz
+
+:b stderr 0
+

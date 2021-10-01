@@ -66,26 +66,39 @@ $ ./program
 
 ### Testing
 
-Test cases are located in [./tests/](./tests/) folder. The `*.txt` files contain expected outcomes of the corresponding programs (exit code, stdout, stderr).
+Test cases are located in [./tests/](./tests/) folder. The `*.txt` files contain inputs (command line arguments, stdin) and expected outputs (exit code, stdout, stderr) of the corresponding programs.
 
 Run [./test.py](./test.py) script to execute the programs and assert their outputs:
 
 ```console
-$ ./test.py
+$ ./test.py run
 ```
 
-To updated expected output files run the `record` subcommand:
+To updated expected outputs of the programs run the `update` subcommand:
 
 ```console
-$ ./test.py record
+$ ./test.py update
+```
+
+To update expected command line arguments and stdin of a specific program run the `update input <path/to/program.porth>` subcommand:
+
+```console
+$ ./test.py update input ./tests/argv.porth new cmd args
+[INFO] Provide the stdin for the test case. Press ^D when you are done...
+Hello, World
+^D
+[INFO] Saving input to ./tests/argv.txt
 ```
 
 The [./examples/](./examples/) folder contains programs that are ment for showcasing the language rather then testing it, but we still can use them for testing just like the stuff in the [./tests/](./tests/) folder:
 
 ```console
-$ ./test.py -f ./examples/
-$ ./test.py -f ./examples/ record
+$ ./test.py run ./examples/
+$ ./test.py update input ./examples/name.porth
+$ ./test.py update output ./examples/
 ```
+
+For more info see `./test.py help`
 
 ### Usage
 
