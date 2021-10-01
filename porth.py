@@ -469,7 +469,7 @@ def type_check_program(program: Program):
                 a_type, a_loc = stack.pop()
                 b_type, b_loc = stack.pop()
 
-                if a_type == b_type and (a_type == DataType.INT or a_type == DataType.PTR):
+                if a_type == b_type and a_type == DataType.INT:
                     stack.append((DataType.BOOL, op.loc))
                 else:
                     print("%s:%d:%d: ERROR: invalid argument type for GT intrinsic" % op.loc, file=sys.stderr)
@@ -483,7 +483,7 @@ def type_check_program(program: Program):
                 a_type, a_loc = stack.pop()
                 b_type, b_loc = stack.pop()
 
-                if a_type == b_type and (a_type == DataType.INT or a_type == DataType.PTR):
+                if a_type == b_type and a_type == DataType.INT:
                     stack.append((DataType.BOOL, op.loc))
                 else:
                     print("%s:%d:%d: ERROR: invalid argument type for LT intrinsic" % op.loc, file=sys.stderr)
@@ -497,7 +497,7 @@ def type_check_program(program: Program):
                 a_type, a_loc = stack.pop()
                 b_type, b_loc = stack.pop()
 
-                if a_type == b_type and (a_type == DataType.INT or a_type == DataType.PTR):
+                if a_type == b_type and a_type == DataType.INT:
                     stack.append((DataType.BOOL, op.loc))
                 else:
                     print("%s:%d:%d: ERROR: invalid argument type for GE intrinsic" % op.loc, file=sys.stderr)
@@ -511,7 +511,7 @@ def type_check_program(program: Program):
                 a_type, a_loc = stack.pop()
                 b_type, b_loc = stack.pop()
 
-                if a_type == b_type and (a_type == DataType.INT or a_type == DataType.PTR):
+                if a_type == b_type and a_type == DataType.INT:
                     stack.append((DataType.BOOL, op.loc))
                 else:
                     print("%s:%d:%d: ERROR: invalid argument type for LE intrinsic" % op.loc, file=sys.stderr)
@@ -525,7 +525,7 @@ def type_check_program(program: Program):
                 a_type, a_loc = stack.pop()
                 b_type, b_loc = stack.pop()
 
-                if a_type == b_type and (a_type == DataType.INT or a_type == DataType.PTR):
+                if a_type == b_type and a_type == DataType.INT:
                     stack.append((DataType.BOOL, op.loc))
                 else:
                     print("%s:%d:%d: ERROR: invalid argument type for NE intrinsic" % op.loc, file=sys.stderr)
@@ -539,7 +539,7 @@ def type_check_program(program: Program):
                 a_type, a_loc = stack.pop()
                 b_type, b_loc = stack.pop()
 
-                if a_type == b_type and (a_type == DataType.INT or a_type == DataType.PTR):
+                if a_type == b_type and a_type == DataType.INT:
                     stack.append((DataType.INT, op.loc))
                 else:
                     print("%s:%d:%d: ERROR: invalid argument type for SHR intrinsic" % op.loc, file=sys.stderr)
@@ -553,7 +553,7 @@ def type_check_program(program: Program):
                 a_type, a_loc = stack.pop()
                 b_type, b_loc = stack.pop()
 
-                if a_type == b_type and (a_type == DataType.INT or a_type == DataType.PTR):
+                if a_type == b_type and a_type == DataType.INT:
                     stack.append((DataType.INT, op.loc))
                 else:
                     print("%s:%d:%d: ERROR: invalid argument type for SHL intrinsic" % op.loc, file=sys.stderr)
@@ -567,7 +567,7 @@ def type_check_program(program: Program):
                 a_type, a_loc = stack.pop()
                 b_type, b_loc = stack.pop()
 
-                if a_type == b_type and (a_type == DataType.INT or a_type == DataType.PTR):
+                if a_type == b_type and a_type == DataType.INT:
                     stack.append((DataType.INT, op.loc))
                 else:
                     print("%s:%d:%d: ERROR: invalid argument type for BOR intrinsic" % op.loc, file=sys.stderr)
@@ -581,7 +581,7 @@ def type_check_program(program: Program):
                 a_type, a_loc = stack.pop()
                 b_type, b_loc = stack.pop()
 
-                if a_type == b_type and (a_type == DataType.INT or a_type == DataType.PTR):
+                if a_type == b_type and a_type == DataType.INT:
                     stack.append((DataType.INT, op.loc))
                 else:
                     print("%s:%d:%d: ERROR: invalid argument type for BAND intrinsic" % op.loc, file=sys.stderr)
@@ -623,13 +623,57 @@ def type_check_program(program: Program):
             elif op.operand == Intrinsic.MEM:
                 stack.append((DataType.PTR, op.loc))
             elif op.operand == Intrinsic.LOAD:
-                assert False, "not implemented"
+                assert len(DataType) == 3, "Exhaustive type handling in LOAD intrinsic"
+                if len(stack) < 1:
+                    not_enough_arguments_for_intrinsic(op.operand, op.loc)
+                    exit(1)
+                a_type, a_loc = stack.pop()
+
+                if a_type == DataType.PTR:
+                    stack.append((DataType.INT, op.loc))
+                else:
+                    print("%s:%d:%d: ERROR: invalid argument type for LOAD intrinsic" % op.loc, file=sys.stderr)
+                    exit(1)
             elif op.operand == Intrinsic.STORE:
-                assert False, "not implemented"
+                assert len(DataType) == 3, "Exhaustive type handling in STORE intrinsic"
+                if len(stack) < 2:
+                    not_enough_arguments_for_intrinsic(op.operand, op.loc)
+                    exit(1)
+
+                a_type, a_loc = stack.pop()
+                b_type, b_loc = stack.pop()
+
+                if a_type == DataType.INT and b_type == DataType.PTR:
+                    pass
+                else:
+                    print("%s:%d:%d: ERROR: invalid argument type for STORE intrinsic" % op.loc, file=sys.stderr)
+                    exit(1)
             elif op.operand == Intrinsic.LOAD64:
-                assert False, "not implemented"
+                assert len(DataType) == 3, "Exhaustive type handling in LOAD64 intrinsic"
+                if len(stack) < 1:
+                    not_enough_arguments_for_intrinsic(op.operand, op.loc)
+                    exit(1)
+                a_type, a_loc = stack.pop()
+
+                if a_type == DataType.PTR:
+                    stack.append((DataType.INT, op.loc))
+                else:
+                    print("%s:%d:%d: ERROR: invalid argument type for LOAD64 intrinsic" % op.loc, file=sys.stderr)
+                    exit(1)
             elif op.operand == Intrinsic.STORE64:
-                assert False, "not implemented"
+                assert len(DataType) == 3, "Exhaustive type handling in STORE64 intrinsic"
+                if len(stack) < 2:
+                    not_enough_arguments_for_intrinsic(op.operand, op.loc)
+                    exit(1)
+
+                a_type, a_loc = stack.pop()
+                b_type, b_loc = stack.pop()
+
+                if a_type == DataType.INT and b_type == DataType.PTR:
+                    pass
+                else:
+                    print("%s:%d:%d: ERROR: invalid argument type for STORE64 intrinsic" % op.loc, file=sys.stderr)
+                    exit(1)
             elif op.operand == Intrinsic.ARGC:
                 stack.append((DataType.INT, op.loc))
             elif op.operand == Intrinsic.ARGV:
