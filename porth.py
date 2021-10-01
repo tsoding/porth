@@ -929,26 +929,19 @@ class Macro:
 
 def human(obj: Union[TokenType, Op, Intrinsic]) -> str:
     '''Human readable representation of an object that can be used in error messages'''
-    if obj is TokenType:
-        assert len(TokenType) == 5, "Exhaustive handling of token types in human()"
-        if obj == TokenType.WORD:
-            return "a word"
-        elif obj == TokenType.INT:
-            return "an integer"
-        elif obj == TokenType.STR:
-            return "a string"
-        elif obj == TokenType.CHAR:
-            return "a character"
-        elif obj == TokenType.KEYWORD:
-            return "a keyword"
-        else:
-            assert False, "unreachable"
-    elif obj is Op:
-        assert False, "not implemented"
-    elif obj is Intrinsic:
-        assert False, "not implemented"
+    assert len(TokenType) == 5, "Exhaustive handling of token types in human()"
+    if obj == TokenType.WORD:
+        return "a word"
+    elif obj == TokenType.INT:
+        return "an integer"
+    elif obj == TokenType.STR:
+        return "a string"
+    elif obj == TokenType.CHAR:
+        return "a character"
+    elif obj == TokenType.KEYWORD:
+        return "a keyword"
     else:
-        assert False, "unsupported object in human()"
+        assert False, "unreachable"
 
 def expand_macro(macro: Macro, expanded: int) -> List[Token]:
     result = list(map(lambda x: copy(x), macro.tokens))
