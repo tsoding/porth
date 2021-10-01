@@ -482,9 +482,9 @@ def type_check_program(program: Program):
             elif op.operand == Intrinsic.STORE64:
                 assert False, "not implemented"
             elif op.operand == Intrinsic.ARGC:
-                assert False, "not implemented"
+                stack.append((DataType.INT, op.loc))
             elif op.operand == Intrinsic.ARGV:
-                assert False, "not implemented"
+                stack.append((DataType.PTR, op.loc))
             # TODO: figure out how to type check syscall arguments and return types
             elif op.operand == Intrinsic.SYSCALL0:
                 if len(stack) < 1:
