@@ -472,7 +472,7 @@ def type_check_program(program: Program):
                 stack.append(a)
                 stack.append(b)
             elif op.operand == Intrinsic.MEM:
-                assert False, "not implemented"
+                stack.append((DataType.PTR, op.loc))
             elif op.operand == Intrinsic.LOAD:
                 assert False, "not implemented"
             elif op.operand == Intrinsic.STORE:
