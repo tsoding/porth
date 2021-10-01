@@ -9,7 +9,7 @@ Addition:
 Subtraction:
 420
 ------------------------------
-Divison:
+Division:
 69
 ------------------------------
 Modulo:
