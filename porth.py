@@ -405,21 +405,55 @@ def type_check_program(program: Program):
                 elif a_type == DataType.PTR and b_type == DataType.INT:
                     stack.append((DataType.PTR, op.loc))
                 else:
-                    print("%s:%d:%d: ERROR: invalid argument types for PLUS intrinsic %s %s" % (op.loc + (a_type, b_type)), file=sys.stderr)
+                    print("%s:%d:%d: ERROR: invalid argument types for PLUS intrinsic. Expected INT or PTR" % op.loc, file=sys.stderr)
                     exit(1)
             elif op.operand == Intrinsic.MINUS:
-                assert False, "not implemented"
+                assert len(DataType) == 3, "Exhaustive type handling in MINUS intrinsic"
+                if len(stack) < 2:
+                    not_enough_arguments_for_intrinsic(op.operand, op.loc)
+                    exit(1)
+                a_type, a_loc = stack.pop()
+                b_type, b_loc = stack.pop()
+
+                if a_type == b_type and (a_type == DataType.INT or a_type == DataType.PTR):
+                    stack.append((DataType.INT, op.loc))
+                else:
+                    print("%s:%d:%d: ERROR: invalid argument types fo MINUS intrinsic. Expected INT or PTR")
+                    exit(1)
             elif op.operand == Intrinsic.MUL:
-                assert False, "not implemented"
+                assert len(DataType) == 3, "Exhaustive type handling in MUL intrinsic"
+                if len(stack) < 2:
+                    not_enough_arguments_for_intrinsic(op.operand, op.loc)
+                    exit(1)
+                a_type, a_loc = stack.pop()
+                b_type, b_loc = stack.pop()
+
+                if a_type == b_type and a_type == DataType.INT:
+                    stack.append((DataType.INT, op.loc))
+                else:
+                    print("%s:%d:%d: ERROR: invalid argument types fo MUL intrinsic. Expected INT.")
+                    exit(1)
             elif op.operand == Intrinsic.DIVMOD:
-                assert False, "not implemented"
+                assert len(DataType) == 3, "Exhaustive type handling in DIVMOD intrinsic"
+                if len(stack) < 2:
+                    not_enough_arguments_for_intrinsic(op.operand, op.loc)
+                    exit(1)
+                a_type, a_loc = stack.pop()
+                b_type, b_loc = stack.pop()
+
+                if a_type == b_type and a_type == DataType.INT:
+                    stack.append((DataType.INT, op.loc))
+                    stack.append((DataType.INT, op.loc))
+                else:
+                    print("%s:%d:%d: ERROR: invalid argument types fo DIVMOD intrinsic. Expected INT.")
+                    exit(1)
             elif op.operand == Intrinsic.EQ:
                 assert False, "not implemented"
             elif op.operand == Intrinsic.GT:
                 if len(stack) < 2:
                     not_enough_arguments_for_intrinsic(op.operand, op.loc)
                     exit(1)
-                # b a
+
                 a_type, a_loc = stack.pop()
                 b_type, b_loc = stack.pop()
 

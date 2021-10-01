@@ -1,25 +1,25 @@
 include "std.porth"
 
-"Addition:\n" stdout write
+"Addition:\n" stdout write drop
 34 35 + print
 
-"------------------------------\n" stdout write
+"------------------------------\n" stdout write drop
 
-"Subtraction:\n" stdout write
+"Subtraction:\n" stdout write drop
 500 80 - print
 
-"------------------------------\n" stdout write
+"------------------------------\n" stdout write drop
 
-"Divison:\n" stdout write
+"Divison:\n" stdout write drop
 69000 1000 / print
 
-"------------------------------\n" stdout write
+"------------------------------\n" stdout write drop
 
-"Modulo:\n" stdout write
+"Modulo:\n" stdout write drop
 5 100 mod print
 104 100 mod print
 
-"------------------------------\n" stdout write
+"------------------------------\n" stdout write drop
 
-"Multiplication:\n" stdout write
+"Multiplication:\n" stdout write drop
 42 10 * print
