@@ -376,6 +376,7 @@ class DataType(IntEnum):
 def not_enough_arguments_for_intrinsic(intr: Intrinsic, loc: Loc):
     print("%s:%d:%d: ERROR: not enough arguments for the `%s` intrinsic" % (loc + (INTRINSIC_NAMES[intr],)), file=sys.stderr)
 
+# TODO: type checking location report is useless when the error happens inside of macro expansion
 def type_check_program(program: Program):
     stack: List[Tuple[DataType, Loc]] = []
     for ip in range(len(program)):
@@ -456,7 +457,13 @@ def type_check_program(program: Program):
                 stack.append(a)
                 stack.append(a)
             elif op.operand == Intrinsic.SWAP:
-                assert False, "not implemented"
+                if len(stack) < 2:
+                    not_enough_arguments_for_intrinsic(op.operand, op.loc)
+                    exit(1)
+                a = stack.pop()
+                b = stack.pop()
+                stack.append(a)
+                stack.append(b)
             elif op.operand == Intrinsic.DROP:
                 if len(stack) < 1:
                     not_enough_arguments_for_intrinsic(op.operand, op.loc)
