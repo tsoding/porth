@@ -531,13 +531,61 @@ def type_check_program(program: Program):
                     print("%s:%d:%d: ERROR: invalid argument type for NE intrinsic" % op.loc, file=sys.stderr)
                     exit(1)
             elif op.operand == Intrinsic.SHR:
-                assert False, "not implemented"
+                assert len(DataType) == 3, "Exhaustive type handling in SHR intrinsic"
+                if len(stack) < 2:
+                    not_enough_arguments_for_intrinsic(op.operand, op.loc)
+                    exit(1)
+
+                a_type, a_loc = stack.pop()
+                b_type, b_loc = stack.pop()
+
+                if a_type == b_type and (a_type == DataType.INT or a_type == DataType.PTR):
+                    stack.append((DataType.INT, op.loc))
+                else:
+                    print("%s:%d:%d: ERROR: invalid argument type for SHR intrinsic" % op.loc, file=sys.stderr)
+                    exit(1)
             elif op.operand == Intrinsic.SHL:
-                assert False, "not implemented"
+                assert len(DataType) == 3, "Exhaustive type handling in SHL intrinsic"
+                if len(stack) < 2:
+                    not_enough_arguments_for_intrinsic(op.operand, op.loc)
+                    exit(1)
+
+                a_type, a_loc = stack.pop()
+                b_type, b_loc = stack.pop()
+
+                if a_type == b_type and (a_type == DataType.INT or a_type == DataType.PTR):
+                    stack.append((DataType.INT, op.loc))
+                else:
+                    print("%s:%d:%d: ERROR: invalid argument type for SHL intrinsic" % op.loc, file=sys.stderr)
+                    exit(1)
             elif op.operand == Intrinsic.BOR:
-                assert False, "not implemented"
+                assert len(DataType) == 3, "Exhaustive type handling in BOR intrinsic"
+                if len(stack) < 2:
+                    not_enough_arguments_for_intrinsic(op.operand, op.loc)
+                    exit(1)
+
+                a_type, a_loc = stack.pop()
+                b_type, b_loc = stack.pop()
+
+                if a_type == b_type and (a_type == DataType.INT or a_type == DataType.PTR):
+                    stack.append((DataType.INT, op.loc))
+                else:
+                    print("%s:%d:%d: ERROR: invalid argument type for BOR intrinsic" % op.loc, file=sys.stderr)
+                    exit(1)
             elif op.operand == Intrinsic.BAND:
-                assert False, "not implemented"
+                assert len(DataType) == 3, "Exhaustive type handling in BAND intrinsic"
+                if len(stack) < 2:
+                    not_enough_arguments_for_intrinsic(op.operand, op.loc)
+                    exit(1)
+
+                a_type, a_loc = stack.pop()
+                b_type, b_loc = stack.pop()
+
+                if a_type == b_type and (a_type == DataType.INT or a_type == DataType.PTR):
+                    stack.append((DataType.INT, op.loc))
+                else:
+                    print("%s:%d:%d: ERROR: invalid argument type for BAND intrinsic" % op.loc, file=sys.stderr)
+                    exit(1)
             elif op.operand == Intrinsic.PRINT:
                 if len(stack) < 1:
                     not_enough_arguments_for_intrinsic(op.operand, op.loc)
