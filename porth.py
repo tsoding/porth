@@ -448,8 +448,20 @@ def type_check_program(program: Program):
                     print("%s:%d:%d: ERROR: invalid argument types fo DIVMOD intrinsic. Expected INT.")
                     exit(1)
             elif op.operand == Intrinsic.EQ:
-                assert False, "not implemented"
+                assert len(DataType) == 3, "Exhaustive type handling in EQ intrinsic"
+                if len(stack) < 2:
+                    not_enough_arguments_for_intrinsic(op.operand, op.loc)
+                    exit(1)
+                a_type, a_loc = stack.pop()
+                b_type, b_loc = stack.pop()
+
+                if a_type == b_type and a_type == DataType.INT:
+                    stack.append((DataType.BOOL, op.loc))
+                else:
+                    print("%s:%d:%d: ERROR: invalid argument types fo EQ intrinsic. Expected INT.")
+                    exit(1)
             elif op.operand == Intrinsic.GT:
+                assert len(DataType) == 3, "Exhaustive type handling in GT intrinsic"
                 if len(stack) < 2:
                     not_enough_arguments_for_intrinsic(op.operand, op.loc)
                     exit(1)
@@ -463,13 +475,61 @@ def type_check_program(program: Program):
                     print("%s:%d:%d: ERROR: invalid argument type for GT intrinsic" % op.loc, file=sys.stderr)
                     exit(1)
             elif op.operand == Intrinsic.LT:
-                assert False, "not implemented"
+                assert len(DataType) == 3, "Exhaustive type handling in LT intrinsic"
+                if len(stack) < 2:
+                    not_enough_arguments_for_intrinsic(op.operand, op.loc)
+                    exit(1)
+
+                a_type, a_loc = stack.pop()
+                b_type, b_loc = stack.pop()
+
+                if a_type == b_type and (a_type == DataType.INT or a_type == DataType.PTR):
+                    stack.append((DataType.BOOL, op.loc))
+                else:
+                    print("%s:%d:%d: ERROR: invalid argument type for LT intrinsic" % op.loc, file=sys.stderr)
+                    exit(1)
             elif op.operand == Intrinsic.GE:
-                assert False, "not implemented"
+                assert len(DataType) == 3, "Exhaustive type handling in GE intrinsic"
+                if len(stack) < 2:
+                    not_enough_arguments_for_intrinsic(op.operand, op.loc)
+                    exit(1)
+
+                a_type, a_loc = stack.pop()
+                b_type, b_loc = stack.pop()
+
+                if a_type == b_type and (a_type == DataType.INT or a_type == DataType.PTR):
+                    stack.append((DataType.BOOL, op.loc))
+                else:
+                    print("%s:%d:%d: ERROR: invalid argument type for GE intrinsic" % op.loc, file=sys.stderr)
+                    exit(1)
             elif op.operand == Intrinsic.LE:
-                assert False, "not implemented"
+                assert len(DataType) == 3, "Exhaustive type handling in LE intrinsic"
+                if len(stack) < 2:
+                    not_enough_arguments_for_intrinsic(op.operand, op.loc)
+                    exit(1)
+
+                a_type, a_loc = stack.pop()
+                b_type, b_loc = stack.pop()
+
+                if a_type == b_type and (a_type == DataType.INT or a_type == DataType.PTR):
+                    stack.append((DataType.BOOL, op.loc))
+                else:
+                    print("%s:%d:%d: ERROR: invalid argument type for LE intrinsic" % op.loc, file=sys.stderr)
+                    exit(1)
             elif op.operand == Intrinsic.NE:
-                assert False, "not implemented"
+                assert len(DataType) == 3, "Exhaustive type handling in NE intrinsic"
+                if len(stack) < 2:
+                    not_enough_arguments_for_intrinsic(op.operand, op.loc)
+                    exit(1)
+
+                a_type, a_loc = stack.pop()
+                b_type, b_loc = stack.pop()
+
+                if a_type == b_type and (a_type == DataType.INT or a_type == DataType.PTR):
+                    stack.append((DataType.BOOL, op.loc))
+                else:
+                    print("%s:%d:%d: ERROR: invalid argument type for NE intrinsic" % op.loc, file=sys.stderr)
+                    exit(1)
             elif op.operand == Intrinsic.SHR:
                 assert False, "not implemented"
             elif op.operand == Intrinsic.SHL:
