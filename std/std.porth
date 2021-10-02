@@ -344,3 +344,11 @@ macro strlen
   while dup , 0 != do 1 + end
   swap -
 end
+
+macro true
+  1 (bool)
+end
+
+macro false
+  0 (bool)
+end
