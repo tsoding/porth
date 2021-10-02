@@ -330,6 +330,24 @@ byte = load(word)
 push(byte)
 ```
 
+#### Type Casting
+
+- `(int)` - cast a non-integer value to an integer during the type checking stage. Has no effect on simulation or compiled programs.
+```
+value = pop()
+push(int(value))
+```
+- `(bool)` - cast a non-boolean value to a boolean during the type checking stage. Has no effect on simulation or compiled programs.
+```
+value = pop()
+push(bool(value))
+```
+- `(ptr)` - cast a non-pointer value to a pointer during the type checking stage. Has no effect on simulation or compiled programs.
+```
+value = pop()
+push(ptr(value))
+```
+
 #### System
 
 - `syscall<n>` - perform a syscall with n arguments where n is in range `[0..6]`. (`syscall1`, `syscall2`, etc)
