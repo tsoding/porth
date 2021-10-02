@@ -1153,7 +1153,7 @@ INTRINSIC_BY_NAMES = {
     'syscall3': Intrinsic.SYSCALL3,
     'syscall4': Intrinsic.SYSCALL4,
     'syscall5': Intrinsic.SYSCALL5,
-    'syscall6': Intrinsic.SYSCALL5,
+    'syscall6': Intrinsic.SYSCALL6,
     '(int)': Intrinsic.CASTINT,
     '(bool)': Intrinsic.CASTBOOL,
     '(ptr)': Intrinsic.CASTPTR,
