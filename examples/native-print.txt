@@ -1,0 +1,16 @@
+:i argc 0
+:b stdin 0
+
+:i returncode 0
+:b stdout 49
+350
+0
+350
+1
+0
+123
+-123
+stack ends up empty check
+
+:b stderr 0
+
