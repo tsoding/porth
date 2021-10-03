@@ -8,6 +8,7 @@ macro name mem end
 NAME_CAPACITY name stdin read
 dup 0 <= if
   "ERROR: could not read your name, sorry ( ._.)\n" stderr write drop
+  // TODO: think of the type checking operations that never return
   1 exit
 end
 

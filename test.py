@@ -91,12 +91,12 @@ def run_test_for_file(file_path: str) -> Tuple[bool, bool]:
         print("[ERROR] Unexpected simulation output")
         print("  Expected:")
         print("    return code: %s" % tc.returncode)
-        print("    stdout: %s" % tc.stdout.decode("utf-8"))
-        print("    stderr: %s" % tc.stderr.decode("utf-8"))
+        print("    stdout: \n%s" % tc.stdout.decode("utf-8"))
+        print("    stderr: \n%s" % tc.stderr.decode("utf-8"))
         print("  Actual:")
         print("    return code: %s" % sim.returncode)
-        print("    stdout: %s" % sim.stdout.decode("utf-8"))
-        print("    stderr: %s" % sim.stderr.decode("utf-8"))
+        print("    stdout: \n%s" % sim.stdout.decode("utf-8"))
+        print("    stderr: \n%s" % sim.stderr.decode("utf-8"))
 
     com = cmd_run_echoed([sys.executable, "./porth.py", "com", "-r", "-s", file_path, *tc.argv], input=tc.stdin, capture_output=True)
     com_ok = True
@@ -105,12 +105,12 @@ def run_test_for_file(file_path: str) -> Tuple[bool, bool]:
         print("[ERROR] Unexpected compilation output")
         print("  Expected:")
         print("    return code: %s" % tc.returncode)
-        print("    stdout: %s" % tc.stdout.decode("utf-8"))
-        print("    stderr: %s" % tc.stderr.decode("utf-8"))
+        print("    stdout: \n%s" % tc.stdout.decode("utf-8"))
+        print("    stderr: \n%s" % tc.stderr.decode("utf-8"))
         print("  Actual:")
         print("    return code: %s" % com.returncode)
-        print("    stdout: %s" % com.stdout.decode("utf-8"))
-        print("    stderr: %s" % com.stderr.decode("utf-8"))
+        print("    stdout: \n%s" % com.stdout.decode("utf-8"))
+        print("    stderr: \n%s" % com.stderr.decode("utf-8"))
 
     return (sim_ok, com_ok)
 

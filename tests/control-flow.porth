@@ -1,13 +1,13 @@
 include "std.porth"
 
 // if-else
-34 35 + 70 = if 69 print else 420 print end
-34 35 + 69 = if 69 print else 420 print end
+34 35 + 70 = if 69 else 420 end print
+34 35 + 69 = if 69 else 420 end print
 
-"------------------------------\n" stdout write
+"------------------------------\n" stdout write drop
 
 // while
 10 while dup 0 > do
   dup print
   1 -
-end
+end drop
