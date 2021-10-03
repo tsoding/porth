@@ -790,7 +790,11 @@ def type_check_program(program: Program):
                     compiler_note_(op.token, 'Actual types: %s' % actual_types)
                     exit(1)
             elif block_type == OpType.DO:
-                assert False, "not implemented"
+                if expected_types != actual_types:
+                    compiler_error_(op.token, 'while-do body is not allowed to alter the types of the arguments on the data stack')
+                    compiler_note_(op.token, 'Expected types: %s' % expected_types)
+                    compiler_note_(op.token, 'Actual types: %s' % actual_types)
+                    exit(1)
             else:
                 assert "unreachable"
 
@@ -800,9 +804,25 @@ def type_check_program(program: Program):
             block_stack.append((copy(stack), op.typ))
             stack = stack_snapshot
         elif op.typ == OpType.WHILE:
-            pass
+            block_stack.append((copy(stack), op.typ))
         elif op.typ == OpType.DO:
-            assert False, "not implemented"
+            if len(stack) < 1:
+                not_enough_arguments(op)
+                exit(1)
+            a_type, a_token = stack.pop()
+            if a_type != DataType.BOOL:
+                compiler_error_(op.token, "Invalid argument for the while-do condition. Expected BOOL.")
+                exit(1)
+            expected_stack, block_type = block_stack.pop()
+            assert block_type == OpType.WHILE
+            expected_types = list(map(lambda x: x[0], expected_stack))
+            actual_types = list(map(lambda x: x[0], stack))
+            if expected_types != actual_types:
+                compiler_error_(op.token, 'while-do condition is not allowed to alter the types of the arguments on the data stack')
+                compiler_note_(op.token, 'Expected types: %s' % expected_types)
+                compiler_note_(op.token, 'Actual types: %s' % actual_types)
+                exit(1)
+            block_stack.append((copy(stack), op.typ))
         else:
             assert False, "unreachable"
     if len(stack) != 0:
