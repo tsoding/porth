@@ -454,8 +454,10 @@ def type_check_program(program: Program):
 
                 if a_type == b_type and (a_type == DataType.INT or a_type == DataType.PTR):
                     stack.append((DataType.INT, op.token))
+                elif b_type == DataType.PTR and a_type == DataType.INT:
+                    stack.append((DataType.PTR, op.token))
                 else:
-                    compiler_error_(op.token, "invalid argument types fo MINUS intrinsic. Expected INT or PTR")
+                    compiler_error_(op.token, "invalid argument types fo MINUS intrinsic: %s" % [b_type, a_type])
                     exit(1)
             elif op.operand == Intrinsic.MUL:
                 assert len(DataType) == 3, "Exhaustive type handling in MUL intrinsic"
@@ -706,10 +708,10 @@ def type_check_program(program: Program):
                 a_type, a_loc = stack.pop()
                 b_type, b_loc = stack.pop()
 
-                if a_type == DataType.INT and b_type == DataType.PTR:
+                if (a_type == DataType.INT or a_type == DataType.PTR) and b_type == DataType.PTR:
                     pass
                 else:
-                    compiler_error_(op.token, "invalid argument type for STORE64 intrinsic")
+                    compiler_error_(op.token, "invalid argument type for STORE64 intrinsic: %s" % [b_type, a_type])
                     exit(1)
             elif op.operand == Intrinsic.CAST_PTR:
                 if len(stack) < 1:

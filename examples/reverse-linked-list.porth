@@ -19,12 +19,12 @@ end
 
 macro push_node
   over alloc_node 2dup swap ,64 .node/prev .64
-  swap ,64 swap .node/value
+  swap ,64 cast(ptr) swap .node/value
 end
 
 macro pop_node
-  dup ,64 ,node/value swap
-  dup ,64 ,node/prev .64
+  dup ,64 cast(ptr) ,node/value swap
+  dup ,64 cast(ptr) ,node/prev .64
 end
 
 // initialize list_a
