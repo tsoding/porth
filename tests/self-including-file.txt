@@ -4,6 +4,20 @@
 :i returncode 1
 :b stdout 0
 
-:b stderr 114
+:b stderr 1151
 ./tests/./self-including-file.porth:1:9: ERROR: the include exceeded the expansion limit (it expanded 1000 times)
+./tests/./self-including-file.porth:1:9: NOTE: expanded from `./self-including-file.porth`
+./tests/./self-including-file.porth:1:9: NOTE: expanded from `./self-including-file.porth`
+./tests/./self-including-file.porth:1:9: NOTE: expanded from `./self-including-file.porth`
+./tests/./self-including-file.porth:1:9: NOTE: expanded from `./self-including-file.porth`
+./tests/./self-including-file.porth:1:9: NOTE: expanded from `./self-including-file.porth`
+./tests/./self-including-file.porth:1:9: NOTE: expanded from `./self-including-file.porth`
+./tests/./self-including-file.porth:1:9: NOTE: expanded from `./self-including-file.porth`
+./tests/./self-including-file.porth:1:9: NOTE: expanded from `./self-including-file.porth`
+./tests/./self-including-file.porth:1:9: NOTE: expanded from `./self-including-file.porth`
+./tests/./self-including-file.porth:1:9: NOTE: expanded from `./self-including-file.porth`
+./tests/./self-including-file.porth:1:9: NOTE: expanded from `./self-including-file.porth`
+...
+... too many expansions ...
+...
 

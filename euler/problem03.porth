@@ -8,3 +8,4 @@ include "std.porth"
   end
 end
 print
+drop
