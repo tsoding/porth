@@ -4,6 +4,20 @@
 :i returncode 1
 :b stdout 0
 
-:b stderr 115
+:b stderr 1152
 ./tests/directly-recursive-macro.porth:2:3: ERROR: the macro exceeded the expansion limit (it expanded 1000 times)
+./tests/directly-recursive-macro.porth:2:3: NOTE: expanded from `directly-recursive-macro`
+./tests/directly-recursive-macro.porth:2:3: NOTE: expanded from `directly-recursive-macro`
+./tests/directly-recursive-macro.porth:2:3: NOTE: expanded from `directly-recursive-macro`
+./tests/directly-recursive-macro.porth:2:3: NOTE: expanded from `directly-recursive-macro`
+./tests/directly-recursive-macro.porth:2:3: NOTE: expanded from `directly-recursive-macro`
+./tests/directly-recursive-macro.porth:2:3: NOTE: expanded from `directly-recursive-macro`
+./tests/directly-recursive-macro.porth:2:3: NOTE: expanded from `directly-recursive-macro`
+./tests/directly-recursive-macro.porth:2:3: NOTE: expanded from `directly-recursive-macro`
+./tests/directly-recursive-macro.porth:2:3: NOTE: expanded from `directly-recursive-macro`
+./tests/directly-recursive-macro.porth:2:3: NOTE: expanded from `directly-recursive-macro`
+./tests/directly-recursive-macro.porth:2:3: NOTE: expanded from `directly-recursive-macro`
+...
+... too many expansions ...
+...
 
