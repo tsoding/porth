@@ -299,11 +299,11 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                 stack.append(int.from_bytes(_bytes, byteorder="little"))
                 ip += 1
             elif op.operand == Intrinsic.STORE64:
-                store_value64 = stack.pop().to_bytes(length=8, byteorder="little");
-                store_addr64 = stack.pop();
+                store_value64 = stack.pop().to_bytes(length=8, byteorder="little")
+                store_addr64 = stack.pop()
                 for byte in store_value64:
-                    mem[store_addr64] = byte;
-                    store_addr64 += 1;
+                    mem[store_addr64] = byte
+                    store_addr64 += 1
                 ip += 1
             elif op.operand == Intrinsic.ARGC:
                 stack.append(argc)
@@ -312,9 +312,9 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                 stack.append(argv_buf_ptr)
                 ip += 1
             elif op.operand == Intrinsic.SYSCALL0:
-                syscall_number = stack.pop();
+                syscall_number = stack.pop()
                 if syscall_number == 39: # SYS_getpid
-                    stack.append(os.getpid());
+                    stack.append(os.getpid())
                 else:
                     assert False, "unknown syscall number %d" % syscall_number
                 ip += 1
@@ -862,8 +862,8 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                     out.write("    pop rbx\n")
                     out.write("    pop rax\n")
                     out.write("    div rbx\n")
-                    out.write("    push rax\n");
-                    out.write("    push rdx\n");
+                    out.write("    push rax\n")
+                    out.write("    push rdx\n")
                 elif op.operand == Intrinsic.SHR:
                     out.write("    ;; -- shr --\n")
                     out.write("    pop rcx\n")
@@ -894,48 +894,48 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                     out.write("    call print\n")
                 elif op.operand == Intrinsic.EQ:
                     out.write("    ;; -- equal -- \n")
-                    out.write("    mov rcx, 0\n");
-                    out.write("    mov rdx, 1\n");
-                    out.write("    pop rax\n");
-                    out.write("    pop rbx\n");
-                    out.write("    cmp rax, rbx\n");
-                    out.write("    cmove rcx, rdx\n");
+                    out.write("    mov rcx, 0\n")
+                    out.write("    mov rdx, 1\n")
+                    out.write("    pop rax\n")
+                    out.write("    pop rbx\n")
+                    out.write("    cmp rax, rbx\n")
+                    out.write("    cmove rcx, rdx\n")
                     out.write("    push rcx\n")
                 elif op.operand == Intrinsic.GT:
                     out.write("    ;; -- gt --\n")
-                    out.write("    mov rcx, 0\n");
-                    out.write("    mov rdx, 1\n");
-                    out.write("    pop rbx\n");
-                    out.write("    pop rax\n");
-                    out.write("    cmp rax, rbx\n");
-                    out.write("    cmovg rcx, rdx\n");
+                    out.write("    mov rcx, 0\n")
+                    out.write("    mov rdx, 1\n")
+                    out.write("    pop rbx\n")
+                    out.write("    pop rax\n")
+                    out.write("    cmp rax, rbx\n")
+                    out.write("    cmovg rcx, rdx\n")
                     out.write("    push rcx\n")
                 elif op.operand == Intrinsic.LT:
                     out.write("    ;; -- gt --\n")
-                    out.write("    mov rcx, 0\n");
-                    out.write("    mov rdx, 1\n");
-                    out.write("    pop rbx\n");
-                    out.write("    pop rax\n");
-                    out.write("    cmp rax, rbx\n");
-                    out.write("    cmovl rcx, rdx\n");
+                    out.write("    mov rcx, 0\n")
+                    out.write("    mov rdx, 1\n")
+                    out.write("    pop rbx\n")
+                    out.write("    pop rax\n")
+                    out.write("    cmp rax, rbx\n")
+                    out.write("    cmovl rcx, rdx\n")
                     out.write("    push rcx\n")
                 elif op.operand == Intrinsic.GE:
                     out.write("    ;; -- gt --\n")
-                    out.write("    mov rcx, 0\n");
-                    out.write("    mov rdx, 1\n");
-                    out.write("    pop rbx\n");
-                    out.write("    pop rax\n");
-                    out.write("    cmp rax, rbx\n");
-                    out.write("    cmovge rcx, rdx\n");
+                    out.write("    mov rcx, 0\n")
+                    out.write("    mov rdx, 1\n")
+                    out.write("    pop rbx\n")
+                    out.write("    pop rax\n")
+                    out.write("    cmp rax, rbx\n")
+                    out.write("    cmovge rcx, rdx\n")
                     out.write("    push rcx\n")
                 elif op.operand == Intrinsic.LE:
                     out.write("    ;; -- gt --\n")
-                    out.write("    mov rcx, 0\n");
-                    out.write("    mov rdx, 1\n");
-                    out.write("    pop rbx\n");
-                    out.write("    pop rax\n");
-                    out.write("    cmp rax, rbx\n");
-                    out.write("    cmovle rcx, rdx\n");
+                    out.write("    mov rcx, 0\n")
+                    out.write("    mov rdx, 1\n")
+                    out.write("    pop rbx\n")
+                    out.write("    pop rax\n")
+                    out.write("    cmp rax, rbx\n")
+                    out.write("    cmovle rcx, rdx\n")
                     out.write("    push rcx\n")
                 elif op.operand == Intrinsic.NE:
                     out.write("    ;; -- ne --\n")
@@ -978,9 +978,9 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                     out.write("    push rbx\n")
                 elif op.operand == Intrinsic.STORE:
                     out.write("    ;; -- store --\n")
-                    out.write("    pop rbx\n");
-                    out.write("    pop rax\n");
-                    out.write("    mov [rax], bl\n");
+                    out.write("    pop rbx\n")
+                    out.write("    pop rax\n")
+                    out.write("    mov [rax], bl\n")
                 elif op.operand == Intrinsic.ARGC:
                     out.write("    ;; -- argc --\n")
                     out.write("    mov rax, [args_ptr]\n")
@@ -999,9 +999,9 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                     out.write("    push rbx\n")
                 elif op.operand == Intrinsic.STORE64:
                     out.write("    ;; -- store --\n")
-                    out.write("    pop rbx\n");
-                    out.write("    pop rax\n");
-                    out.write("    mov [rax], rbx\n");
+                    out.write("    pop rbx\n")
+                    out.write("    pop rax\n")
+                    out.write("    mov [rax], rbx\n")
                 elif op.operand == Intrinsic.SYSCALL0:
                     out.write("    ;; -- syscall0 --\n")
                     out.write("    pop rax\n")
@@ -1015,10 +1015,10 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                     out.write("    push rax\n")
                 elif op.operand == Intrinsic.SYSCALL2:
                     out.write("    ;; -- syscall2 -- \n")
-                    out.write("    pop rax\n");
-                    out.write("    pop rdi\n");
-                    out.write("    pop rsi\n");
-                    out.write("    syscall\n");
+                    out.write("    pop rax\n")
+                    out.write("    pop rdi\n")
+                    out.write("    pop rsi\n")
+                    out.write("    syscall\n")
                     out.write("    push rax\n")
                 elif op.operand == Intrinsic.SYSCALL3:
                     out.write("    ;; -- syscall3 --\n")
@@ -1155,7 +1155,7 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str], exp
     program: List[Op] = []
     rtokens: List[Token] = list(reversed(tokens))
     macros: Dict[str, Macro] = {}
-    ip: OpAddr = 0;
+    ip: OpAddr = 0
     while len(rtokens) > 0:
         token = rtokens.pop()
         assert len(TokenType) == 5, "Exhaustive token handling in compile_tokens_to_program"
@@ -1178,11 +1178,11 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str], exp
             ip += 1
         elif token.typ == TokenType.STR:
             assert isinstance(token.value, str), "This could be a bug in the lexer"
-            program.append(Op(typ=OpType.PUSH_STR, operand=token.value, loc=token.loc));
+            program.append(Op(typ=OpType.PUSH_STR, operand=token.value, loc=token.loc))
             ip += 1
         elif token.typ == TokenType.CHAR:
             assert isinstance(token.value, int)
-            program.append(Op(typ=OpType.PUSH_INT, operand=token.value, loc=token.loc));
+            program.append(Op(typ=OpType.PUSH_INT, operand=token.value, loc=token.loc))
             ip += 1
         elif token.typ == TokenType.KEYWORD:
             assert len(Keyword) == 7, "Exhaustive keywords handling in compile_tokens_to_program()"
@@ -1280,7 +1280,7 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str], exp
                     compiler_error(token.loc, "expected `end` at the end of the macro definition but got `%s`" % (token.value, ))
                     exit(1)
             else:
-                assert False, 'unreachable';
+                assert False, 'unreachable'
         else:
             assert False, 'unreachable'
 
@@ -1454,7 +1454,7 @@ if __name__ == '__main__' and '__file__' in globals():
             exit(1)
         program_path, *argv = argv
         include_paths.append(path.dirname(program_path))
-        program = compile_file_to_program(program_path, include_paths, expansion_limit);
+        program = compile_file_to_program(program_path, include_paths, expansion_limit)
         if check:
             type_check_program(program)
         simulate_little_endian_linux(program, [program_path] + argv)
@@ -1511,7 +1511,7 @@ if __name__ == '__main__' and '__file__' in globals():
 
         include_paths.append(path.dirname(program_path))
 
-        program = compile_file_to_program(program_path, include_paths, expansion_limit);
+        program = compile_file_to_program(program_path, include_paths, expansion_limit)
         if check:
             type_check_program(program)
         generate_nasm_linux_x86_64(program, basepath + ".asm")
