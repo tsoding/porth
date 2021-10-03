@@ -608,6 +608,8 @@ def type_check_program(program: Program):
 
                 if a_type == b_type and a_type == DataType.INT:
                     stack.append((DataType.INT, op.token))
+                elif a_type == b_type and a_type == DataType.BOOL:
+                    stack.append((DataType.BOOL, op.token))
                 else:
                     compiler_error_(op.token, "invalid argument type for BOR intrinsic")
                     exit(1)
