@@ -1,0 +1,11 @@
+:i argc 0
+:b stdin 0
+
+:i returncode 1
+:b stdout 0
+
+:b stderr 264
+./tests/if-else-fail.porth:1:35: ERROR: both branches of the if-block must produce the same types of the arguments on the data stack
+./tests/if-else-fail.porth:1:35: NOTE: Expected types: []
+./tests/if-else-fail.porth:1:35: NOTE: Actual types: [<DataType.INT: 1>]
+
