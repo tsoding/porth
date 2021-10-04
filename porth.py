@@ -106,8 +106,18 @@ STR_CAPACITY  = 640_000 # should be enough for everyone
 MEM_CAPACITY  = 640_000
 ARGV_CAPACITY = 640_000
 
+def get_cstr_from_mem(mem: bytearray, ptr: int) -> bytes:
+    end = ptr
+    while mem[end] != 0:
+        end += 1
+    return mem[ptr:end]
+
 # TODO: introduce the profiler mode
 def simulate_little_endian_linux(program: Program, argv: List[str]):
+    AT_FDCWD=-100
+    O_RDONLY=0
+    ENOENT=2
+
     stack: List[int] = []
     mem = bytearray(NULL_POINTER_PADDING + STR_CAPACITY + ARGV_CAPACITY + MEM_CAPACITY)
 
@@ -120,11 +130,7 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
 
     mem_buf_ptr  = NULL_POINTER_PADDING + STR_CAPACITY + ARGV_CAPACITY
 
-    fds: Dict[int, BinaryIO] = {
-        0: sys.stdin.buffer,
-        1: sys.stdout.buffer,
-        2: sys.stderr.buffer,
-    }
+    fds: List[BinaryIO] = [sys.stdin.buffer, sys.stdout.buffer, sys.stderr.buffer]
 
     for arg in argv:
         value = arg.encode('utf-8')
@@ -304,7 +310,7 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                 stack.append(int.from_bytes(_bytes, byteorder="little"))
                 ip += 1
             elif op.operand == Intrinsic.STORE64:
-                store_value64 = stack.pop().to_bytes(length=8, byteorder="little");
+                store_value64 = stack.pop().to_bytes(length=8, byteorder="little", signed=True);
                 store_addr64 = stack.pop();
                 for byte in store_value64:
                     mem[store_addr64] = byte;
@@ -331,8 +337,12 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                 arg1 = stack.pop()
                 if syscall_number == 60: # SYS_exit
                     exit(arg1)
+                elif syscall_number == 3: # SYS_close
+                    fds[arg1].close()
+                    stack.append(0)
                 else:
                     assert False, "unknown syscall number %d" % syscall_number
+                ip += 1
             elif op.operand == Intrinsic.SYSCALL2:
                 assert False, "not implemented"
             elif op.operand == Intrinsic.SYSCALL3:
@@ -358,6 +368,21 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                     fds[fd].write(mem[buf:buf+count])
                     fds[fd].flush()
                     stack.append(count)
+                elif syscall_number == 257: # SYS_openat
+                    dirfd = arg1
+                    pathname_ptr = arg2
+                    flags = arg3
+                    if dirfd != AT_FDCWD:
+                        assert False, "openat: unsupported dirfd"
+                    if flags != O_RDONLY:
+                        assert False, "openat: unsupported flags"
+                    pathname = get_cstr_from_mem(mem, pathname_ptr).decode('utf-8')
+                    fd = len(fds)
+                    try:
+                        fds.append(open(pathname, 'rb'))
+                        stack.append(fd)
+                    except FileNotFoundError:
+                        stack.append(-ENOENT)
                 else:
                     assert False, "unknown syscall number %d" % syscall_number
                 ip += 1

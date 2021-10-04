@@ -184,6 +184,7 @@ def usage(exe_name: str):
     print("    help")
     print("      Print this message to stdout and exit with 0 code.")
 
+# TODO: support several test cases per single program
 if __name__ == '__main__':
     exe_name, *argv = sys.argv
 
