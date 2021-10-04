@@ -312,8 +312,8 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                     stack.append(int.from_bytes(_bytes, byteorder="little"))
                     ip += 1
                 elif op.operand == Intrinsic.STORE64:
-                    value = stack.pop()
-                    store_value64 = value.to_bytes(length=8, byteorder="little", signed=(value < 0));
+                    store_value = stack.pop()
+                    store_value64 = store_value.to_bytes(length=8, byteorder="little", signed=(store_value < 0));
                     store_addr64 = stack.pop();
                     for byte in store_value64:
                         mem[store_addr64] = byte;
@@ -401,7 +401,7 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                 assert False, "unreachable"
         except Exception as e:
             compiler_error_(op.token, "Python Exception during simulation")
-            traceback.print_exception(e)
+            traceback.print_exception(type(e), e, e.__traceback__)
             exit(1)
     if debug:
         print("[INFO] Memory dump")
