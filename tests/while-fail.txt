@@ -1,0 +1,11 @@
+:i argc 0
+:b stdin 0
+
+:i returncode 1
+:b stdout 0
+
+:b stderr 281
+./tests/while-fail.porth:4:1: ERROR: while-do body is not allowed to alter the types of the arguments on the data stack
+./tests/while-fail.porth:4:1: NOTE: Expected types: [<DataType.INT: 1>]
+./tests/while-fail.porth:4:1: NOTE: Actual types: [<DataType.INT: 1>, <DataType.INT: 1>]
+
