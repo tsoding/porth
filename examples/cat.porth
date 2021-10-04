@@ -7,10 +7,8 @@ macro fd mem end
 macro buffer fd 8 + end
 
 macro cat_fd
-  // TODO: while-do type checking puts a weird limitations that forces us to keep this extra argument on the stack
-  69
-  while drop BUFFER_CAP buffer fd ,64 read dup 0 > do
-     buffer stdout write
+  while BUFFER_CAP buffer fd ,64 read dup 0 > do
+     buffer stdout write drop
   end drop
 end
 
