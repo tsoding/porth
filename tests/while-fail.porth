@@ -1,0 +1,4 @@
+10 while 1 dup 0 > do
+  dup print
+  1 -
+end drop
