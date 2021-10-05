@@ -2,148 +2,241 @@
 
 import sys
 import os
+from os import path
 import subprocess
 import shlex
-from typing import BinaryIO, Tuple
+from typing import List, BinaryIO, Tuple
+from dataclasses import dataclass
+
+PORTH_EXT = '.porth'
 
 def cmd_run_echoed(cmd, **kwargs):
     print("[CMD] %s" % " ".join(map(shlex.quote, cmd)))
     return subprocess.run(cmd, **kwargs)
 
-def read_field(f: BinaryIO, name: bytes) -> bytes:
+def read_blob_field(f: BinaryIO, name: bytes) -> bytes:
     line = f.readline()
-    field = b': ' + name + b' '
+    field = b':b ' + name + b' '
     assert line.startswith(field)
     assert line.endswith(b'\n')
-    return line[len(field):-1]
+    size = int(line[len(field):-1])
+    blob = f.read(size)
+    assert f.read(1) == b'\n'
+    return blob
 
-def load_test_case(file_path: str) -> Tuple[int, bytes, bytes]:
-    with open(file_path, "rb") as f:
-        returncode = int(read_field(f, b'returncode'))
-        stdout_len = int(read_field(f, b'stdout'))
-        stdout = f.read(stdout_len)
-        assert f.read(1) == b'\n'
-        stderr_len = int(read_field(f, b'stderr'))
-        stderr = f.read(stderr_len)
-        assert f.read(1) == b'\n'
-        return (returncode, stdout, stderr)
+def read_int_field(f: BinaryIO, name: bytes) -> int:
+    line = f.readline()
+    field = b':i ' + name + b' '
+    assert line.startswith(field)
+    assert line.endswith(b'\n')
+    return int(line[len(field):-1])
 
-def save_test_case(file_path: str, returncode: int, stdout: bytes, stderr: bytes):
+def write_int_field(f: BinaryIO, name: bytes, value: int):
+    f.write(b':i %s %d\n' % (name, value))
+
+def write_blob_field(f: BinaryIO, name: bytes, blob: bytes):
+    f.write(b':b %s %d\n' % (name, len(blob)))
+    f.write(blob)
+    f.write(b'\n')
+
+@dataclass
+class TestCase:
+    argv: List[str]
+    stdin: bytes
+    returncode: int
+    stdout: bytes
+    stderr: bytes
+
+def load_test_case(file_path: str) -> TestCase:
+    try:
+        with open(file_path, "rb") as f:
+            argv = []
+            argc = read_int_field(f, b'argc')
+            for index in range(argc):
+                argv.append(read_blob_field(f, b'arg%d' % index).decode('utf-8'))
+            stdin = read_blob_field(f, b'stdin')
+            returncode = read_int_field(f, b'returncode')
+            stdout = read_blob_field(f, b'stdout')
+            stderr = read_blob_field(f, b'stderr')
+            return TestCase(argv, stdin, returncode, stdout, stderr)
+    except FileNotFoundError:
+        return TestCase(argv=[], stdin=bytes(), returncode=0, stdout=bytes(), stderr=bytes())
+
+def save_test_case(file_path: str,
+                   argv: List[str], stdin: bytes,
+                   returncode: int, stdout: bytes, stderr: bytes):
     with open(file_path, "wb") as f:
-        f.write(b": returncode %d\n" % returncode)
-        f.write(b": stdout %d\n" % len(stdout))
-        f.write(stdout)
-        f.write(b"\n")
-        f.write(b": stderr %d\n" % len(stderr))
-        f.write(stderr)
-        f.write(b"\n")
+        write_int_field(f, b'argc', len(argv))
+        for index, arg in enumerate(argv):
+            write_blob_field(f, b'arg%d' % index, arg.encode('utf-8'))
+        write_blob_field(f, b'stdin', stdin)
+        write_int_field(f, b'returncode', returncode)
+        write_blob_field(f, b'stdout', stdout)
+        write_blob_field(f, b'stderr', stderr)
 
-def test(folder: str):
+def run_test_for_file(file_path: str) -> Tuple[bool, bool]:
+
+    assert path.isfile(file_path)
+    assert file_path.endswith(PORTH_EXT)
+
+    print('[INFO] Testing %s' % file_path)
+
+    tc_path = file_path[:-len(PORTH_EXT)] + ".txt"
+    tc = load_test_case(tc_path)
+    sim_ok = True
+    """
+    sim = cmd_run_echoed([sys.executable, "./porth.py", "sim", file_path, *tc.argv], input=tc.stdin, capture_output=True)
+    sim_ok = True
+    if sim.returncode != tc.returncode or sim.stdout != tc.stdout or sim.stderr != tc.stderr:
+        sim_ok = False
+        print("[ERROR] Unexpected simulation output")
+        print("  Expected:")
+        print("    return code: %s" % tc.returncode)
+        print("    stdout: \n%s" % tc.stdout.decode("utf-8"))
+        print("    stderr: \n%s" % tc.stderr.decode("utf-8"))
+        print("  Actual:")
+        print("    return code: %s" % sim.returncode)
+        print("    stdout: \n%s" % sim.stdout.decode("utf-8"))
+        print("    stderr: \n%s" % sim.stderr.decode("utf-8"))
+    """
+    com = cmd_run_echoed([sys.executable, "./porth.py", "com", "-r", "-s", file_path, *tc.argv], input=tc.stdin, capture_output=True)
+    com_ok = True
+    if com.returncode != tc.returncode or com.stdout != tc.stdout or com.stderr != tc.stderr:
+        com_ok = False
+        print("[ERROR] Unexpected compilation output")
+        print("  Expected:")
+        print("    return code: %s" % tc.returncode)
+        print("    stdout: \n%s" % tc.stdout.decode("utf-8"))
+        print("    stderr: \n%s" % tc.stderr.decode("utf-8"))
+        print("  Actual:")
+        print("    return code: %s" % com.returncode)
+        print("    stdout: \n%s" % com.stdout.decode("utf-8"))
+        print("    stderr: \n%s" % com.stderr.decode("utf-8"))
+
+    return (sim_ok, com_ok)
+
+def run_test_for_folder(folder: str):
     sim_failed = 0
     com_failed = 0
-    arch_list = ["x86_64", "aarch64"]
-
-    for arch in arch_list:
-        for entry in os.scandir(folder):
-            porth_ext = '.porth'
-            if entry.is_file() and entry.path.endswith(porth_ext):
-                print('[INFO] Testing %s for arch %s' % (entry.path, arch))
-
-                txt_path = entry.path[:-len(porth_ext)] + ".txt"
-                (expected_returncode, expected_output, expected_error) = load_test_case(txt_path)
-
-                sim_cmd = cmd_run_echoed([sys.executable, "./porth.py", "-I", folder, "sim", entry.path], capture_output=True)
-                sim_returncode = sim_cmd.returncode
-                sim_output = sim_cmd.stdout
-                sim_error = sim_cmd.stderr
-                if sim_returncode != expected_returncode or sim_output != expected_output or sim_error != expected_error:
-                    sim_failed += 1
-                    print("[ERROR] Unexpected simulation output")
-                    print("  Expected:")
-                    print("    return code: %s" % expected_returncode)
-                    print("    stdout: %s" % expected_output.decode("utf-8"))
-                    print("    stderr: %s" % expected_error.decode("utf-8"))
-                    print("  Actual:")
-                    print("    return code: %s" % sim_returncode)
-                    print("    stdout: %s" % sim_output.decode("utf-8"))
-                    print("    stderr: %s" % sim_error.decode("utf-8"))
-
-                com_cmd = cmd_run_echoed([sys.executable, "./porth.py", "-ARCH", arch, "-I", folder, "com", "-r", "-s", entry.path], capture_output=True)
-                com_returncode = com_cmd.returncode
-                com_output = com_cmd.stdout
-                com_error = com_cmd.stderr
-                if com_returncode != expected_returncode or com_output != expected_output or com_error != expected_error:
-                    com_failed += 1
-                    print("[ERROR] Unexpected compilation output for arch %s" % arch)
-                    print("  Expected:")
-                    print("    return code: %s" % expected_returncode)
-                    print("    stdout: %s" % expected_output.decode("utf-8"))
-                    print("    stderr: %s" % expected_error.decode("utf-8"))
-                    print("  Actual:")
-                    print("    return code: %s" % com_returncode)
-                    print("    stdout: %s" % com_output.decode("utf-8"))
-                    print("    stderr: %s" % com_error.decode("utf-8"))
+    for entry in os.scandir(folder):
+        if entry.is_file() and entry.path.endswith(PORTH_EXT):
+            sim_ok, com_ok = run_test_for_file(entry.path)
+            if not sim_ok:
+                sim_failed += 1
+            if not com_ok:
+                com_failed += 1
     print()
     print("Simulation failed: %d, Compilation failed: %d" % (sim_failed, com_failed))
     if sim_failed != 0 or com_failed != 0:
         exit(1)
 
-def record(folder: str, mode: str='sim'):
+def update_input_for_file(file_path: str, argv: List[str]):
+    assert file_path.endswith(PORTH_EXT)
+    tc_path = file_path[:-len(PORTH_EXT)] + ".txt"
+    tc = load_test_case(tc_path)
+
+    print("[INFO] Provide the stdin for the test case. Press ^D when you are done...")
+
+    stdin = sys.stdin.buffer.read()
+
+    print("[INFO] Saving input to %s" % tc_path)
+    save_test_case(tc_path,
+                   argv, stdin,
+                   tc.returncode, tc.stdout, tc.stderr)
+
+def update_output_for_file(file_path: str):
+    tc_path = file_path[:-len(PORTH_EXT)] + ".txt"
+    tc = load_test_case(tc_path)
+
+    output = cmd_run_echoed([sys.executable, "./porth.py", "sim", file_path, *tc.argv], input=tc.stdin, capture_output=True)
+    print("[INFO] Saving output to %s" % tc_path)
+    save_test_case(tc_path,
+                   tc.argv, tc.stdin,
+                   output.returncode, output.stdout, output.stderr)
+
+def update_output_for_folder(folder: str):
     for entry in os.scandir(folder):
-        porth_ext = '.porth'
-        if entry.is_file() and entry.path.endswith(porth_ext):
-            if mode == 'sim':
-                output = cmd_run_echoed([sys.executable, "./porth.py", "-I", folder, "sim", entry.path], capture_output=True)
-            elif mode == 'com':
-                output = cmd_run_echoed([sys.executable, "./porth.py", "-I", folder, "com", "-r", "-s", entry.path], capture_output=True)
-            else:
-                print("[ERROR] Unknown record mode `%s`" % mode)
-                exit(1)
-            txt_path = entry.path[:-len(porth_ext)] + ".txt"
-            print("[INFO] Saving output to %s" % txt_path)
-            save_test_case(txt_path, output.returncode, output.stdout, output.stderr)
+        if entry.is_file() and entry.path.endswith(PORTH_EXT):
+            update_output_for_file(entry.path)
 
 def usage(exe_name: str):
-    print("Usage: ./test.py [OPTIONS] [SUBCOMMAND]")
-    print("OPTIONS:")
-    print("    -f <folder>   Folder with the tests. (Default: ./tests/)")
-    print("SUBCOMMANDS:")
-    print("    test             Run the tests. (Default when no subcommand is provided)")
-    print("    record [-com]    Record expected output of the tests.")
-    print("    help             Print this message to stdout and exit with 0 code.")
+    print("Usage: ./test.py [SUBCOMMAND]")
+    print("  Run or update the tests. The default [SUBCOMMAND] is 'run'.")
+    print()
+    print("  SUBCOMMAND:")
+    print("    run [TARGET]")
+    print("      Run the test on the [TARGET]. The [TARGET] is either a *.porth file or ")
+    print("      folder with *.porth files. The default [TARGET] is './tests/'.")
+    print()
+    print("    update [SUBSUBCOMMAND]")
+    print("      Update the input or output of the tests.")
+    print("      The default [SUBSUBCOMMAND] is 'output'")
+    print()
+    print("      SUBSUBCOMMAND:")
+    print("        input <TARGET>")
+    print("          Update the input of the <TARGET>. The <TARGET> can only be")
+    print("          a *.porth file.")
+    print()
+    print("        output [TARGET]")
+    print("          Update the output of the [TARGET]. The [TARGET] is either a *.porth")
+    print("          file or folder with *.porth files. The default [TARGET] is")
+    print("          './tests/'")
+    print()
+    print("    help")
+    print("      Print this message to stdout and exit with 0 code.")
 
+# TODO: support several test cases per single program
 if __name__ == '__main__':
     exe_name, *argv = sys.argv
 
-    folder = "./tests/"
-    subcmd = "test"
+    subcommand = "run"
 
-    while len(argv) > 0:
-        arg, *argv = argv
-        if arg == '-f':
-            if len(argv) == 0:
-                print("[ERROR] no <folder> is provided for option `-f`")
-                exit(1)
-            folder, *argv = argv
-        else:
-            subcmd = arg
-            break
+    if len(argv) > 0:
+        subcommand, *argv = argv
 
-    if subcmd == 'record':
-        mode = 'sim'
-        while len(argv) > 0:
-            arg, *argv = argv
-            if arg == '-com':
-                mode = 'com'
+    if subcommand == 'update' or subcommand == 'record':
+        subsubcommand = 'output'
+        if len(argv) > 0:
+            subsubcommand, *argv = argv
+
+        if subsubcommand == 'output':
+            target = './tests/'
+
+            if len(argv) > 0:
+                target, *argv = argv
+
+            if path.isdir(target):
+                update_output_for_folder(target)
+            elif path.isfile(target):
+                update_output_for_file(target)
             else:
-                print("[ERROR] unknown flag `%s`" % arg)
+                assert False, 'unreachable'
+        elif subsubcommand == 'input':
+            if len(argv) == 0:
+                usage(exe_name)
+                print("[ERROR] no file is provided for `%s %s` subcommand" % (subcommand, subsubcommand), file=sys.stderr)
                 exit(1)
-        record(folder, mode)
-    elif subcmd == 'test':
-        test(folder)
-    elif subcmd == 'help':
+            file_path, *argv = argv
+            update_input_for_file(file_path, argv)
+        else:
+            usage(exe_name)
+            print("[ERROR] unknown subcommand `%s %s`. Available commands are `%s input` or `%s output`" % (subcommand, subsubcommand, subcommand, subcommand), file=sys.stderr)
+            exit(1)
+    elif subcommand == 'run' or subcommand == 'test':
+        target = './tests/'
+
+        if len(argv) > 0:
+            target, *argv = argv
+
+        if path.isdir(target):
+            run_test_for_folder(target)
+        elif path.isfile(target):
+            run_test_for_file(target)
+        else:
+            assert False, 'unreachable'
+    elif subcommand == 'help':
         usage(exe_name)
     else:
         usage(exe_name)
-        print("[ERROR] unknown subcommand `%s`" % subcmd, file=sys.stderr)
+        print("[ERROR] unknown subcommand `%s`" % subcommand, file=sys.stderr)
         exit(1);
