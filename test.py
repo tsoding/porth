@@ -83,8 +83,7 @@ def run_test_for_file(file_path: str) -> Tuple[bool, bool]:
 
     tc_path = file_path[:-len(PORTH_EXT)] + ".txt"
     tc = load_test_case(tc_path)
-    sim_ok = True
-    """
+
     sim = cmd_run_echoed([sys.executable, "./porth.py", "sim", file_path, *tc.argv], input=tc.stdin, capture_output=True)
     sim_ok = True
     if sim.returncode != tc.returncode or sim.stdout != tc.stdout or sim.stderr != tc.stderr:
@@ -98,7 +97,7 @@ def run_test_for_file(file_path: str) -> Tuple[bool, bool]:
         print("    return code: %s" % sim.returncode)
         print("    stdout: \n%s" % sim.stdout.decode("utf-8"))
         print("    stderr: \n%s" % sim.stderr.decode("utf-8"))
-    """
+
     com = cmd_run_echoed([sys.executable, "./porth.py", "com", "-r", "-s", file_path, *tc.argv], input=tc.stdin, capture_output=True)
     com_ok = True
     if com.returncode != tc.returncode or com.stdout != tc.stdout or com.stderr != tc.stderr:
