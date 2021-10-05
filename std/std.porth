@@ -1,3 +1,5 @@
+include "syscall_x86.porth"
+
 /// Standard streams
 macro stdin  0 end
 macro stdout 1 end
