@@ -1887,7 +1887,7 @@ def usage(compiler_name: str):
     print("Usage: %s [OPTIONS] <SUBCOMMAND> [ARGS]" % compiler_name)
     print("  OPTIONS:")
     print("    -debug                Enable debug mode.")
-    print(" -ARCH <arch> Architecture for native code(aarch64, x86_64). Default: platform architecture")
+    print("     -ARCH <arch> Architecture for native code(aarch64, x86_64). Default: platform architecture")
     print("    -I <path>             Add the path to the include search list")
     print("    -E <expansion-limit>  Macro and include expansion limit. (Default %d)" % DEFAULT_EXPANSION_LIMIT)
     print("    -unsafe               Disable type checking.")
