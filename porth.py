@@ -1489,35 +1489,43 @@ def generate_rust(program: Program, out_file_path: str):
             elif op.typ == OpType.INTRINSIC:
                 assert len(Intrinsic) == 34, "Exhaustive intrinsic handling in generate_nasm_linux_x86_64()"
                 if op.operand == Intrinsic.PLUS:
-                    assert False, "todo"
-                    out.write("    ;; -- plus --\n")
-                    out.write("    pop rax\n")
-                    out.write("    pop rbx\n")
-                    out.write("    add rax, rbx\n")
-                    out.write("    push rax\n")
+                    op0 = stack.pop()
+                    op1 = stack.pop()
+                    var = var_id;
+                    var_id += 1
+                    out.write("    let v%d: u64 = v%d + v%d;\n" % (var, op1, op0))
+                    stack.append(var)
                 elif op.operand == Intrinsic.MINUS:
-                    assert False, "todo"
-                    out.write("    ;; -- minus --\n")
-                    out.write("    pop rax\n")
-                    out.write("    pop rbx\n")
-                    out.write("    sub rbx, rax\n")
-                    out.write("    push rbx\n")
+                    op0 = stack.pop()
+                    op1 = stack.pop()
+                    var = var_id;
+                    var_id += 1
+                    out.write("    let v%d: u64 = v%d - v%d;\n" % (var, op1, op0))
+                    stack.append(var)
                 elif op.operand == Intrinsic.MUL:
-                    assert False, "todo"
-                    out.write("    ;; -- mul --\n")
-                    out.write("    pop rax\n")
-                    out.write("    pop rbx\n")
-                    out.write("    mul rbx\n")
-                    out.write("    push rax\n")
+                    op0 = stack.pop()
+                    op1 = stack.pop()
+                    var = var_id;
+                    var_id += 1
+                    out.write("    let v%d: u64 = v%d * v%d;\n" % (var, op1, op0))
+                    stack.append(var)
                 elif op.operand == Intrinsic.DIVMOD:
-                    assert False, "todo"
-                    out.write("    ;; -- mod --\n")
-                    out.write("    xor rdx, rdx\n")
-                    out.write("    pop rbx\n")
-                    out.write("    pop rax\n")
-                    out.write("    div rbx\n")
-                    out.write("    push rax\n");
-                    out.write("    push rdx\n");
+                    op0 = stack.pop()
+                    op1 = stack.pop()
+
+                    var = var_id;
+                    var_id += 1
+                    out.write("    let v%d: u64 = v%d / v%d;\n" % (var, op1, op0))
+                    div = var
+
+                    var = var_id;
+                    var_id += 1
+                    out.write("    let v%d: u64 = v%d %% v%d;\n" % (var, op1, op0))
+                    mod = var
+
+                    stack.append(div)
+                    stack.append(mod)
+
                 elif op.operand == Intrinsic.SHR:
                     assert False, "todo"
                     out.write("    ;; -- shr --\n")
