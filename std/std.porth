@@ -8,13 +8,6 @@ macro stderr 2 end
 macro AT_FDCWD -100 end
 macro O_RDONLY 0 end
 
-// Wrappers for common syscalls
-macro write SYS_write syscall3 end
-macro read SYS_read syscall3 end
-macro openat SYS_openat syscall3 end
-macro close SYS_close syscall1 end
-macro exit SYS_exit syscall1 drop end
-
 macro 2dup over over end
 macro 2drop drop drop end
 
