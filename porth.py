@@ -490,7 +490,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                     out.write("    cmovg rcx, rdx\n");
                     out.write("    push rcx\n")
                 elif op.operand == Intrinsic.LT:
-                    out.write("    ;; -- lt --\n")
+                    out.write("    ;; -- gt --\n")
                     out.write("    mov rcx, 0\n");
                     out.write("    mov rdx, 1\n");
                     out.write("    pop rbx\n");
@@ -499,7 +499,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                     out.write("    cmovl rcx, rdx\n");
                     out.write("    push rcx\n")
                 elif op.operand == Intrinsic.GE:
-                    out.write("    ;; -- ge --\n")
+                    out.write("    ;; -- gt --\n")
                     out.write("    mov rcx, 0\n");
                     out.write("    mov rdx, 1\n");
                     out.write("    pop rbx\n");
@@ -508,7 +508,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                     out.write("    cmovge rcx, rdx\n");
                     out.write("    push rcx\n")
                 elif op.operand == Intrinsic.LE:
-                    out.write("    ;; -- le --\n")
+                    out.write("    ;; -- gt --\n")
                     out.write("    mov rcx, 0\n");
                     out.write("    mov rdx, 1\n");
                     out.write("    pop rbx\n");
@@ -561,13 +561,13 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                     out.write("    pop rax\n");
                     out.write("    mov [rax], bl\n");
                 elif op.operand == Intrinsic.LOAD64:
-                    out.write("    ;; -- load64 --\n")
+                    out.write("    ;; -- load --\n")
                     out.write("    pop rax\n")
                     out.write("    xor rbx, rbx\n")
                     out.write("    mov rbx, [rax]\n")
                     out.write("    push rbx\n")
                 elif op.operand == Intrinsic.STORE64:
-                    out.write("    ;; -- store64 --\n")
+                    out.write("    ;; -- store --\n")
                     out.write("    pop rbx\n");
                     out.write("    pop rax\n");
                     out.write("    mov [rax], rbx\n");
