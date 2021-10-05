@@ -1204,6 +1204,368 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
         out.write("args_ptr: resq 1\n")
         out.write("mem: resb %d\n" % MEM_CAPACITY)
 
+def generate_nasm_linux_aarch64(program: Program, out_file_path: str):
+    strs: List[bytes] = []
+    cond_count = 0
+    with open(out_file_path, "w") as out:
+        out.write(".section .text\n")
+        out.write("print:\n")
+        out.write("    ldr     x9, =-3689348814741910323\n")
+        out.write("    sub     sp, sp, 40\n")
+        out.write("    mov     x3, #10\n")
+        out.write("    strb    w3, [sp, #31]\n")
+        out.write("    add     x3, sp, #30\n")
+        out.write(".L2:\n")
+        out.write("    mov     x4, x0\n")
+        out.write("    add     x8, sp, #32\n")
+        out.write("    umulh   x6, x4, x9\n")
+        out.write("    mov     x4, x0\n")
+        out.write("    sub     x8, x8, x3\n")
+        out.write("    lsr     x6, x6, 3\n")
+        out.write("    mov     x7, #4\n")
+        out.write("    mul     x2, x6, x7\n")
+        out.write("    add     x5, x6, x2\n")
+        out.write("    add     x5, x5, x5\n")
+        out.write("    sub     x4, x4, x5\n")
+        out.write("    add     x4, x4, #48\n")
+        out.write("    strb    w4, [x3, #0]\n")
+        out.write("    mov     x4, x0\n")
+        out.write("    mov     x0, x6\n")
+        out.write("    mov     x6, x3\n")
+        out.write("    sub     x3, x3, #1\n")
+        out.write("    cmp     x4, #9\n")
+        out.write("    bhi     .L2\n")
+        out.write("    add     x4, sp, #32\n")
+        out.write("    mov     w0,  #1\n")
+        out.write("    sub     x6, x6, x4\n")
+        out.write("    mov     x4, #0\n")
+        out.write("    add     x1, sp, #32\n")
+        out.write("    add     x1, x1, x6\n")
+        out.write("    mov     x2, x8\n")
+        out.write("    mov     x8, #64\n")
+        out.write("    svc     #0\n")
+        out.write("    add     sp, sp, 40\n")
+        out.write("    ret\n")
+        out.write(".globl _start\n")
+        out.write("_start:\n")
+        out.write("    adr x0, args_ptr\n")
+        out.write("    mov x1, sp\n")
+        out.write("    str x1, [x0, #0]\n")
+        for ip in range(len(program)):
+            op = program[ip]
+            assert len(OpType) == 8, "Exhaustive ops handling in generate_nasm_linux_aarch64"
+            out.write("addr_%d:\n" % ip)
+            if op.typ == OpType.PUSH_INT:
+                assert isinstance(op.operand, int), "This could be a bug in the compilation step"
+                out.write("    //;; -- push int %d --\n" % op.operand)
+                out.write("    ldr x0, =%d\n" % op.operand)
+                out.write("    str x0, [sp, #-8]!\n")
+            elif op.typ == OpType.PUSH_STR:
+                assert isinstance(op.operand, str), "This could be a bug in the compilation step"
+                value = op.operand.encode('utf-8')
+                n = len(value)
+                out.write("    //;; -- push str --\n")
+                out.write("    mov  x0, %d\n" % n)
+                out.write("    str  x0, [sp, #-8]!\n")
+                out.write("    adr  x0, str_%d\n" % len(strs))
+                out.write("    str  x0, [sp, #-8]!\n")
+                strs.append(value)
+            elif op.typ == OpType.IF:
+                out.write("    //;; -- if --\n")
+                out.write("    ldr x0, [sp], #8\n")
+                out.write("    cmp x0, #0\n")
+                assert isinstance(op.operand, int), "This could be a bug in the compilation step"
+                out.write("    beq addr_%d\n" % op.operand)
+            elif op.typ == OpType.ELSE:
+                out.write("    //;; -- else --\n")
+                assert isinstance(op.operand, int), "This could be a bug in the compilation step"
+                out.write("    bl addr_%d\n" % op.operand)
+            elif op.typ == OpType.END:
+                assert isinstance(op.operand, int), "This could be a bug in the compilation step"
+                out.write("    //;; -- end --\n")
+                if ip + 1 != op.operand:
+                    out.write("    bl addr_%d\n" % op.operand)
+            elif op.typ == OpType.WHILE:
+                out.write("    //;; -- while --\n")
+            elif op.typ == OpType.DO:
+                out.write("    //;; -- do --\n")
+                out.write("    ldr x0, [sp], #8\n")
+                out.write("    cmp x0, #0\n")
+                assert isinstance(op.operand, int), "This could be a bug in the compilation step"
+                out.write("    beq addr_%d\n" % op.operand)
+            elif op.typ == OpType.INTRINSIC:
+                assert len(Intrinsic) == 34, "Exhaustive intrinsic handling in generate_nasm_linux_aarch64()"
+                if op.operand == Intrinsic.PLUS:
+                    out.write("    //;; -- plus --\n")
+                    out.write("    ldr  x0, [sp], #8\n")
+                    out.write("    ldr  x1, [sp], #8\n")
+                    out.write("    add  x0, x1, x0\n")
+                    out.write("    str  x0, [sp, #-8]!\n")
+                elif op.operand == Intrinsic.MINUS:
+                    out.write("    //;; -- plus --\n")
+                    out.write("    ldr  x0, [sp], #8\n")
+                    out.write("    ldr  x1, [sp], #8\n")
+                    out.write("    sub  x0, x1, x0\n")
+                    out.write("    str  x0, [sp, #-8]!\n")
+                elif op.operand == Intrinsic.MUL:
+                    out.write("    //;; -- mul --\n")
+                    out.write("    ldr  x0, [sp], #8\n")
+                    out.write("    ldr  x1, [sp], #8\n")
+                    out.write("    mul  x0, x1, x0\n")
+                    out.write("    str  x0, [sp, #-8]!\n")
+                elif op.operand == Intrinsic.DIVMOD:
+                    out.write("    //;; -- mod --\n")
+                    out.write("    ldr   x0, [sp], #8\n")
+                    out.write("    ldr   x1, [sp], #8\n")
+                    out.write("    udiv  x2, x1, x0\n")
+                    out.write("    msub  x3, x2, x0, x1\n")
+                    out.write("    str   x2, [sp, #-8]!\n")
+                    out.write("    str   x3, [sp, #-8]!\n")
+                elif op.operand == Intrinsic.SHR:
+                    out.write("    //;; -- shr --\n")
+                    out.write("    ldr  x0, [sp], #8\n")
+                    out.write("    ldr  x1, [sp], #8\n")
+                    out.write("    lsr  x0, x1, x0\n")
+                    out.write("    str  x0, [sp, #-8]!\n")
+                elif op.operand == Intrinsic.SHL:
+                    out.write("    //;; -- shl --\n")
+                    out.write("    ldr  x0, [sp], #8\n")
+                    out.write("    ldr  x1, [sp], #8\n")
+                    out.write("    lsl  x0, x1, x0\n")
+                    out.write("    str  x0, [sp, #-8]!\n")
+                elif op.operand == Intrinsic.BOR:
+                    out.write("    //;; -- bor --\n")
+                    out.write("    ldr  x0, [sp], #8\n")
+                    out.write("    ldr  x1, [sp], #8\n")
+                    out.write("    orr  x0, x1, x0\n")
+                    out.write("    str  x0, [sp, #-8]!\n")
+                elif op.operand == Intrinsic.BAND:
+                    out.write("    //;; -- band --\n")
+                    out.write("    ldr  x0, [sp], #8\n")
+                    out.write("    ldr  x1, [sp], #8\n")
+                    out.write("    and  x0, x1, x0\n")
+                    out.write("    str  x0, [sp, #-8]!\n")
+                elif op.operand == Intrinsic.PRINT:
+                    out.write("    //;; -- print --\n")
+                    out.write("    ldr  x0, [sp], #8\n")
+                    out.write("    bl   print\n")
+                elif op.operand == Intrinsic.EQ:
+                    out.write("    //;; -- equal -- \n")
+                    out.write("    ldr  x0, [sp], #8\n")
+                    out.write("    ldr  x1, [sp], #8\n")
+                    out.write("    cmp  x0, x1\n");
+                    out.write("    beq  cond_%s\n" % str(cond_count))
+                    out.write("    mov  x3, #0\n")
+                    out.write("    str  x3, [sp, #-8]!\n")
+                    out.write("    bl   end_%s\n" % str(cond_count))
+                    out.write("    cond_%s:\n" % str(cond_count))
+                    out.write("    mov  x3, #1\n")
+                    out.write("    str  x3, [sp, #-8]!\n")
+                    out.write("    end_%s:\n" % str(cond_count))
+                    cond_count += 1
+                elif op.operand == Intrinsic.GT:
+                    out.write("    //;; -- gt --\n")
+                    out.write("    ldr  x0, [sp], #8\n")
+                    out.write("    ldr  x1, [sp], #8\n")
+                    out.write("    cmp  x1, x0\n");
+                    out.write("    bgt  cond_%s\n" % str(cond_count))
+                    out.write("    mov  x3, #0\n")
+                    out.write("    str  x3, [sp, #-8]!\n")
+                    out.write("    bl   end_%s\n" % str(cond_count))
+                    out.write("    cond_%s:\n" % str(cond_count))
+                    out.write("    mov  x3, #1\n")
+                    out.write("    str  x3, [sp, #-8]!\n")
+                    out.write("    end_%s:\n" % str(cond_count))
+                    cond_count += 1
+                elif op.operand == Intrinsic.LT:
+                    out.write("    //;; -- lt --\n")
+                    out.write("    ldr  x0, [sp], #8\n")
+                    out.write("    ldr  x1, [sp], #8\n")
+                    out.write("    cmp  x1, x0\n");
+                    out.write("    blt  cond_%s\n" % str(cond_count))
+                    out.write("    mov  x3, #0\n")
+                    out.write("    str  x3, [sp, #-8]!\n")
+                    out.write("    bl end_%s\n" % str(cond_count))
+                    out.write("    cond_%s:\n" % str(cond_count))
+                    out.write("    mov  x3, #1\n")
+                    out.write("    str  x3, [sp, #-8]!\n")
+                    out.write("    end_%s:\n" % str(cond_count))
+                    cond_count += 1
+                elif op.operand == Intrinsic.GE:
+                    out.write("    //;; -- ge --\n")
+                    out.write("    ldr  x0, [sp], #8\n")
+                    out.write("    ldr  x1, [sp], #8\n")
+                    out.write("    cmp  x1, x0\n");
+                    out.write("    bge  cond_%s\n" % str(cond_count))
+                    out.write("    mov  x3, #0\n")
+                    out.write("    str  x3, [sp, #-8]!\n")
+                    out.write("    bl   end_%s\n" % str(cond_count))
+                    out.write("    cond_%s:\n" % str(cond_count))
+                    out.write("    mov  x3, #1\n")
+                    out.write("    str  x3, [sp, #-8]!\n")
+                    out.write("    end_%s:\n" % str(cond_count))
+                    cond_count += 1
+                elif op.operand == Intrinsic.LE:
+                    out.write("    //;; -- le --\n")
+                    out.write("    ldr  x0, [sp], #8\n")
+                    out.write("    ldr  x1, [sp], #8\n")
+                    out.write("    cmp  x1, x0\n");
+                    out.write("    ble  cond_%s\n" % str(cond_count))
+                    out.write("    mov  x3, #0\n")
+                    out.write("    str  x3, [sp, #-8]!\n")
+                    out.write("    bl   end_%s\n" % str(cond_count))
+                    out.write("    cond_%s:\n" % str(cond_count))
+                    out.write("    mov  x3, #1\n")
+                    out.write("    str  x3, [sp, #-8]!\n")
+                    out.write("    end_%s:\n" % str(cond_count))
+                    cond_count += 1
+                elif op.operand == Intrinsic.NE:
+                    out.write("    //;; -- ne --\n")
+                    out.write("    ldr  x0, [sp], #8\n")
+                    out.write("    ldr  x1, [sp], #8\n")
+                    out.write("    cmp  x1, x0\n");
+                    out.write("    bne  cond_%s\n" % str(cond_count))
+                    out.write("    mov  x3, #0\n")
+                    out.write("    str  x3, [sp, #-8]!\n")
+                    out.write("    bl   end_%s\n" % str(cond_count))
+                    out.write("    cond_%s:\n" % str(cond_count))
+                    out.write("    mov  x3, #1\n")
+                    out.write("    str  x3, [sp, #-8]!\n")
+                    out.write("    end_%s:\n" % str(cond_count))
+                    cond_count += 1
+                elif op.operand == Intrinsic.DUP:
+                    out.write("    //;; -- dup -- \n")
+                    out.write("    ldr  x0, [sp], #8\n")
+                    out.write("    str  x0, [sp, #-8]!\n")
+                    out.write("    str  x0, [sp, #-8]!\n")
+                elif op.operand == Intrinsic.SWAP:
+                    out.write("    //;; -- swap --\n")
+                    out.write("    ldr  x0, [sp], #8\n")
+                    out.write("    ldr  x1, [sp], #8\n")
+                    out.write("    str  x0, [sp, #-8]!\n")
+                    out.write("    str  x1, [sp, #-8]!\n")
+                elif op.operand == Intrinsic.DROP:
+                    out.write("    //;; -- drop --\n")
+                    out.write("    ldr  x0, [sp], #8\n")
+                elif op.operand == Intrinsic.OVER:
+                    out.write("    //;; -- over --\n")
+                    out.write("    ldr  x0, [sp], #8\n")
+                    out.write("    ldr  x1, [sp], #8\n")
+                    out.write("    str  x1, [sp, #-8]!\n")
+                    out.write("    str  x0, [sp, #-8]!\n")
+                    out.write("    str  x1, [sp, #-8]!\n")
+                elif op.operand == Intrinsic.MEM:
+                    out.write("    //;; -- mem --\n")
+                    out.write("    adr x0, mem\n")
+                    out.write("    str  x0, [sp, #-8]!\n")
+                elif op.operand == Intrinsic.LOAD:
+                    out.write("    //;; -- load --\n")
+                    out.write("    ldr  x0, [sp], #8\n")
+                    out.write("    mov  x1, #0\n")
+                    out.write("    ldrb w1, [x0, #0]\n")
+                    out.write("    str  x1, [sp, #-8]!\n")
+                elif op.operand == Intrinsic.STORE:
+                    out.write("    //;; -- store --\n")
+                    out.write("    ldr  x0, [sp], #8\n")
+                    out.write("    ldr  x1, [sp], #8\n")
+                    out.write("    strb w0, [x1, #0]\n")
+                elif op.operand == Intrinsic.ARGC:
+                    out.write("    //;; -- argc --\n")
+                    out.write("    adr  x0, args_ptr\n")
+                    out.write("    ldr  x0, [x0, #0]\n")
+                    out.write("    ldr  x0, [x0, #0]\n")
+                    out.write("    str  x0, [sp, #-8]!\n")
+                elif op.operand == Intrinsic.ARGV:
+                    out.write("    //;; -- argv --\n")
+                    out.write("    adr  x0, args_ptr\n")
+                    out.write("    ldr  x0, [x0, #0]\n")
+                    out.write("    add  x0, x0, 8\n")
+                    out.write("    str  x0, [sp, #-8]!\n")
+                elif op.operand == Intrinsic.LOAD64:
+                    out.write("    //;; -- load64 --\n")
+                    out.write("    ldr  x0, [sp], #8\n")
+                    out.write("    mov  x1, #0\n")
+                    out.write("    ldr  x1, [x0, #0]\n")
+                    out.write("    str  x1, [sp, #-8]!\n")
+                elif op.operand == Intrinsic.STORE64:
+                    out.write("    //;; -- store64 --\n")
+                    out.write("    ldr  x0, [sp], #8\n")
+                    out.write("    ldr  x1, [sp], #8\n")
+                    out.write("    str  x0, [x1, #0]\n")
+                elif op.operand == Intrinsic.CAST_PTR:
+                    out.write("    //;; -- cast(ptr) --\n")
+                elif op.operand == Intrinsic.SYSCALL0:
+                    out.write("    //;; -- syscall0 --\n")
+                    out.write("    ldr  x8, [sp], #8\n")
+                    out.write("    svc #0\n")
+                    out.write("    str  x0, [sp, #-8]!\n")
+                elif op.operand == Intrinsic.SYSCALL1:
+                    out.write("    //;; -- syscall1 --\n")
+                    out.write("    ldr  x8, [sp], #8\n")
+                    out.write("    ldr  x0, [sp], #8\n")
+                    out.write("    svc #0\n")
+                    out.write("    str  x0, [sp, #-8]!\n")
+                elif op.operand == Intrinsic.SYSCALL2:
+                    out.write("    //;; -- syscall2 -- \n")
+                    out.write("    ldr  x8, [sp], #8\n")
+                    out.write("    ldr  x0, [sp], #8\n")
+                    out.write("    ldr  x1, [sp], #8\n")
+                    out.write("    svc #0\n")
+                    out.write("    str  x0, [sp, #-8]!\n")
+                elif op.operand == Intrinsic.SYSCALL3:
+                    out.write("    //;; -- syscall3 --\n")
+                    out.write("    ldr  x8, [sp], #8\n")
+                    out.write("    ldr  x0, [sp], #8\n")
+                    out.write("    ldr  x1, [sp], #8\n")
+                    out.write("    ldr  x2, [sp], #8\n")
+                    out.write("    svc #0\n")
+                    out.write("    str  x0, [sp, #-8]!\n")
+                elif op.operand == Intrinsic.SYSCALL4:
+                    out.write("    //;; -- syscall4 --\n")
+                    out.write("    ldr  x8, [sp], #8\n")
+                    out.write("    ldr  x0, [sp], #8\n")
+                    out.write("    ldr  x1, [sp], #8\n")
+                    out.write("    ldr  x2, [sp], #8\n")
+                    out.write("    ldr  x3, [sp], #8\n")
+                    out.write("    svc #0\n")
+                    out.write("    str  x0, [sp, #-8]!\n")
+                elif op.operand == Intrinsic.SYSCALL5:
+                    out.write("    //;; -- syscall5 --\n")
+                    out.write("    ldr  x8, [sp], #8\n")
+                    out.write("    ldr  x0, [sp], #8\n")
+                    out.write("    ldr  x1, [sp], #8\n")
+                    out.write("    ldr  x2, [sp], #8\n")
+                    out.write("    ldr  x3, [sp], #8\n")
+                    out.write("    ldr  x4, [sp], #8\n")
+                    out.write("    svc #0\n")
+                    out.write("    str  x0, [sp, #-8]!\n")
+                elif op.operand == Intrinsic.SYSCALL6:
+                    out.write("    //;; -- syscall6 --\n")
+                    out.write("    ldr  x8, [sp], #8\n")
+                    out.write("    ldr  x0, [sp], #8\n")
+                    out.write("    ldr  x1, [sp], #8\n")
+                    out.write("    ldr  x2, [sp], #8\n")
+                    out.write("    ldr  x3, [sp], #8\n")
+                    out.write("    ldr  x4, [sp], #8\n")
+                    out.write("    ldr  x5, [sp], #8\n")
+                    out.write("    svc #0\n")
+                    out.write("    str  x0, [sp, #-8]!\n")
+                else:
+                    assert False, "unreachable"
+            else:
+                assert False, "unreachable"
+
+        out.write("addr_%d:\n" % len(program))
+        out.write("    mov x8, #93\n")
+        out.write("    mov x0, #0\n")
+        out.write("    svc #0\n")
+        out.write(".section .data\n")
+        for index, s in enumerate(strs):
+            out.write("str_%d: .byte %s\n" % (index, ','.join(map(hex, list(s)))))
+        out.write(".section .bss\n")
+        out.write("args_ptr: .quad 0\n")
+        out.write("mem:\n .rept %d\n .quad 0\n .endr\n" % (MEM_CAPACITY/8))
+
 assert len(Keyword) == 7, "Exhaustive KEYWORD_NAMES definition."
 KEYWORD_NAMES = {
     'if': Keyword.IF,
