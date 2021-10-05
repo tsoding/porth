@@ -2020,7 +2020,7 @@ if __name__ == '__main__' and '__file__' in globals():
         cmd_call_echoed(["aarch64-linux-gnu-ld", "-o", basepath, basepath + ".o"], silent)
         """
         if run:
-            exit(cmd_call_echoed(["qemu-aarch64", basepath] + argv, silent))
+            exit(cmd_call_echoed([basepath] + argv, silent))
     elif subcommand == "help":
         usage(compiler_name)
         exit(0)
