@@ -1,10 +1,12 @@
 arithmetics
 bitwise
 comparison
-control-flow
 memory
 stack
 comments
 macros
 dead-recursive-macro
 argv
+if-else
+else-less-if
+while

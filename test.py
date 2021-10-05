@@ -48,16 +48,19 @@ class TestCase:
     stderr: bytes
 
 def load_test_case(file_path: str) -> TestCase:
-    with open(file_path, "rb") as f:
-        argv = []
-        argc = read_int_field(f, b'argc')
-        for index in range(argc):
-            argv.append(read_blob_field(f, b'arg%d' % index).decode('utf-8'))
-        stdin = read_blob_field(f, b'stdin')
-        returncode = read_int_field(f, b'returncode')
-        stdout = read_blob_field(f, b'stdout')
-        stderr = read_blob_field(f, b'stderr')
-        return TestCase(argv, stdin, returncode, stdout, stderr)
+    try:
+        with open(file_path, "rb") as f:
+            argv = []
+            argc = read_int_field(f, b'argc')
+            for index in range(argc):
+                argv.append(read_blob_field(f, b'arg%d' % index).decode('utf-8'))
+            stdin = read_blob_field(f, b'stdin')
+            returncode = read_int_field(f, b'returncode')
+            stdout = read_blob_field(f, b'stdout')
+            stderr = read_blob_field(f, b'stderr')
+            return TestCase(argv, stdin, returncode, stdout, stderr)
+    except FileNotFoundError:
+        return TestCase(argv=[], stdin=bytes(), returncode=0, stdout=bytes(), stderr=bytes())
 
 def save_test_case(file_path: str,
                    argv: List[str], stdin: bytes,
@@ -88,12 +91,12 @@ def run_test_for_file(file_path: str) -> Tuple[bool, bool]:
         print("[ERROR] Unexpected simulation output")
         print("  Expected:")
         print("    return code: %s" % tc.returncode)
-        print("    stdout: %s" % tc.stdout.decode("utf-8"))
-        print("    stderr: %s" % tc.stderr.decode("utf-8"))
+        print("    stdout: \n%s" % tc.stdout.decode("utf-8"))
+        print("    stderr: \n%s" % tc.stderr.decode("utf-8"))
         print("  Actual:")
         print("    return code: %s" % sim.returncode)
-        print("    stdout: %s" % sim.stdout.decode("utf-8"))
-        print("    stderr: %s" % sim.stderr.decode("utf-8"))
+        print("    stdout: \n%s" % sim.stdout.decode("utf-8"))
+        print("    stderr: \n%s" % sim.stderr.decode("utf-8"))
 
     com = cmd_run_echoed([sys.executable, "./porth.py", "com", "-r", "-s", file_path, *tc.argv], input=tc.stdin, capture_output=True)
     com_ok = True
@@ -102,12 +105,12 @@ def run_test_for_file(file_path: str) -> Tuple[bool, bool]:
         print("[ERROR] Unexpected compilation output")
         print("  Expected:")
         print("    return code: %s" % tc.returncode)
-        print("    stdout: %s" % tc.stdout.decode("utf-8"))
-        print("    stderr: %s" % tc.stderr.decode("utf-8"))
+        print("    stdout: \n%s" % tc.stdout.decode("utf-8"))
+        print("    stderr: \n%s" % tc.stderr.decode("utf-8"))
         print("  Actual:")
         print("    return code: %s" % com.returncode)
-        print("    stdout: %s" % com.stdout.decode("utf-8"))
-        print("    stderr: %s" % com.stderr.decode("utf-8"))
+        print("    stdout: \n%s" % com.stdout.decode("utf-8"))
+        print("    stderr: \n%s" % com.stderr.decode("utf-8"))
 
     return (sim_ok, com_ok)
 
@@ -181,6 +184,7 @@ def usage(exe_name: str):
     print("    help")
     print("      Print this message to stdout and exit with 0 code.")
 
+# TODO: support several test cases per single program
 if __name__ == '__main__':
     exe_name, *argv = sys.argv
 

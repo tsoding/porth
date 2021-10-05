@@ -1,8 +1,11 @@
-include "./std.porth"
+include "std.porth"
 
-drop drop
-while dup 0 > do
-  dup strlen swap
-  stdout write drop
+1 while dup argc < do
+  dup nth_argv strlen
+  over nth_argv stdout
+  write drop
+
   "\n" stdout write drop
-end
+
+  1 +
+end drop

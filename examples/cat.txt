@@ -1,0 +1,53 @@
+:i argc 3
+:b arg0 20
+./examples/cat.porth
+:b arg1 3
+foo
+:b arg2 28
+./examples/hello-world.porth
+:b stdin 0
+
+:i returncode 0
+:b stdout 645
+include "std.porth"
+
+macro BUFFER_CAP 1024 end
+
+// memory layout
+macro fd mem end
+macro buffer fd 8 + end
+
+macro cat_fd
+  while BUFFER_CAP buffer fd ,64 read dup 0 > do
+     buffer stdout write drop
+  end drop
+end
+
+argc 2 < if
+  fd stdin .64
+  cat_fd
+else
+  1 while dup argc < do
+    O_RDONLY over nth_argv AT_FDCWD openat
+    
+    dup 0 < if
+      "ERROR: could not open file " stderr write drop
+      over nth_argv dup strlen swap stderr write drop
+      "\n" stderr write drop
+      drop
+    else
+      fd swap .64
+      cat_fd
+      fd ,64 close drop
+    end
+  
+    1 +
+  end drop
+end
+include "std.porth"
+
+"Hello, World\n" stdout write drop
+
+:b stderr 31
+ERROR: could not open file foo
+

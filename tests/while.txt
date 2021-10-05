@@ -2,10 +2,7 @@
 :b stdin 0
 
 :i returncode 0
-:b stdout 59
-420
-69
-------------------------------
+:b stdout 21
 10
 9
 8

@@ -1,6 +1,6 @@
 # Porth
 
-**WARNING! This language is a work in progress!**
+**WARNING! THIS LANGUAGE IS A WORK IN PROGRESS! ANYTHING CAN CHANGE AT ANY MOMENT WITHOUT ANY NOTICE! USE THIS LANGUAGE AT YOUR OWN RISK!**
 
 It's like [Forth](https://en.wikipedia.org/wiki/Forth_(programming_language)) but written in [Python](https://www.python.org/). But I don't actually know for sure since I never programmed in Forth, I only heard that it's some sort of stack-based programming language. Porth is also stack-based programming language. Which makes it just like Forth am I rite?
 
@@ -21,7 +21,7 @@ Hello, World:
 ```pascal
 include "std.porth"
 
-"Hello, World\n" stdout write
+"Hello, World\n" stdout write drop
 ```
 
 Simple program that prints numbers from 0 to 99 in an ascending order:
@@ -31,7 +31,7 @@ include "std.porth"
 
 100 0 while 2dup > do
     dup print 1 +
-end
+end 2drop
 ```
 
 ## Quick Start
@@ -141,7 +141,7 @@ Example:
 
 ```
 include "std.porth"
-"Hello, World" stdout write
+"Hello, World" stdout write drop
 ```
 
 The `write` macro from `std.porth` module expects three values on the data stack:

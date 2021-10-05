@@ -1,0 +1,31 @@
+include "std.porth"
+
+macro limit mem end
+
+argc 2 < if
+  "Usage: seq <limit>\n" stderr write drop
+  "ERROR: no limit is provided\n" stderr write drop
+  1 exit
+end
+
+1 nth_argv
+while dup , 0 != do
+  dup , '0' < over , '9' > bor if
+    "ERROR: `" stderr write drop
+    1 nth_argv strlen 1 nth_argv stderr write drop
+    "` is not a correct integer\n" stderr write drop
+    1 exit
+  end
+
+  limit ,64 10 *
+  over , '0' -
+  +
+  limit swap .64
+
+  1 +
+end drop
+
+0 while dup limit ,64 < do
+  dup print
+  1 +
+end drop

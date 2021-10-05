@@ -6,4 +6,4 @@ include "std.porth"
 //////nonsense comment
 
 // string literal with `//` should be printed
-"Hello, // World\n" stdout write // this comment should be allowed 
+"Hello, // World\n" stdout write drop // this comment should be allowed 

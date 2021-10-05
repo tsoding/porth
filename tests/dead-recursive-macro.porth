@@ -4,4 +4,4 @@ macro dead-recursive-macro
   dead-recursive-macro
 end
 
-"Dead recursive macros should not cause any problems. Because they are never expanded\n" stdout write
+"Dead recursive macros should not cause any problems. Because they are never expanded\n" stdout write drop
