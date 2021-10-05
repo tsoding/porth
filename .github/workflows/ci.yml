@@ -8,7 +8,7 @@ jobs:
       - name: install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -qq nasm qemu gcc-aarch64-linux-gnu
+          sudo apt-get install -qq nasm qemu-user gcc-aarch64-linux-gnu
       - name: install python dependencies
         run: |
           pip3 install mypy
