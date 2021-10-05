@@ -113,7 +113,6 @@ def get_cstr_from_mem(mem: bytearray, ptr: int) -> bytes:
         end += 1
     return mem[ptr:end]
 
-# TODO: introduce the profiler mode
 def simulate_little_endian_linux(program: Program, argv: List[str]):
     AT_FDCWD=-100
     O_RDONLY=0
