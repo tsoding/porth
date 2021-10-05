@@ -10,6 +10,7 @@ from enum import IntEnum, Enum, auto
 from dataclasses import dataclass
 from copy import copy
 import traceback
+import platform
 
 PORTH_EXT = '.porth'
 DEFAULT_EXPANSION_LIMIT=1000
@@ -1886,6 +1887,7 @@ def usage(compiler_name: str):
     print("Usage: %s [OPTIONS] <SUBCOMMAND> [ARGS]" % compiler_name)
     print("  OPTIONS:")
     print("    -debug                Enable debug mode.")
+    print(" -ARCH <arch> Architecture for native code(aarch64, x86_64). Default: platform architecture")
     print("    -I <path>             Add the path to the include search list")
     print("    -E <expansion-limit>  Macro and include expansion limit. (Default %d)" % DEFAULT_EXPANSION_LIMIT)
     print("    -unsafe               Disable type checking.")
@@ -1903,6 +1905,8 @@ if __name__ == '__main__' and '__file__' in globals():
     assert len(argv) >= 1
     compiler_name, *argv = argv
 
+    platform_arch = platform.machine()
+    arch = ""
     include_paths = ['.', './std/']
     expansion_limit = DEFAULT_EXPANSION_LIMIT
     unsafe = False
@@ -1911,6 +1915,14 @@ if __name__ == '__main__' and '__file__' in globals():
         if argv[0] == '-debug':
             argv = argv[1:]
             debug = True
+        elif argv[0] == '-ARCH':
+            argv = argv[1:]
+            if len(argv) == 0:
+                usage(compiler_name)
+                print("[ERROR] no arch is provided for `-ARCH` flag", file=sys.stderr)
+                exit(1)
+            arch, *argv = argv
+            include_paths.append("./std/" + arch + "/")
         elif argv[0] == '-I':
             argv = argv[1:]
             if len(argv) == 0:
@@ -1932,6 +1944,10 @@ if __name__ == '__main__' and '__file__' in globals():
             unsafe = True
         else:
             break
+
+    if(not arch):
+        include_paths.append("./std/" + platform_arch + "/")
+        arch = platform_arch
 
     if debug:
         print("[INFO] Debug mode is enabled")
@@ -2011,16 +2027,27 @@ if __name__ == '__main__' and '__file__' in globals():
         program = compile_file_to_program(program_path, include_paths, expansion_limit);
         if not unsafe:
             type_check_program(program)
+
+        if(arch == "x86_64"):
+            generate_nasm_linux_x86_64(program, basepath + ".asm")
+            cmd_call_echoed(["nasm", "-felf64", basepath + ".asm"], silent)
+            cmd_call_echoed(["ld", "-o", basepath, basepath + ".o"], silent)
+        elif(arch == "aarch64"):
+            generate_nasm_linux_aarch64(program, basepath + ".S")
+            cmd_call_echoed(["aarch64-linux-gnu-as", basepath + ".S", "-o", basepath+".o"], silent)
+            cmd_call_echoed(["aarch64-linux-gnu-ld", "-o", basepath, basepath + ".o"], silent)
+        if run:
+            exit(cmd_call_echoed(["qemu-" + arch, basepath] + argv, silent))
+
+        """
         generate_nasm_linux_x86_64(program, basepath + ".asm")
         cmd_call_echoed(["nasm", "-felf64", basepath + ".asm"], silent)
         cmd_call_echoed(["ld", "-o", basepath, basepath + ".o"], silent)
-        """
         generate_nasm_linux_aarch64(program, basepath + ".S")
         cmd_call_echoed(["aarch64-linux-gnu-as", basepath + ".S", "-o", basepath+".o"], silent)
         cmd_call_echoed(["aarch64-linux-gnu-ld", "-o", basepath, basepath + ".o"], silent)
         """
-        if run:
-            exit(cmd_call_echoed([basepath] + argv, silent))
+        # if run:
     elif subcommand == "help":
         usage(compiler_name)
         exit(0)

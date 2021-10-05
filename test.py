@@ -98,19 +98,21 @@ def run_test_for_file(file_path: str) -> Tuple[bool, bool]:
         print("    stdout: \n%s" % sim.stdout.decode("utf-8"))
         print("    stderr: \n%s" % sim.stderr.decode("utf-8"))
 
-    com = cmd_run_echoed([sys.executable, "./porth.py", "com", "-r", "-s", file_path, *tc.argv], input=tc.stdin, capture_output=True)
-    com_ok = True
-    if com.returncode != tc.returncode or com.stdout != tc.stdout or com.stderr != tc.stderr:
-        com_ok = False
-        print("[ERROR] Unexpected compilation output")
-        print("  Expected:")
-        print("    return code: %s" % tc.returncode)
-        print("    stdout: \n%s" % tc.stdout.decode("utf-8"))
-        print("    stderr: \n%s" % tc.stderr.decode("utf-8"))
-        print("  Actual:")
-        print("    return code: %s" % com.returncode)
-        print("    stdout: \n%s" % com.stdout.decode("utf-8"))
-        print("    stderr: \n%s" % com.stderr.decode("utf-8"))
+    arch_list = ["x86_64", "aarch64"]
+    for arch in arch_list:
+        com = cmd_run_echoed([sys.executable, "./porth.py", "-ARCH", arch, "com", "-r", "-s", file_path, *tc.argv], input=tc.stdin, capture_output=True)
+        com_ok = True
+        if com.returncode != tc.returncode or com.stdout != tc.stdout or com.stderr != tc.stderr:
+            com_ok = False
+            print("[ERROR] Unexpected compilation output for arch " + arch)
+            print("  Expected:")
+            print("    return code: %s" % tc.returncode)
+            print("    stdout: \n%s" % tc.stdout.decode("utf-8"))
+            print("    stderr: \n%s" % tc.stderr.decode("utf-8"))
+            print("  Actual:")
+            print("    return code: %s" % com.returncode)
+            print("    stdout: \n%s" % com.stdout.decode("utf-8"))
+            print("    stderr: \n%s" % com.stderr.decode("utf-8"))
 
     return (sim_ok, com_ok)
 
