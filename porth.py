@@ -2037,7 +2037,7 @@ if __name__ == '__main__' and '__file__' in globals():
             cmd_call_echoed(["aarch64-linux-gnu-as", basepath + ".S", "-o", basepath+".o"], silent)
             cmd_call_echoed(["aarch64-linux-gnu-ld", "-o", basepath, basepath + ".o"], silent)
         if run:
-            exit(cmd_call_echoed(["qemu-" + arch, basepath] + argv, silent))
+            exit(cmd_call_echoed(["qemu-user-" + arch, basepath] + argv, silent))
 
         """
         generate_nasm_linux_x86_64(program, basepath + ".asm")
