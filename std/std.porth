@@ -1,5 +1,8 @@
+<<<<<<< HEAD
 include "syscall.porth"
 
+=======
+>>>>>>> parent of 3a11982 (Default syscall_x86 selection)
 /// Standard streams
 macro stdin  0 end
 macro stdout 1 end
