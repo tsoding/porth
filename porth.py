@@ -1404,6 +1404,345 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
         out.write("args_ptr: resq 1\n")
         out.write("mem: resb %d\n" % MEM_CAPACITY)
 
+
+def generate_rust(program: Program, out_file_path: str):
+    var_id = 0
+    stack: List[int] = []
+    with open(out_file_path, "w") as out:
+        out.write("#![feature(asm)]\n")
+        out.write("macro_rules! syscall3 {\n")
+        out.write("   ($num: expr, $arg0: expr, $arg1: expr, $arg2: expr) => {{\n")
+        out.write("       unsafe {\n")
+        out.write("           let ret : u64;\n")
+        out.write("           asm!(\"syscall\",\n")
+        out.write("                in(\"rax\") $num,\n")
+        out.write("                in(\"rdi\") $arg0,\n")
+        out.write("                in(\"rsi\") $arg1,\n")
+        out.write("                in(\"rdx\") $arg2,\n")
+        out.write("                out(\"rcx\") _,\n")
+        out.write("                out(\"r11\") _,\n")
+        out.write("                lateout(\"rax\") ret\n")
+        out.write("           );\n")
+        out.write("           ret\n")
+        out.write("       }\n")
+        out.write("   }}\n")
+        out.write("}\n")
+
+        out.write("fn main() {\n")
+
+        for ip in range(len(program)):
+            op = program[ip]
+            assert len(OpType) == 8, "Exhaustive ops handling in generate_rust"
+            if op.typ == OpType.PUSH_INT:
+                assert isinstance(op.operand, int), "This could be a bug in the compilation step"
+                var = var_id;
+                var_id += 1
+                out.write("    let v%d: u64 = %d;\n" % (var, op.operand))
+                stack.append(var)
+            elif op.typ == OpType.PUSH_STR:
+                assert isinstance(op.operand, str), "This could be a bug in the compilation step"
+                var = var_id;
+                var_id += 1
+                out.write("    let v%d: &'static str = r#\"%s\"#;\n" % (var, op.operand))
+                str_const = var
+
+                var = var_id;
+                var_id += 1
+                out.write("    let v%d: u64 = v%d.len() as u64;\n" % (var, str_const))
+                str_len = var
+
+                var = var_id;
+                var_id += 1
+                out.write("    let v%d: u64 = v%d.as_ptr() as usize as u64;\n" % (var, str_const))
+                str_addr = var
+
+                stack.append(str_len)
+                stack.append(str_addr)
+            elif op.typ == OpType.IF:
+                assert False, "todo"
+                out.write("    ;; -- if --\n")
+                out.write("    pop rax\n")
+                out.write("    test rax, rax\n")
+                assert isinstance(op.operand, int), "This could be a bug in the compilation step"
+                out.write("    jz addr_%d\n" % op.operand)
+            elif op.typ == OpType.ELSE:
+                assert False, "todo"
+                out.write("    ;; -- else --\n")
+                assert isinstance(op.operand, int), "This could be a bug in the compilation step"
+                out.write("    jmp addr_%d\n" % op.operand)
+            elif op.typ == OpType.END:
+                assert False, "todo"
+                assert isinstance(op.operand, int), "This could be a bug in the compilation step"
+                out.write("    ;; -- end --\n")
+                if ip + 1 != op.operand:
+                    out.write("    jmp addr_%d\n" % op.operand)
+            elif op.typ == OpType.WHILE:
+                assert False, "todo"
+                out.write("    ;; -- while --\n")
+            elif op.typ == OpType.DO:
+                assert False, "todo"
+                out.write("    ;; -- do --\n")
+                out.write("    pop rax\n")
+                out.write("    test rax, rax\n")
+                assert isinstance(op.operand, int), "This could be a bug in the compilation step"
+                out.write("    jz addr_%d\n" % op.operand)
+            elif op.typ == OpType.INTRINSIC:
+                assert len(Intrinsic) == 34, "Exhaustive intrinsic handling in generate_nasm_linux_x86_64()"
+                if op.operand == Intrinsic.PLUS:
+                    assert False, "todo"
+                    out.write("    ;; -- plus --\n")
+                    out.write("    pop rax\n")
+                    out.write("    pop rbx\n")
+                    out.write("    add rax, rbx\n")
+                    out.write("    push rax\n")
+                elif op.operand == Intrinsic.MINUS:
+                    assert False, "todo"
+                    out.write("    ;; -- minus --\n")
+                    out.write("    pop rax\n")
+                    out.write("    pop rbx\n")
+                    out.write("    sub rbx, rax\n")
+                    out.write("    push rbx\n")
+                elif op.operand == Intrinsic.MUL:
+                    assert False, "todo"
+                    out.write("    ;; -- mul --\n")
+                    out.write("    pop rax\n")
+                    out.write("    pop rbx\n")
+                    out.write("    mul rbx\n")
+                    out.write("    push rax\n")
+                elif op.operand == Intrinsic.DIVMOD:
+                    assert False, "todo"
+                    out.write("    ;; -- mod --\n")
+                    out.write("    xor rdx, rdx\n")
+                    out.write("    pop rbx\n")
+                    out.write("    pop rax\n")
+                    out.write("    div rbx\n")
+                    out.write("    push rax\n");
+                    out.write("    push rdx\n");
+                elif op.operand == Intrinsic.SHR:
+                    assert False, "todo"
+                    out.write("    ;; -- shr --\n")
+                    out.write("    pop rcx\n")
+                    out.write("    pop rbx\n")
+                    out.write("    shr rbx, cl\n")
+                    out.write("    push rbx\n")
+                elif op.operand == Intrinsic.SHL:
+                    assert False, "todo"
+                    out.write("    ;; -- shl --\n")
+                    out.write("    pop rcx\n")
+                    out.write("    pop rbx\n")
+                    out.write("    shl rbx, cl\n")
+                    out.write("    push rbx\n")
+                elif op.operand == Intrinsic.BOR:
+                    assert False, "todo"
+                    out.write("    ;; -- bor --\n")
+                    out.write("    pop rax\n")
+                    out.write("    pop rbx\n")
+                    out.write("    or rbx, rax\n")
+                    out.write("    push rbx\n")
+                elif op.operand == Intrinsic.BAND:
+                    assert False, "todo"
+                    out.write("    ;; -- band --\n")
+                    out.write("    pop rax\n")
+                    out.write("    pop rbx\n")
+                    out.write("    and rbx, rax\n")
+                    out.write("    push rbx\n")
+                elif op.operand == Intrinsic.PRINT:
+                    var = stack.pop()
+                    out.write("    println!(\"{}\", v%d);\n" % var)
+                elif op.operand == Intrinsic.EQ:
+                    assert False, "todo"
+                    out.write("    ;; -- equal -- \n")
+                    out.write("    mov rcx, 0\n");
+                    out.write("    mov rdx, 1\n");
+                    out.write("    pop rax\n");
+                    out.write("    pop rbx\n");
+                    out.write("    cmp rax, rbx\n");
+                    out.write("    cmove rcx, rdx\n");
+                    out.write("    push rcx\n")
+                elif op.operand == Intrinsic.GT:
+                    assert False, "todo"
+                    out.write("    ;; -- gt --\n")
+                    out.write("    mov rcx, 0\n");
+                    out.write("    mov rdx, 1\n");
+                    out.write("    pop rbx\n");
+                    out.write("    pop rax\n");
+                    out.write("    cmp rax, rbx\n");
+                    out.write("    cmovg rcx, rdx\n");
+                    out.write("    push rcx\n")
+                elif op.operand == Intrinsic.LT:
+                    assert False, "todo"
+                    out.write("    ;; -- gt --\n")
+                    out.write("    mov rcx, 0\n");
+                    out.write("    mov rdx, 1\n");
+                    out.write("    pop rbx\n");
+                    out.write("    pop rax\n");
+                    out.write("    cmp rax, rbx\n");
+                    out.write("    cmovl rcx, rdx\n");
+                    out.write("    push rcx\n")
+                elif op.operand == Intrinsic.GE:
+                    assert False, "todo"
+                    out.write("    ;; -- gt --\n")
+                    out.write("    mov rcx, 0\n");
+                    out.write("    mov rdx, 1\n");
+                    out.write("    pop rbx\n");
+                    out.write("    pop rax\n");
+                    out.write("    cmp rax, rbx\n");
+                    out.write("    cmovge rcx, rdx\n");
+                    out.write("    push rcx\n")
+                elif op.operand == Intrinsic.LE:
+                    assert False, "todo"
+                    out.write("    ;; -- gt --\n")
+                    out.write("    mov rcx, 0\n");
+                    out.write("    mov rdx, 1\n");
+                    out.write("    pop rbx\n");
+                    out.write("    pop rax\n");
+                    out.write("    cmp rax, rbx\n");
+                    out.write("    cmovle rcx, rdx\n");
+                    out.write("    push rcx\n")
+                elif op.operand == Intrinsic.NE:
+                    assert False, "todo"
+                    out.write("    ;; -- ne --\n")
+                    out.write("    mov rcx, 0\n")
+                    out.write("    mov rdx, 1\n")
+                    out.write("    pop rbx\n")
+                    out.write("    pop rax\n")
+                    out.write("    cmp rax, rbx\n")
+                    out.write("    cmovne rcx, rdx\n")
+                    out.write("    push rcx\n")
+                elif op.operand == Intrinsic.DUP:
+                    arg = stack.pop()
+                    stack.append(arg);
+                    stack.append(arg);
+                elif op.operand == Intrinsic.SWAP:
+                    arg0 = stack.pop()
+                    arg1 = stack.pop()
+                    stack.append(arg0);
+                    stack.append(arg1);
+                elif op.operand == Intrinsic.DROP:
+                    var = stack.pop();
+                    out.write("    let _ = v%d;\n" % var)
+                elif op.operand == Intrinsic.OVER:
+                    arg0 = stack.pop()
+                    arg1 = stack.pop()
+                    stack.append(arg1);
+                    stack.append(arg0);
+                    stack.append(arg1);
+                elif op.operand == Intrinsic.MEM:
+                    assert False, "todo"
+                    out.write("    ;; -- mem --\n")
+                    out.write("    push mem\n")
+                elif op.operand == Intrinsic.LOAD:
+                    assert False, "todo"
+                    out.write("    ;; -- load --\n")
+                    out.write("    pop rax\n")
+                    out.write("    xor rbx, rbx\n")
+                    out.write("    mov bl, [rax]\n")
+                    out.write("    push rbx\n")
+                elif op.operand == Intrinsic.STORE:
+                    assert False, "todo"
+                    out.write("    ;; -- store --\n")
+                    out.write("    pop rbx\n");
+                    out.write("    pop rax\n");
+                    out.write("    mov [rax], bl\n");
+                elif op.operand == Intrinsic.ARGC:
+                    assert False, "todo"
+                    out.write("    ;; -- argc --\n")
+                    out.write("    mov rax, [args_ptr]\n")
+                    out.write("    mov rax, [rax]\n")
+                    out.write("    push rax\n")
+                elif op.operand == Intrinsic.ARGV:
+                    assert False, "todo"
+                    out.write("    ;; -- argv --\n")
+                    out.write("    mov rax, [args_ptr]\n")
+                    out.write("    add rax, 8\n")
+                    out.write("    push rax\n")
+                elif op.operand == Intrinsic.LOAD64:
+                    assert False, "todo"
+                    out.write("    ;; -- load --\n")
+                    out.write("    pop rax\n")
+                    out.write("    xor rbx, rbx\n")
+                    out.write("    mov rbx, [rax]\n")
+                    out.write("    push rbx\n")
+                elif op.operand == Intrinsic.STORE64:
+                    assert False, "todo"
+                    out.write("    ;; -- store --\n")
+                    out.write("    pop rbx\n");
+                    out.write("    pop rax\n");
+                    out.write("    mov [rax], rbx\n");
+                elif op.operand == Intrinsic.CAST_PTR:
+                    assert False, "todo"
+                    out.write("    ;; -- cast(ptr) --\n")
+                elif op.operand == Intrinsic.SYSCALL0:
+                    assert False, "todo"
+                    out.write("    ;; -- syscall0 --\n")
+                    out.write("    pop rax\n")
+                    out.write("    syscall\n")
+                    out.write("    push rax\n")
+                elif op.operand == Intrinsic.SYSCALL1:
+                    assert False, "todo"
+                    out.write("    ;; -- syscall1 --\n")
+                    out.write("    pop rax\n")
+                    out.write("    pop rdi\n")
+                    out.write("    syscall\n")
+                    out.write("    push rax\n")
+                elif op.operand == Intrinsic.SYSCALL2:
+                    assert False, "todo"
+                    out.write("    ;; -- syscall2 -- \n")
+                    out.write("    pop rax\n");
+                    out.write("    pop rdi\n");
+                    out.write("    pop rsi\n");
+                    out.write("    syscall\n");
+                    out.write("    push rax\n")
+                elif op.operand == Intrinsic.SYSCALL3:
+                    num = stack.pop();
+                    arg0 = stack.pop();
+                    arg1 = stack.pop();
+                    arg2 = stack.pop();
+                    var = var_id;
+                    var_id += 1
+                    out.write("    let v%d: u64 = syscall3!(v%d, v%d, v%d, v%d);\n" % (var, num, arg0, arg1, arg2))
+                    stack.append(var)
+                elif op.operand == Intrinsic.SYSCALL4:
+                    assert False, "todo"
+                    out.write("    ;; -- syscall4 --\n")
+                    out.write("    pop rax\n")
+                    out.write("    pop rdi\n")
+                    out.write("    pop rsi\n")
+                    out.write("    pop rdx\n")
+                    out.write("    pop r10\n")
+                    out.write("    syscall\n")
+                    out.write("    push rax\n")
+                elif op.operand == Intrinsic.SYSCALL5:
+                    assert False, "todo"
+                    out.write("    ;; -- syscall5 --\n")
+                    out.write("    pop rax\n")
+                    out.write("    pop rdi\n")
+                    out.write("    pop rsi\n")
+                    out.write("    pop rdx\n")
+                    out.write("    pop r10\n")
+                    out.write("    pop r8\n")
+                    out.write("    syscall\n")
+                    out.write("    push rax\n")
+                elif op.operand == Intrinsic.SYSCALL6:
+                    assert False, "todo"
+                    out.write("    ;; -- syscall6 --\n")
+                    out.write("    pop rax\n")
+                    out.write("    pop rdi\n")
+                    out.write("    pop rsi\n")
+                    out.write("    pop rdx\n")
+                    out.write("    pop r10\n")
+                    out.write("    pop r8\n")
+                    out.write("    pop r9\n")
+                    out.write("    syscall\n")
+                    out.write("    push rax\n")
+                else:
+                    assert False, "unreachable"
+            else:
+                assert False, "unreachable"
+
+        out.write("}")
+
+
 assert len(Keyword) == 7, "Exhaustive KEYWORD_NAMES definition."
 KEYWORD_NAMES = {
     'if': Keyword.IF,
@@ -1800,7 +2139,7 @@ if __name__ == '__main__' and '__file__' in globals():
         if not unsafe:
             type_check_program(program)
         simulate_little_endian_linux(program, [program_path] + argv)
-    elif subcommand == "com":
+    elif subcommand == "com" or subcommand == "translate":
         silent = False
         run = False
         output_path = None
@@ -1849,18 +2188,31 @@ if __name__ == '__main__' and '__file__' in globals():
         basepath = path.join(basedir, basename)
 
         if not silent:
-            print("[INFO] Generating %s" % (basepath + ".asm"))
+            if subcommand == "com":
+                print("[INFO] Generating %s" % (basepath + ".asm"))
+            elif subcommand == "translate":
+                print("[INFO] Generating %s" % (basepath + ".rs"))
 
         include_paths.append(path.dirname(program_path))
 
         program = compile_file_to_program(program_path, include_paths, expansion_limit);
         if not unsafe:
             type_check_program(program)
-        generate_nasm_linux_x86_64(program, basepath + ".asm")
-        cmd_call_echoed(["nasm", "-felf64", basepath + ".asm"], silent)
-        cmd_call_echoed(["ld", "-o", basepath, basepath + ".o"], silent)
+
+        if subcommand == "com":
+            generate_nasm_linux_x86_64(program, basepath + ".asm")
+            cmd_call_echoed(["nasm", "-felf64", basepath + ".asm"], silent)
+            cmd_call_echoed(["ld", "-o", basepath, basepath + ".o"], silent)
+        elif subcommand == "translate":
+            generate_rust(program, basepath + ".rs")
+            cmd_call_echoed(["rustc", "-o", basepath + "_rs", basepath + ".rs"], silent)
+        else:
+            assert False, "unreacheble"
         if run:
-            exit(cmd_call_echoed([basepath] + argv, silent))
+            if subcommand == "com":
+                exit(cmd_call_echoed([basepath] + argv, silent))
+            elif subcommand == "translate":
+                exit(cmd_call_echoed([basepath+"_rs"] + argv, silent))
     elif subcommand == "help":
         usage(compiler_name)
         exit(0)
