@@ -32,7 +32,7 @@ macro digits_to_number
     end drop drop
 end
 
-// returns number read from stdint
+// returns number read from stdin
 macro read_number
     NUM_PTR 0 .64
     CHAR_CAPACITY CHARS_PTR stdin read
@@ -44,6 +44,7 @@ macro read_number
     NUM_PTR ,64
 end
 
+// expects number divisor
 macro divisible
   % 0 =
 end
@@ -61,10 +62,8 @@ macro is_prime
             drop false
         else 
             true swap 5 while over over dup * >= do
-                // RES NUMBER POSSIBLE_DIVIDER
                 over over divisible if
                     2drop drop false 0 1 
-                    // false 0 1
                 else
                     2 +
                 end
