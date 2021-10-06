@@ -1708,21 +1708,21 @@ def generate_rust(program: Program, out_file_path: str):
                     _, op1 = stack.pop()
                     var = var_id;
                     var_id += 1
-                    out.write(("    " * offset) + "let v%d: u64 = v%d + v%d;\n" % (var, op1, op0))
+                    out.write(("    " * offset) + "let v%d = v%d + v%d;\n" % (var, op1, op0))
                     stack.append((DataType.INT, var))
                 elif op.operand == Intrinsic.MINUS:
                     _, op0 = stack.pop()
                     _, op1 = stack.pop()
                     var = var_id;
                     var_id += 1
-                    out.write(("    " * offset) + "let v%d: u64 = v%d - v%d;\n" % (var, op1, op0))
+                    out.write(("    " * offset) + "let v%d = v%d - v%d;\n" % (var, op1, op0))
                     stack.append((DataType.INT, var))
                 elif op.operand == Intrinsic.MUL:
                     _, op0 = stack.pop()
                     _, op1 = stack.pop()
                     var = var_id;
                     var_id += 1
-                    out.write(("    " * offset) + "let v%d: u64 = v%d * v%d;\n" % (var, op1, op0))
+                    out.write(("    " * offset) + "let v%d = v%d * v%d;\n" % (var, op1, op0))
                     stack.append((DataType.INT, var))
                 elif op.operand == Intrinsic.DIVMOD:
                     _, op0 = stack.pop()
@@ -1730,12 +1730,12 @@ def generate_rust(program: Program, out_file_path: str):
 
                     var = var_id;
                     var_id += 1
-                    out.write(("    " * offset) + "let v%d: u64 = v%d / v%d;\n" % (var, op1, op0))
+                    out.write(("    " * offset) + "let v%d = v%d / v%d;\n" % (var, op1, op0))
                     div = var
 
                     var = var_id;
                     var_id += 1
-                    out.write(("    " * offset) + "let v%d: u64 = v%d %% v%d;\n" % (var, op1, op0))
+                    out.write(("    " * offset) + "let v%d = v%d %% v%d;\n" % (var, op1, op0))
                     mod = var
 
                     stack.append((DataType.INT, div))
@@ -1782,42 +1782,42 @@ def generate_rust(program: Program, out_file_path: str):
                     _, op1 = stack.pop()
                     var = var_id;
                     var_id += 1
-                    out.write(("    " * offset) + "let v%d: bool = v%d == v%d;\n" % (var, op1, op0))
+                    out.write(("    " * offset) + "let v%d = v%d == v%d;\n" % (var, op1, op0))
                     stack.append((DataType.BOOL, var))
                 elif op.operand == Intrinsic.GT:
                     _, op0 = stack.pop()
                     _, op1 = stack.pop()
                     var = var_id;
                     var_id += 1
-                    out.write(("    " * offset) + "let v%d: bool = v%d > v%d;\n" % (var, op1, op0))
+                    out.write(("    " * offset) + "let v%d = v%d > v%d;\n" % (var, op1, op0))
                     stack.append((DataType.BOOL, var))
                 elif op.operand == Intrinsic.LT:
                     _, op0 = stack.pop()
                     _, op1 = stack.pop()
                     var = var_id;
                     var_id += 1
-                    out.write(("    " * offset) + "let v%d: bool = v%d < v%d;\n" % (var, op1, op0))
+                    out.write(("    " * offset) + "let v%d = v%d < v%d;\n" % (var, op1, op0))
                     stack.append((DataType.BOOL, var))
                 elif op.operand == Intrinsic.GE:
                     _, op0 = stack.pop()
                     _, op1 = stack.pop()
                     var = var_id;
                     var_id += 1
-                    out.write(("    " * offset) + "let v%d: bool = v%d >= v%d;\n" % (var, op1, op0))
+                    out.write(("    " * offset) + "let v%d = v%d >= v%d;\n" % (var, op1, op0))
                     stack.append((DataType.BOOL, var))
                 elif op.operand == Intrinsic.LE:
                     _, op0 = stack.pop()
                     _, op1 = stack.pop()
                     var = var_id;
                     var_id += 1
-                    out.write(("    " * offset) + "let v%d: bool = v%d <= v%d;\n" % (var, op1, op0))
+                    out.write(("    " * offset) + "let v%d = v%d <= v%d;\n" % (var, op1, op0))
                     stack.append((DataType.BOOL, var))
                 elif op.operand == Intrinsic.NE:
                     _, op0 = stack.pop()
                     _, op1 = stack.pop()
                     var = var_id;
                     var_id += 1
-                    out.write(("    " * offset) + "let v%d: bool = v%d != v%d;\n" % (var, op1, op0))
+                    out.write(("    " * offset) + "let v%d = v%d != v%d;\n" % (var, op1, op0))
                     stack.append((DataType.BOOL, var))
                 elif op.operand == Intrinsic.DUP:
                     arg = stack.pop()
