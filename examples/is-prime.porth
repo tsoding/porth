@@ -1,0 +1,102 @@
+include "std.porth"
+
+// Probably need to add to standard library.
+// It's useful to have such definition of true, instead of 
+// `macro true 1 end`
+// because it will allow appropriate typechecking
+macro true
+  0 0 =
+end
+
+macro false
+  0 0 !=
+end
+
+macro divisible
+  % 0 =
+end
+
+// memory 
+// 0 => 11 bytes for chars of the number
+// 11 => result number (8 bytes)
+// 19 => 
+
+macro CHAR_CAPACITY 11 end
+macro CHARS_PTR mem end
+macro DIGITS_LEN_PTR CHARS_PTR CHAR_CAPACITY + end
+macro NUM_PTR DIGITS_LEN_PTR 1 + end
+macro FREE_SPACE NUM_PTR 8 + end
+
+// digit on the stack
+macro increase_digits_len
+    drop
+    DIGITS_LEN_PTR DIGITS_LEN_PTR , 1 + .
+end
+
+macro digits_to_number
+    CHARS_PTR swap while dup 1 > do
+        swap dup , // read char
+        '0' -
+        // dig bool
+        dup 0 >= over 10 < band if
+            NUM_PTR ,64 10 * + NUM_PTR swap .64
+            1 + swap 1 - 
+        else 
+            drop
+            1 + swap dup - 
+        end
+    end drop drop
+end
+
+// returns number read from stdint
+macro read_number
+    NUM_PTR 0 .64
+    DIGITS_LEN_PTR 0 .64
+    CHAR_CAPACITY CHARS_PTR stdin read
+    dup 0 <= if
+        "ERROR: could not read your name, sorry ( ._.)\n" stderr write drop
+        1 exit
+    end
+    digits_to_number
+    NUM_PTR ,64
+end
+
+// expects number
+macro is_prime
+    dup 2 = over
+        3 = bor over
+        5 = bor
+    if
+        drop true
+    else
+        dup 2 divisible over 3 divisible bor over 5 divisible bor if
+            
+            drop false
+        else 
+            true swap 5 while over over dup * >= do
+                // RES NUMBER POSSIBLE_DIVIDER
+                over over divisible if
+                    2drop drop false 0 1 
+                    // false 0 1
+                else
+                    2 +
+                end
+                over over dup * >= if
+                    over over divisible if
+                        2drop drop false 0 1 
+                    else
+                        6 +
+                    end
+                end
+            end drop drop
+        end
+    end
+end
+
+"Enter number?\n" stdout write drop
+
+read_number
+
+is_prime
+
+if "It's prime\n" else "It's not a prime\n" end stdout write drop
