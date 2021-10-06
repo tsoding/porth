@@ -1432,7 +1432,43 @@ def generate_rust(program: Program, out_file_path: str):
         out.write("       }\n")
         out.write("   }}\n")
         out.write("}\n")
+        out.write("macro_rules! mem {\n")
+        out.write("   ($memory: expr) => {{\n")
+        out.write("       unsafe {\n")
+        out.write("         (&$memory).as_ptr() as usize as u64\n")
+        out.write("       }\n")
+        out.write("   }}\n")
+        out.write("}\n")
+        out.write("macro_rules! load8 {\n")
+        out.write("   ($addr: expr) => {{\n")
+        out.write("       unsafe {\n")
+        out.write("         (*($addr as *const u8)) as u64\n")
+        out.write("       }\n")
+        out.write("   }}\n")
+        out.write("}\n")
+        out.write("macro_rules! store8 {\n")
+        out.write("   ($addr: expr, $value: expr) => {{\n")
+        out.write("       unsafe {\n")
+        out.write("         *($addr as *mut u8) = $value as u8;\n")
+        out.write("       }\n")
+        out.write("   }}\n")
+        out.write("}\n")
+        out.write("macro_rules! load64 {\n")
+        out.write("   ($addr: expr) => {{\n")
+        out.write("       unsafe {\n")
+        out.write("         *($addr as *const u64)\n")
+        out.write("       }\n")
+        out.write("   }}\n")
+        out.write("}\n")
+        out.write("macro_rules! store64 {\n")
+        out.write("   ($addr: expr, $value: expr) => {{\n")
+        out.write("       unsafe {\n")
+        out.write("         *($addr as *mut u64) = $value;\n")
+        out.write("       }\n")
+        out.write("   }}\n")
+        out.write("}\n")
 
+        out.write("static mut MEMORY: [u8;640_000] = [0;640_000];\n")
         out.write("fn main() {\n")
 
         for ip in range(len(program)):
@@ -1698,22 +1734,20 @@ def generate_rust(program: Program, out_file_path: str):
                     stack.append(arg0);
                     stack.append(arg1);
                 elif op.operand == Intrinsic.MEM:
-                    assert False, "todo"
-                    out.write("    ;; -- mem --\n")
-                    out.write("    push mem\n")
+                    var = var_id;
+                    var_id += 1
+                    out.write(("    " * offset) + "let v%d = mem!(MEMORY);\n" % var)
+                    stack.append((DataType.PTR, var))
                 elif op.operand == Intrinsic.LOAD:
-                    assert False, "todo"
-                    out.write("    ;; -- load --\n")
-                    out.write("    pop rax\n")
-                    out.write("    xor rbx, rbx\n")
-                    out.write("    mov bl, [rax]\n")
-                    out.write("    push rbx\n")
+                    _, op0 = stack.pop()
+                    var = var_id;
+                    var_id += 1
+                    out.write(("    " * offset) + "let v%d = load8!(v%d);\n" % (var, op0))
+                    stack.append((DataType.INT, var))
                 elif op.operand == Intrinsic.STORE:
-                    assert False, "todo"
-                    out.write("    ;; -- store --\n")
-                    out.write("    pop rbx\n");
-                    out.write("    pop rax\n");
-                    out.write("    mov [rax], bl\n");
+                    _, op0 = stack.pop()
+                    _, op1 = stack.pop()
+                    out.write(("    " * offset) + "store8!(v%d, v%d);\n" % (op1, op0))
                 elif op.operand == Intrinsic.ARGC:
                     assert False, "todo"
                     out.write("    ;; -- argc --\n")
@@ -1727,18 +1761,15 @@ def generate_rust(program: Program, out_file_path: str):
                     out.write("    add rax, 8\n")
                     out.write("    push rax\n")
                 elif op.operand == Intrinsic.LOAD64:
-                    assert False, "todo"
-                    out.write("    ;; -- load --\n")
-                    out.write("    pop rax\n")
-                    out.write("    xor rbx, rbx\n")
-                    out.write("    mov rbx, [rax]\n")
-                    out.write("    push rbx\n")
+                    _, op0 = stack.pop()
+                    var = var_id;
+                    var_id += 1
+                    out.write(("    " * offset) + "let v%d = load64!(v%d);\n" % (var, op0))
+                    stack.append((DataType.INT, var))
                 elif op.operand == Intrinsic.STORE64:
-                    assert False, "todo"
-                    out.write("    ;; -- store --\n")
-                    out.write("    pop rbx\n");
-                    out.write("    pop rax\n");
-                    out.write("    mov [rax], rbx\n");
+                    _, op0 = stack.pop()
+                    _, op1 = stack.pop()
+                    out.write(("    " * offset) + "store64!(v%d, v%d);\n" % (op1, op0))
                 elif op.operand == Intrinsic.CAST_PTR:
                     assert False, "todo"
                     out.write("    ;; -- cast(ptr) --\n")
