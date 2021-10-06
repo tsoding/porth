@@ -1505,11 +1505,13 @@ def generate_rust(program: Program, out_file_path: str):
                 for v in stack:
                     new_v = var_id
                     var_id += 1
-                    out.write(("    " * offset) + "let mut v%d = v%d;\n" % (new_v, v[0]))
                     new_stack.append((v[0], new_v))
                 contexts.append((OpType.IF, copy(new_stack), []))
+
+                out.write(("    " * offset) + "//Storing stack\n")
                 for (new_v, new_v_val) in zip(new_stack, stack):
-                    out.write(("    " * offset) + "v%d = v%d;\n" % (new_v[1], new_v_val[1]))
+                    out.write(("    " * offset) + "let mut v%d = v%d;\n" % (new_v[1], new_v_val[1]))
+
                 stack = new_stack
 
                 buffers.append(out)
@@ -1519,11 +1521,12 @@ def generate_rust(program: Program, out_file_path: str):
                 offset += 1
             elif op.typ == OpType.ELSE:
                 prev_op, prev_context, _ = contexts.pop()
-                # Sync context
+
+                out.write(("    " * offset) + "//Sync stack\n")
                 for (prev, curr) in zip(prev_context, stack[:len(prev_context)]):
                     if curr != prev:
-                        out.write(("    " * offset) + "v%d = v%d;\n" % (prev, curr))
-                        curr = prev
+                        out.write(("    " * offset) + "v%d = v%d;\n" % (prev[1], curr[1]))
+                stack[:len(prev_context)] = copy(prev_context)
 
                 old_out = out
                 out = buffers.pop()
@@ -1531,16 +1534,19 @@ def generate_rust(program: Program, out_file_path: str):
 
                 new_stack_entries = []
                 # Handle new stack entries
+                out.write(("    " * (offset - 1)) + "//New stack entries\n")
                 for new_v_val in stack[len(prev_context):]:
                     new_v = var_id
                     var_id += 1
                     out.write(("    " * (offset - 1)) + "let mut v%d = Default::default();\n" % new_v)
                     new_stack_entries.append((new_v_val[0], new_v))
+                
                 out.write(old_out.getvalue())
                 old_out.close()
                 
                 for (new_v_val, new_v) in zip(stack[len(prev_context):], new_stack_entries):
                     out.write(("    " * offset) + "v%d = v%d;\n" % (new_v[1], new_v_val[1]))
+
                 
                 stack = copy(prev_context)
 
@@ -1548,32 +1554,40 @@ def generate_rust(program: Program, out_file_path: str):
                 out.write(("    " * offset) + "}\n")
                 out.write(("    " * offset) + "else {\n")
                 offset += 1
-                contexts.append((OpType.ELSE, prev_context, new_stack_entries))
+                contexts.append((OpType.ELSE, copy(prev_context), new_stack_entries))
                 assert isinstance(op.operand, int), "This could be a bug in the compilation step"
             elif op.typ == OpType.END:
                 prev_op, prev_context, new_stack_entries = contexts.pop()
 
-                # Sync context
-                for (prev, curr) in zip(prev_context, stack[:len(prev_context)]):
-                    if curr != prev:
-                        out.write(("    " * offset) + "v%d = v%d;\n" % (prev[1], curr[1]))
                 
                 if prev_op == OpType.IF or prev_op == OpType.WHILE:
                     old_out = out
                     out = buffers.pop();
                     out.write(old_out.getvalue())
                     old_out.close()
+
+                    for (prev, curr) in zip(prev_context, stack[:len(prev_context)]):
+                        if curr != prev:
+                            out.write(("    " * offset) + "v%d = v%d;\n" % (prev[1], curr[1]))
+
                     stack = copy(prev_context)
                 elif prev_op == OpType.ELSE:
                     # Handle new stack entries
+
                     new_stack = copy(prev_context)
                     for (new_v, new_v_val) in zip(new_stack_entries, stack[len(prev_context):]):
                         out.write(("    " * offset) + "v%d = v%d;\n" % (new_v[1], new_v_val[1]))
                         new_stack.append(new_v)
-                        stack = new_stack
+                    
+                    out.write(("    " * offset) + "//Sync stack\n")
+                    for (prev, curr) in zip(prev_context, stack[:len(prev_context)]):
+                        if curr != prev:
+                            out.write(("    " * offset) + "v%d = v%d;\n" % (prev[1], curr[1]))
+
+                    stack = copy(prev_context)
+                    stack = new_stack
                 else:
                     assert False, "unreachable"
-
 
                 offset -= 1
                 out.write(("    " * offset) + "}\n")
