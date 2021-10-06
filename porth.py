@@ -858,7 +858,7 @@ def type_check_program(program: Program):
 
                 stack = block_snapshot
             else:
-                assert "unreachable"
+                assert False, "unreachable"
         elif op.typ == OpType.ELSE:
             stack_snapshot, block_type = block_stack.pop()
             assert block_type == OpType.IF
