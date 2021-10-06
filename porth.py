@@ -1602,33 +1602,33 @@ def generate_rust(program: Program, out_file_path: str):
                     stack.append((DataType.INT, mod))
 
                 elif op.operand == Intrinsic.SHR:
-                    assert False, "todo"
-                    out.write("    ;; -- shr --\n")
-                    out.write("    pop rcx\n")
-                    out.write("    pop rbx\n")
-                    out.write("    shr rbx, cl\n")
-                    out.write("    push rbx\n")
+                    _, op0 = stack.pop()
+                    _, op1 = stack.pop()
+                    var = var_id;
+                    var_id += 1
+                    out.write(("    " * offset) + "let v%d = v%d >> v%d;\n" % (var, op1, op0))
+                    stack.append((DataType.INT, var))
                 elif op.operand == Intrinsic.SHL:
-                    assert False, "todo"
-                    out.write("    ;; -- shl --\n")
-                    out.write("    pop rcx\n")
-                    out.write("    pop rbx\n")
-                    out.write("    shl rbx, cl\n")
-                    out.write("    push rbx\n")
+                    _, op0 = stack.pop()
+                    _, op1 = stack.pop()
+                    var = var_id;
+                    var_id += 1
+                    out.write(("    " * offset) + "let v%d = v%d << v%d;\n" % (var, op1, op0))
+                    stack.append((DataType.INT, var))
                 elif op.operand == Intrinsic.BOR:
-                    assert False, "todo"
-                    out.write("    ;; -- bor --\n")
-                    out.write("    pop rax\n")
-                    out.write("    pop rbx\n")
-                    out.write("    or rbx, rax\n")
-                    out.write("    push rbx\n")
+                    _, op0 = stack.pop()
+                    _, op1 = stack.pop()
+                    var = var_id;
+                    var_id += 1
+                    out.write(("    " * offset) + "let v%d = v%d | v%d;\n" % (var, op1, op0))
+                    stack.append((DataType.INT, var))
                 elif op.operand == Intrinsic.BAND:
-                    assert False, "todo"
-                    out.write("    ;; -- band --\n")
-                    out.write("    pop rax\n")
-                    out.write("    pop rbx\n")
-                    out.write("    and rbx, rax\n")
-                    out.write("    push rbx\n")
+                    _, op0 = stack.pop()
+                    _, op1 = stack.pop()
+                    var = var_id;
+                    var_id += 1
+                    out.write(("    " * offset) + "let v%d = v%d & v%d;\n" % (var, op1, op0))
+                    stack.append((DataType.INT, var))
                 elif op.operand == Intrinsic.PRINT:
                     typ, var = stack.pop()
                     if typ == DataType.INT or typ == DataType.PTR:
