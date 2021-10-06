@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from copy import copy
 from time import sleep
 import traceback
+from io import StringIO
 
 PORTH_EXT = '.porth'
 DEFAULT_EXPANSION_LIMIT=1000
@@ -1407,9 +1408,13 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
 
 def generate_rust(program: Program, out_file_path: str):
     var_id = 0
+    offset = 1
     stack: List[int] = []
+    contexts: List[Triple[OpType, List[int], List[int]]] = []
+    buffers = []
     with open(out_file_path, "w") as out:
         out.write("#![feature(asm)]\n")
+        out.write("#![allow(unused_assignments)]\n")
         out.write("macro_rules! syscall3 {\n")
         out.write("   ($num: expr, $arg0: expr, $arg1: expr, $arg2: expr) => {{\n")
         out.write("       unsafe {\n")
@@ -1437,55 +1442,124 @@ def generate_rust(program: Program, out_file_path: str):
                 assert isinstance(op.operand, int), "This could be a bug in the compilation step"
                 var = var_id;
                 var_id += 1
-                out.write("    let v%d: u64 = %d;\n" % (var, op.operand))
+                out.write(("    " * offset) + "let v%d: u64 = %d;\n" % (var, op.operand))
                 stack.append(var)
             elif op.typ == OpType.PUSH_STR:
                 assert isinstance(op.operand, str), "This could be a bug in the compilation step"
                 var = var_id;
                 var_id += 1
-                out.write("    let v%d: &'static str = r#\"%s\"#;\n" % (var, op.operand))
+                out.write(("    " * offset) + "let v%d: &'static str = r#\"%s\"#;\n" % (var, op.operand))
                 str_const = var
 
                 var = var_id;
                 var_id += 1
-                out.write("    let v%d: u64 = v%d.len() as u64;\n" % (var, str_const))
+                out.write(("    " * offset) + "let v%d: u64 = v%d.len() as u64;\n" % (var, str_const))
                 str_len = var
 
                 var = var_id;
                 var_id += 1
-                out.write("    let v%d: u64 = v%d.as_ptr() as usize as u64;\n" % (var, str_const))
+                out.write(("    " * offset) + "let v%d: u64 = v%d.as_ptr() as usize as u64;\n" % (var, str_const))
                 str_addr = var
 
                 stack.append(str_len)
                 stack.append(str_addr)
             elif op.typ == OpType.IF:
-                assert False, "todo"
-                out.write("    ;; -- if --\n")
-                out.write("    pop rax\n")
-                out.write("    test rax, rax\n")
-                assert isinstance(op.operand, int), "This could be a bug in the compilation step"
-                out.write("    jz addr_%d\n" % op.operand)
+                cond = stack.pop()
+                new_stack: List[int] = []
+                for v in stack:
+                    new_v = var_id
+                    var_id += 1
+                    out.write(("    " * offset) + "let mut v%d = v%d;\n" % (new_v, v))
+                    new_stack.append(new_v)
+                contexts.append((OpType.IF, copy(new_stack), []))
+                stack = new_stack
+                for (new_v, new_v_val) in zip(new_stack, stack):
+                    out.write(("    " * offset) + "v%d = v%d;\n" % (new_v, new_v_val))
+                buffers.append(out)
+                out = StringIO()
+
+                out.write(("    " * offset) + "if v%d {\n" % cond)
+                offset += 1
             elif op.typ == OpType.ELSE:
-                assert False, "todo"
-                out.write("    ;; -- else --\n")
+                prev_op, prev_context, _ = contexts.pop()
+                # Sync context
+                for (prev, curr) in zip(prev_context, stack[:len(prev_context)]):
+                    if curr != prev:
+                        out.write(("    " * offset) + "v%d = v%d;\n" % (prev, curr))
+                        curr = prev
+
+                old_out = out
+                out = buffers.pop()
+                
+
+                new_stack_entries = []
+                # Handle new stack entries
+                for new_v_val in stack[len(prev_context):]:
+                    new_v = var_id
+                    var_id += 1
+                    out.write(("    " * (offset - 1)) + "let mut v%d = Default::default();\n" % new_v)
+                    new_stack_entries.append(new_v)
+                out.write(old_out.getvalue())
+                old_out.close()
+                
+                for (new_v_val, new_v) in zip(stack[len(prev_context):], new_stack_entries):
+                    out.write(("    " * offset) + "v%d = v%d;\n" % (new_v, new_v_val))
+                
+                stack = copy(prev_context)
+
+                offset -= 1
+                out.write(("    " * offset) + "}\n")
+                out.write(("    " * offset) + "else {\n")
+                offset += 1
+                contexts.append((OpType.ELSE, prev_context, new_stack_entries))
                 assert isinstance(op.operand, int), "This could be a bug in the compilation step"
-                out.write("    jmp addr_%d\n" % op.operand)
             elif op.typ == OpType.END:
-                assert False, "todo"
+                prev_op, prev_context, new_stack_entries = contexts.pop()
+
+                # Sync context
+                for (prev, curr) in zip(prev_context, stack[:len(prev_context)]):
+                    if curr != prev:
+                        out.write(("    " * offset) + "v%d = v%d;\n" % (prev, curr))
+                
+                if prev_op == OpType.IF or prev_op == OpType.WHILE:
+                    old_out = out
+                    out = buffers.pop();
+                    out.write(old_out.getvalue())
+                    old_out.close()
+                    stack = copy(prev_context)
+                elif prev_op == OpType.ELSE:
+                    # Handle new stack entries
+                    new_stack = copy(prev_context)
+                    for (new_v, new_v_val) in zip(new_stack_entries, stack[len(prev_context):]):
+                        out.write(("    " * offset) + "v%d = v%d;\n" % (new_v, new_v_val))
+                        new_stack.append(new_v)
+                        stack = new_stack
+                else:
+                    assert False, "unreachable"
+
+
+                offset -= 1
+                out.write(("    " * offset) + "}\n")
                 assert isinstance(op.operand, int), "This could be a bug in the compilation step"
-                out.write("    ;; -- end --\n")
-                if ip + 1 != op.operand:
-                    out.write("    jmp addr_%d\n" % op.operand)
             elif op.typ == OpType.WHILE:
-                assert False, "todo"
-                out.write("    ;; -- while --\n")
+                new_stack: List[int] = []
+                for v in stack:
+                    new_v = var_id
+                    var_id += 1
+                    out.write(("    " * offset) + "let mut v%d = v%d;\n" % (new_v, v))
+                    new_stack.append(new_v)
+                contexts.append((OpType.WHILE, copy(new_stack), []))
+                stack = new_stack
+                buffers.append(out)
+                out = StringIO()
+
+                out.write(("    " * offset) + "loop {\n")
+                offset += 1
             elif op.typ == OpType.DO:
-                assert False, "todo"
-                out.write("    ;; -- do --\n")
-                out.write("    pop rax\n")
-                out.write("    test rax, rax\n")
+                out.write(("    " * offset) + "if !v%d {\n" % stack.pop())
+                out.write(("    " * (offset + 1)) + "break\n")
+                out.write(("    " * offset) + "}\n")
                 assert isinstance(op.operand, int), "This could be a bug in the compilation step"
-                out.write("    jz addr_%d\n" % op.operand)
             elif op.typ == OpType.INTRINSIC:
                 assert len(Intrinsic) == 34, "Exhaustive intrinsic handling in generate_nasm_linux_x86_64()"
                 if op.operand == Intrinsic.PLUS:
@@ -1493,21 +1567,21 @@ def generate_rust(program: Program, out_file_path: str):
                     op1 = stack.pop()
                     var = var_id;
                     var_id += 1
-                    out.write("    let v%d: u64 = v%d + v%d;\n" % (var, op1, op0))
+                    out.write(("    " * offset) + "let v%d: u64 = v%d + v%d;\n" % (var, op1, op0))
                     stack.append(var)
                 elif op.operand == Intrinsic.MINUS:
                     op0 = stack.pop()
                     op1 = stack.pop()
                     var = var_id;
                     var_id += 1
-                    out.write("    let v%d: u64 = v%d - v%d;\n" % (var, op1, op0))
+                    out.write(("    " * offset) + "let v%d: u64 = v%d - v%d;\n" % (var, op1, op0))
                     stack.append(var)
                 elif op.operand == Intrinsic.MUL:
                     op0 = stack.pop()
                     op1 = stack.pop()
                     var = var_id;
                     var_id += 1
-                    out.write("    let v%d: u64 = v%d * v%d;\n" % (var, op1, op0))
+                    out.write(("    " * offset) + "let v%d: u64 = v%d * v%d;\n" % (var, op1, op0))
                     stack.append(var)
                 elif op.operand == Intrinsic.DIVMOD:
                     op0 = stack.pop()
@@ -1515,12 +1589,12 @@ def generate_rust(program: Program, out_file_path: str):
 
                     var = var_id;
                     var_id += 1
-                    out.write("    let v%d: u64 = v%d / v%d;\n" % (var, op1, op0))
+                    out.write(("    " * offset) + "let v%d: u64 = v%d / v%d;\n" % (var, op1, op0))
                     div = var
 
                     var = var_id;
                     var_id += 1
-                    out.write("    let v%d: u64 = v%d %% v%d;\n" % (var, op1, op0))
+                    out.write(("    " * offset) + "let v%d: u64 = v%d %% v%d;\n" % (var, op1, op0))
                     mod = var
 
                     stack.append(div)
@@ -1556,17 +1630,14 @@ def generate_rust(program: Program, out_file_path: str):
                     out.write("    push rbx\n")
                 elif op.operand == Intrinsic.PRINT:
                     var = stack.pop()
-                    out.write("    println!(\"{}\", v%d);\n" % var)
+                    out.write(("    " * offset) + "println!(\"{}\", v%d);\n" % var)
                 elif op.operand == Intrinsic.EQ:
-                    assert False, "todo"
-                    out.write("    ;; -- equal -- \n")
-                    out.write("    mov rcx, 0\n");
-                    out.write("    mov rdx, 1\n");
-                    out.write("    pop rax\n");
-                    out.write("    pop rbx\n");
-                    out.write("    cmp rax, rbx\n");
-                    out.write("    cmove rcx, rdx\n");
-                    out.write("    push rcx\n")
+                    op0 = stack.pop()
+                    op1 = stack.pop()
+                    var = var_id;
+                    var_id += 1
+                    out.write(("    " * offset) + "let v%d: bool = v%d == v%d;\n" % (var, op1, op0))
+                    stack.append(var)
                 elif op.operand == Intrinsic.GT:
                     assert False, "todo"
                     out.write("    ;; -- gt --\n")
@@ -1578,15 +1649,12 @@ def generate_rust(program: Program, out_file_path: str):
                     out.write("    cmovg rcx, rdx\n");
                     out.write("    push rcx\n")
                 elif op.operand == Intrinsic.LT:
-                    assert False, "todo"
-                    out.write("    ;; -- gt --\n")
-                    out.write("    mov rcx, 0\n");
-                    out.write("    mov rdx, 1\n");
-                    out.write("    pop rbx\n");
-                    out.write("    pop rax\n");
-                    out.write("    cmp rax, rbx\n");
-                    out.write("    cmovl rcx, rdx\n");
-                    out.write("    push rcx\n")
+                    op0 = stack.pop()
+                    op1 = stack.pop()
+                    var = var_id;
+                    var_id += 1
+                    out.write(("    " * offset) + "let v%d: bool = v%d < v%d;\n" % (var, op1, op0))
+                    stack.append(var)
                 elif op.operand == Intrinsic.GE:
                     assert False, "todo"
                     out.write("    ;; -- gt --\n")
@@ -1628,7 +1696,7 @@ def generate_rust(program: Program, out_file_path: str):
                     stack.append(arg1);
                 elif op.operand == Intrinsic.DROP:
                     var = stack.pop();
-                    out.write("    let _ = v%d;\n" % var)
+                    out.write(("    " * offset) + "let _ = v%d;\n" % var)
                 elif op.operand == Intrinsic.OVER:
                     arg0 = stack.pop()
                     arg1 = stack.pop()
@@ -1708,7 +1776,7 @@ def generate_rust(program: Program, out_file_path: str):
                     arg2 = stack.pop();
                     var = var_id;
                     var_id += 1
-                    out.write("    let v%d: u64 = syscall3!(v%d, v%d, v%d, v%d);\n" % (var, num, arg0, arg1, arg2))
+                    out.write(("    " * offset) + "let v%d: u64 = syscall3!(v%d, v%d, v%d, v%d);\n" % (var, num, arg0, arg1, arg2))
                     stack.append(var)
                 elif op.operand == Intrinsic.SYSCALL4:
                     assert False, "todo"
