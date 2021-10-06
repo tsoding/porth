@@ -1415,7 +1415,46 @@ def generate_rust(program: Program, out_file_path: str):
     with open(out_file_path, "w") as out:
         out.write("#![feature(asm)]\n")
         out.write("#![allow(unused)]\n")
-        out.write("macro_rules! syscall3 {\n")
+        out.write("macro_rules! syscall {\n")
+        out.write("   ($num: expr) => {{\n")
+        out.write("       unsafe {\n")
+        out.write("           let ret : u64;\n")
+        out.write("           asm!(\"syscall\",\n")
+        out.write("                in(\"rax\") $num,\n")
+        out.write("                out(\"rcx\") _,\n")
+        out.write("                out(\"r11\") _,\n")
+        out.write("                lateout(\"rax\") ret\n")
+        out.write("           );\n")
+        out.write("           ret\n")
+        out.write("       }\n")
+        out.write("   }};\n")
+        out.write("   ($num: expr, $arg0: expr) => {{\n")
+        out.write("       unsafe {\n")
+        out.write("           let ret : u64;\n")
+        out.write("           asm!(\"syscall\",\n")
+        out.write("                in(\"rax\") $num,\n")
+        out.write("                in(\"rdi\") $arg0,\n")
+        out.write("                out(\"rcx\") _,\n")
+        out.write("                out(\"r11\") _,\n")
+        out.write("                lateout(\"rax\") ret\n")
+        out.write("           );\n")
+        out.write("           ret\n")
+        out.write("       }\n")
+        out.write("   }};\n")
+        out.write("   ($num: expr, $arg0: expr, $arg1: expr) => {{\n")
+        out.write("       unsafe {\n")
+        out.write("           let ret : u64;\n")
+        out.write("           asm!(\"syscall\",\n")
+        out.write("                in(\"rax\") $num,\n")
+        out.write("                in(\"rdi\") $arg0,\n")
+        out.write("                in(\"rsi\") $arg1,\n")
+        out.write("                out(\"rcx\") _,\n")
+        out.write("                out(\"r11\") _,\n")
+        out.write("                lateout(\"rax\") ret\n")
+        out.write("           );\n")
+        out.write("           ret\n")
+        out.write("       }\n")
+        out.write("   }};\n")
         out.write("   ($num: expr, $arg0: expr, $arg1: expr, $arg2: expr) => {{\n")
         out.write("       unsafe {\n")
         out.write("           let ret : u64;\n")
@@ -1424,6 +1463,57 @@ def generate_rust(program: Program, out_file_path: str):
         out.write("                in(\"rdi\") $arg0,\n")
         out.write("                in(\"rsi\") $arg1,\n")
         out.write("                in(\"rdx\") $arg2,\n")
+        out.write("                out(\"rcx\") _,\n")
+        out.write("                out(\"r11\") _,\n")
+        out.write("                lateout(\"rax\") ret\n")
+        out.write("           );\n")
+        out.write("           ret\n")
+        out.write("       }\n")
+        out.write("   }};\n")
+        out.write("   ($num: expr, $arg0: expr, $arg1: expr, $arg2: expr, $arg3: expr) => {{\n")
+        out.write("       unsafe {\n")
+        out.write("           let ret : u64;\n")
+        out.write("           asm!(\"syscall\",\n")
+        out.write("                in(\"rax\") $num,\n")
+        out.write("                in(\"rdi\") $arg0,\n")
+        out.write("                in(\"rsi\") $arg1,\n")
+        out.write("                in(\"rdx\") $arg2,\n")
+        out.write("                in(\"r10\") $arg3,\n")
+        out.write("                out(\"rcx\") _,\n")
+        out.write("                out(\"r11\") _,\n")
+        out.write("                lateout(\"rax\") ret\n")
+        out.write("           );\n")
+        out.write("           ret\n")
+        out.write("       }\n")
+        out.write("   }};\n")
+        out.write("   ($num: expr, $arg0: expr, $arg1: expr, $arg2: expr, $arg3: expr, $arg4: expr) => {{\n")
+        out.write("       unsafe {\n")
+        out.write("           let ret : u64;\n")
+        out.write("           asm!(\"syscall\",\n")
+        out.write("                in(\"rax\") $num,\n")
+        out.write("                in(\"rdi\") $arg0,\n")
+        out.write("                in(\"rsi\") $arg1,\n")
+        out.write("                in(\"rdx\") $arg2,\n")
+        out.write("                in(\"r10\") $arg3,\n")
+        out.write("                in(\"r8\") $arg4,\n")
+        out.write("                out(\"rcx\") _,\n")
+        out.write("                out(\"r11\") _,\n")
+        out.write("                lateout(\"rax\") ret\n")
+        out.write("           );\n")
+        out.write("           ret\n")
+        out.write("       }\n")
+        out.write("   }};\n")
+        out.write("   ($num: expr, $arg0: expr, $arg1: expr, $arg2: expr, $arg3: expr, $arg4: expr, $arg5: expr) => {{\n")
+        out.write("       unsafe {\n")
+        out.write("           let ret : u64;\n")
+        out.write("           asm!(\"syscall\",\n")
+        out.write("                in(\"rax\") $num,\n")
+        out.write("                in(\"rdi\") $arg0,\n")
+        out.write("                in(\"rsi\") $arg1,\n")
+        out.write("                in(\"rdx\") $arg2,\n")
+        out.write("                in(\"r10\") $arg3,\n")
+        out.write("                in(\"r8\") $arg4,\n")
+        out.write("                in(\"r9\") $arg5,\n")
         out.write("                out(\"rcx\") _,\n")
         out.write("                out(\"r11\") _,\n")
         out.write("                lateout(\"rax\") ret\n")
@@ -1788,68 +1878,68 @@ def generate_rust(program: Program, out_file_path: str):
                     assert False, "todo"
                     out.write("    ;; -- cast(ptr) --\n")
                 elif op.operand == Intrinsic.SYSCALL0:
-                    assert False, "todo"
-                    out.write("    ;; -- syscall0 --\n")
-                    out.write("    pop rax\n")
-                    out.write("    syscall\n")
-                    out.write("    push rax\n")
+                    _, num = stack.pop()
+                    var = var_id
+                    var_id += 1
+                    out.write(("    " * offset) + "let v%d: u64 = syscall!(v%d);\n" % (var, num))
+                    stack.append((DataType.INT, var))
                 elif op.operand == Intrinsic.SYSCALL1:
-                    assert False, "todo"
-                    out.write("    ;; -- syscall1 --\n")
-                    out.write("    pop rax\n")
-                    out.write("    pop rdi\n")
-                    out.write("    syscall\n")
-                    out.write("    push rax\n")
+                    _, num = stack.pop()
+                    _, arg0 = stack.pop()
+                    var = var_id
+                    var_id += 1
+                    out.write(("    " * offset) + "let v%d: u64 = syscall!(v%d, v%d);\n" % (var, num, arg0))
+                    stack.append((DataType.INT, var))
                 elif op.operand == Intrinsic.SYSCALL2:
-                    assert False, "todo"
-                    out.write("    ;; -- syscall2 -- \n")
-                    out.write("    pop rax\n");
-                    out.write("    pop rdi\n");
-                    out.write("    pop rsi\n");
-                    out.write("    syscall\n");
-                    out.write("    push rax\n")
+                    _, num = stack.pop()
+                    _, arg0 = stack.pop()
+                    _, arg1 = stack.pop()
+                    var = var_id
+                    var_id += 1
+                    out.write(("    " * offset) + "let v%d: u64 = syscall!(v%d, v%d, v%d);\n" % (var, num, arg0, arg1))
+                    stack.append((DataType.INT, var))
                 elif op.operand == Intrinsic.SYSCALL3:
+                    _, num = stack.pop()
+                    _, arg0 = stack.pop()
+                    _, arg1 = stack.pop()
+                    _, arg2 = stack.pop()
+                    var = var_id;
+                    var_id += 1
+                    out.write(("    " * offset) + "let v%d: u64 = syscall!(v%d, v%d, v%d, v%d);\n" % (var, num, arg0, arg1, arg2))
+                    stack.append((DataType.INT, var))
+                elif op.operand == Intrinsic.SYSCALL4:
+                    _, num = stack.pop();
+                    _, arg0 = stack.pop()
+                    _, arg1 = stack.pop()
+                    _, arg2 = stack.pop()
+                    _, arg3 = stack.pop()
+                    var = var_id
+                    var_id += 1
+                    out.write(("    " * offset) + "let v%d: u64 = syscall!(v%d, v%d, v%d, v%d, v%d);\n" % (var, num, arg0, arg1, arg2, arg3))
+                    stack.append((DataType.INT, var))
+                elif op.operand == Intrinsic.SYSCALL5:
+                    _, num = stack.pop()
+                    _, arg0 = stack.pop()
+                    _, arg1 = stack.pop()
+                    _, arg2 = stack.pop()
+                    _, arg3 = stack.pop()
+                    _, arg4 = stack.pop()
+                    var = var_id
+                    var_id += 1
+                    out.write(("    " * offset) + "let v%d: u64 = syscall!(v%d, v%d, v%d, v%d, v%d, v%d);\n" % (var, num, arg0, arg1, arg2, arg3, arg4))
+                    stack.append((DataType.INT, var))
+                elif op.operand == Intrinsic.SYSCALL6:
                     _, num = stack.pop();
                     _, arg0 = stack.pop();
                     _, arg1 = stack.pop();
                     _, arg2 = stack.pop();
-                    var = var_id;
+                    _, arg3 = stack.pop();
+                    _, arg4 = stack.pop();
+                    _, arg5 = stack.pop();
+                    var = var_id
                     var_id += 1
-                    out.write(("    " * offset) + "let v%d: u64 = syscall3!(v%d, v%d, v%d, v%d);\n" % (var, num, arg0, arg1, arg2))
+                    out.write(("    " * offset) + "let v%d: u64 = syscall!(v%d, v%d, v%d, v%d, v%d, v%d, v%d);\n" % (var, num, arg0, arg1, arg2, arg3, arg4, arg5))
                     stack.append((DataType.INT, var))
-                elif op.operand == Intrinsic.SYSCALL4:
-                    assert False, "todo"
-                    out.write("    ;; -- syscall4 --\n")
-                    out.write("    pop rax\n")
-                    out.write("    pop rdi\n")
-                    out.write("    pop rsi\n")
-                    out.write("    pop rdx\n")
-                    out.write("    pop r10\n")
-                    out.write("    syscall\n")
-                    out.write("    push rax\n")
-                elif op.operand == Intrinsic.SYSCALL5:
-                    assert False, "todo"
-                    out.write("    ;; -- syscall5 --\n")
-                    out.write("    pop rax\n")
-                    out.write("    pop rdi\n")
-                    out.write("    pop rsi\n")
-                    out.write("    pop rdx\n")
-                    out.write("    pop r10\n")
-                    out.write("    pop r8\n")
-                    out.write("    syscall\n")
-                    out.write("    push rax\n")
-                elif op.operand == Intrinsic.SYSCALL6:
-                    assert False, "todo"
-                    out.write("    ;; -- syscall6 --\n")
-                    out.write("    pop rax\n")
-                    out.write("    pop rdi\n")
-                    out.write("    pop rsi\n")
-                    out.write("    pop rdx\n")
-                    out.write("    pop r10\n")
-                    out.write("    pop r8\n")
-                    out.write("    pop r9\n")
-                    out.write("    syscall\n")
-                    out.write("    push rax\n")
                 else:
                     assert False, "unreachable"
             else:
