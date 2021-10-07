@@ -357,3 +357,7 @@ end
 macro puts
   stdout write drop
 end
+
+macro eputs
+  stderr write drop
+end
