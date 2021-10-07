@@ -1590,7 +1590,10 @@ def generate_rust(program: Program, out_file_path: str):
                 assert isinstance(op.operand, int), "This could be a bug in the compilation step"
                 var = var_id;
                 var_id += 1
-                out.write(("    " * offset) + "let v%d: u64 = %d;\n" % (var, op.operand))
+                if op.operand < 0:
+                    out.write(("    " * offset) + "let v%d: u64 = %d as i64 as u64;\n" % (var, op.operand))
+                else:
+                    out.write(("    " * offset) + "let v%d: u64 = %d;\n" % (var, op.operand))
                 stack.append((DataType.INT, var))
             elif op.typ == OpType.PUSH_STR:
                 assert isinstance(op.operand, str), "This could be a bug in the compilation step"
