@@ -364,3 +364,13 @@ Include tokens of file `file.porth`
 ```
 include "file.porth"
 ```
+
+### Misc
+
+- `here` - pushes a string `"<file-path>:<row>:<col>"` where `<file-path>` is the path to the file where `here` is located, `<row>` is the row on which `here` is located and `<col>` is the column from which `here` starts. It is useful for reporting developer errors:
+
+```pascal
+include "std.porth"
+
+here puts ": TODO: not implemented\n" puts 1 exit
+```

@@ -1,0 +1,9 @@
+:i argc 0
+:b stdin 0
+
+:i returncode 69
+:b stdout 62
+./tests/here.porth:7:1: TODO: something needs to be done here
+
+:b stderr 0
+
