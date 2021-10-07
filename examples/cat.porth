@@ -8,7 +8,7 @@ macro buffer fd 8 + end
 
 macro cat_fd
   while BUFFER_CAP buffer fd ,64 read dup 0 > do
-     buffer stdout write drop
+     buffer puts
   end drop
 end
 
@@ -20,9 +20,9 @@ else
     O_RDONLY over nth_argv AT_FDCWD openat
     
     dup 0 < if
-      "ERROR: could not open file " stderr write drop
-      over nth_argv dup strlen swap stderr write drop
-      "\n" stderr write drop
+      "ERROR: could not open file " eputs
+      over nth_argv dup strlen swap eputs
+      "\n" eputs
       drop
     else
       fd swap .64

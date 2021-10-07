@@ -3,17 +3,17 @@ include "std.porth"
 macro limit mem end
 
 argc 2 < if
-  "Usage: seq <limit>\n" stderr write drop
-  "ERROR: no limit is provided\n" stderr write drop
+  "Usage: seq <limit>\n" eputs
+  "ERROR: no limit is provided\n" eputs
   1 exit
 end
 
 1 nth_argv
 while dup , 0 != do
   dup , '0' < over , '9' > or if
-    "ERROR: `" stderr write drop
-    1 nth_argv strlen 1 nth_argv stderr write drop
-    "` is not a correct integer\n" stderr write drop
+    "ERROR: `" eputs
+    1 nth_argv strlen 1 nth_argv eputs
+    "` is not a correct integer\n" eputs
     1 exit
   end
 

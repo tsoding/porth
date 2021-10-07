@@ -21,7 +21,7 @@ Hello, World:
 ```pascal
 include "std.porth"
 
-"Hello, World\n" stdout write drop
+"Hello, World\n" puts
 ```
 
 Simple program that prints numbers from 0 to 99 in an ascending order:
@@ -141,15 +141,14 @@ Example:
 
 ```
 include "std.porth"
-"Hello, World" stdout write drop
+"Hello, World" puts
 ```
 
-The `write` macro from `std.porth` module expects three values on the data stack:
+The `puts` macro from `std.porth` module expects two values on the data stack:
 1. the size of the buffer it needs to print,
-2. the pointer to the beginning of the buffer,
-3. and the output file descriptor where it needs to print to.
+2. the pointer to the beginning of the buffer.
 
-The size and the pointer are provided by the string `"Hello, World"`. The file descriptor is `stdout` macro from `std.porth`.
+The size and the pointer are provided by the string `"Hello, World"`.
 
 #### Character
 
@@ -349,11 +348,11 @@ for i in range(n):
 
 ### Macros
 
-Define a new word `write` that expands into a sequence of tokens `1 1 syscall3` during the compilation.
+Define a new word `write` that expands into a sequence of tokens `stdout SYS_write syscall3` during the compilation.
 
 ```
 macro write
-    1 1 syscall3
+    stdout SYS_write syscall3
 end
 ```
 
@@ -363,4 +362,14 @@ Include tokens of file `file.porth`
 
 ```
 include "file.porth"
+```
+
+### Misc
+
+- `here` - pushes a string `"<file-path>:<row>:<col>"` where `<file-path>` is the path to the file where `here` is located, `<row>` is the row on which `here` is located and `<col>` is the column from which `here` starts. It is useful for reporting developer errors:
+
+```pascal
+include "std.porth"
+
+here puts ": TODO: not implemented\n" puts 1 exit
 ```

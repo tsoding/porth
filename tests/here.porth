@@ -1,0 +1,3 @@
+include "std.porth"
+
+here puts ": TODO: something needs to be done here\n" puts 69 exit

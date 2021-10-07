@@ -2,10 +2,10 @@ include "std.porth"
 
 1 while dup argc < do
   dup nth_argv strlen
-  over nth_argv stdout
-  write drop
+  over nth_argv
+  puts
 
-  "\n" stdout write drop
+  "\n" puts
 
   1 +
 end drop

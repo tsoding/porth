@@ -1,7 +1,7 @@
 include "std.porth"
 
 macro check_less
-  < if "YES\n" else "NO\n" end stdout write drop
+  < if "YES\n" else "NO\n" end puts
 end
 
 1 2 check_less
@@ -16,6 +16,6 @@ macro even_fibs
   end drop drop
 end
 
-"------------------------------\n" stdout write drop
+"------------------------------\n" puts
 
 even_fibs
