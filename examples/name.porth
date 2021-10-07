@@ -3,11 +3,11 @@ include "std.porth"
 macro NAME_CAPACITY 256 end
 macro name mem end
 
-"What is your name? " stdout write drop
+"What is your name? " puts
 
 NAME_CAPACITY name stdin read
 dup 0 <= if
-  "ERROR: could not read your name, sorry ( ._.)\n" stderr write drop
+  "ERROR: could not read your name, sorry ( ._.)\n" eputs
   1 exit
 end
 
@@ -15,6 +15,6 @@ name over + 1 - , '\n' = if
   1 -
 end
 
-"Hello, " stdout write drop
-name stdout write drop
-"! ( ^-^)/\n" stdout write drop
+"Hello, " puts
+name puts
+"! ( ^-^)/\n" puts

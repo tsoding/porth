@@ -20,7 +20,7 @@ display N + 10 .
       1 +
    end drop
 
-   N 1 + display stdout write drop
+   N 1 + display puts
 
    row     , 1 shl
    row 1 + ,
