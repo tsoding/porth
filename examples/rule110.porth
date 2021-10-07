@@ -24,12 +24,12 @@ display N + 10 .
 
    row     , 1 shl
    row 1 + ,
-   bor
+   or
 
    1 while dup N 2 - < do
-      swap 1 shl 7 band
-      over row + 1 + , bor
-      2dup 110 swap shr 1 band
+      swap 1 shl 7 and
+      over row + 1 + , or
+      2dup 110 swap shr 1 and
       swap row + swap .
       swap
 

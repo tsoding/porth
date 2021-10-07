@@ -281,17 +281,22 @@ a = pop()
 b = pop()
 push(b << a)
 ```
-- `bor`
+- `or`
 ```
 a = pop()
 b = pop()
 push(b | a)
 ```
-- `band`
+- `and`
 ```
 a = pop()
 b = pop()
 push(b & a)
+```
+- `not`
+```
+a = pop()
+push(~a)
 ```
 
 #### Control Flow

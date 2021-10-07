@@ -10,7 +10,7 @@ end
 
 1 nth_argv
 while dup , 0 != do
-  dup , '0' < over , '9' > bor if
+  dup , '0' < over , '9' > or if
     "ERROR: `" stderr write drop
     1 nth_argv strlen 1 nth_argv stderr write drop
     "` is not a correct integer\n" stderr write drop
