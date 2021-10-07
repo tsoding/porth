@@ -5,7 +5,7 @@ import os
 from os import path
 import subprocess
 import shlex
-from typing import List, BinaryIO, Tuple
+from typing import List, BinaryIO, Tuple, Optional
 from dataclasses import dataclass
 
 PORTH_EXT = '.porth'
@@ -47,7 +47,9 @@ class TestCase:
     stdout: bytes
     stderr: bytes
 
-def load_test_case(file_path: str) -> TestCase:
+DEFAULT_TEST_CASE=TestCase(argv=[], stdin=bytes(), returncode=0, stdout=bytes(), stderr=bytes())
+
+def load_test_case(file_path: str) -> Optional[TestCase]:
     try:
         with open(file_path, "rb") as f:
             argv = []
@@ -60,7 +62,7 @@ def load_test_case(file_path: str) -> TestCase:
             stderr = read_blob_field(f, b'stderr')
             return TestCase(argv, stdin, returncode, stdout, stderr)
     except FileNotFoundError:
-        return TestCase(argv=[], stdin=bytes(), returncode=0, stdout=bytes(), stderr=bytes())
+        return None
 
 def save_test_case(file_path: str,
                    argv: List[str], stdin: bytes,
@@ -74,8 +76,13 @@ def save_test_case(file_path: str,
         write_blob_field(f, b'stdout', stdout)
         write_blob_field(f, b'stderr', stderr)
 
-def run_test_for_file(file_path: str) -> Tuple[bool, bool]:
+@dataclass
+class RunStats:
+    sim_failed: int = 0
+    com_failed: int = 0
+    ignored: int = 0
 
+def run_test_for_file(file_path: str, stats: RunStats = RunStats()):
     assert path.isfile(file_path)
     assert file_path.endswith(PORTH_EXT)
 
@@ -84,55 +91,50 @@ def run_test_for_file(file_path: str) -> Tuple[bool, bool]:
     tc_path = file_path[:-len(PORTH_EXT)] + ".txt"
     tc = load_test_case(tc_path)
 
-    sim = cmd_run_echoed([sys.executable, "./porth.py", "sim", file_path, *tc.argv], input=tc.stdin, capture_output=True)
-    sim_ok = True
-    if sim.returncode != tc.returncode or sim.stdout != tc.stdout or sim.stderr != tc.stderr:
-        sim_ok = False
-        print("[ERROR] Unexpected simulation output")
-        print("  Expected:")
-        print("    return code: %s" % tc.returncode)
-        print("    stdout: \n%s" % tc.stdout.decode("utf-8"))
-        print("    stderr: \n%s" % tc.stderr.decode("utf-8"))
-        print("  Actual:")
-        print("    return code: %s" % sim.returncode)
-        print("    stdout: \n%s" % sim.stdout.decode("utf-8"))
-        print("    stderr: \n%s" % sim.stderr.decode("utf-8"))
+    if tc is not None:
+        sim = cmd_run_echoed([sys.executable, "./porth.py", "sim", file_path, *tc.argv], input=tc.stdin, capture_output=True)
+        if sim.returncode != tc.returncode or sim.stdout != tc.stdout or sim.stderr != tc.stderr:
+            print("[ERROR] Unexpected simulation output")
+            print("  Expected:")
+            print("    return code: %s" % tc.returncode)
+            print("    stdout: \n%s" % tc.stdout.decode("utf-8"))
+            print("    stderr: \n%s" % tc.stderr.decode("utf-8"))
+            print("  Actual:")
+            print("    return code: %s" % sim.returncode)
+            print("    stdout: \n%s" % sim.stdout.decode("utf-8"))
+            print("    stderr: \n%s" % sim.stderr.decode("utf-8"))
+            stats.sim_failed += 1
 
-    com = cmd_run_echoed([sys.executable, "./porth.py", "com", "-r", "-s", file_path, *tc.argv], input=tc.stdin, capture_output=True)
-    com_ok = True
-    if com.returncode != tc.returncode or com.stdout != tc.stdout or com.stderr != tc.stderr:
-        com_ok = False
-        print("[ERROR] Unexpected compilation output")
-        print("  Expected:")
-        print("    return code: %s" % tc.returncode)
-        print("    stdout: \n%s" % tc.stdout.decode("utf-8"))
-        print("    stderr: \n%s" % tc.stderr.decode("utf-8"))
-        print("  Actual:")
-        print("    return code: %s" % com.returncode)
-        print("    stdout: \n%s" % com.stdout.decode("utf-8"))
-        print("    stderr: \n%s" % com.stderr.decode("utf-8"))
-
-    return (sim_ok, com_ok)
+        com = cmd_run_echoed([sys.executable, "./porth.py", "com", "-r", "-s", file_path, *tc.argv], input=tc.stdin, capture_output=True)
+        if com.returncode != tc.returncode or com.stdout != tc.stdout or com.stderr != tc.stderr:
+            print("[ERROR] Unexpected compilation output")
+            print("  Expected:")
+            print("    return code: %s" % tc.returncode)
+            print("    stdout: \n%s" % tc.stdout.decode("utf-8"))
+            print("    stderr: \n%s" % tc.stderr.decode("utf-8"))
+            print("  Actual:")
+            print("    return code: %s" % com.returncode)
+            print("    stdout: \n%s" % com.stdout.decode("utf-8"))
+            print("    stderr: \n%s" % com.stderr.decode("utf-8"))
+            stats.com_failed += 1
+    else:
+        print('[WARNING] Could not find any input/output data for %s. Skipping...' % file_path)
+        stats.ignored += 1
 
 def run_test_for_folder(folder: str):
-    sim_failed = 0
-    com_failed = 0
+    stats = RunStats()
     for entry in os.scandir(folder):
         if entry.is_file() and entry.path.endswith(PORTH_EXT):
-            sim_ok, com_ok = run_test_for_file(entry.path)
-            if not sim_ok:
-                sim_failed += 1
-            if not com_ok:
-                com_failed += 1
+            run_test_for_file(entry.path, stats)
     print()
-    print("Simulation failed: %d, Compilation failed: %d" % (sim_failed, com_failed))
-    if sim_failed != 0 or com_failed != 0:
+    print("Simulation failed: %d, Compilation failed: %d, Ignored: %d" % (stats.sim_failed, stats.com_failed, stats.ignored))
+    if stats.sim_failed != 0 or stats.com_failed != 0:
         exit(1)
 
 def update_input_for_file(file_path: str, argv: List[str]):
     assert file_path.endswith(PORTH_EXT)
     tc_path = file_path[:-len(PORTH_EXT)] + ".txt"
-    tc = load_test_case(tc_path)
+    tc = load_test_case(tc_path) or DEFAULT_TEST_CASE
 
     print("[INFO] Provide the stdin for the test case. Press ^D when you are done...")
 
@@ -145,7 +147,7 @@ def update_input_for_file(file_path: str, argv: List[str]):
 
 def update_output_for_file(file_path: str):
     tc_path = file_path[:-len(PORTH_EXT)] + ".txt"
-    tc = load_test_case(tc_path)
+    tc = load_test_case(tc_path) or DEFAULT_TEST_CASE
 
     output = cmd_run_echoed([sys.executable, "./porth.py", "sim", file_path, *tc.argv], input=tc.stdin, capture_output=True)
     print("[INFO] Saving output to %s" % tc_path)
