@@ -281,13 +281,13 @@ a = pop()
 b = pop()
 push(b << a)
 ```
-- `bor`
+- `or`
 ```
 a = pop()
 b = pop()
 push(b | a)
 ```
-- `band`
+- `and`
 ```
 a = pop()
 b = pop()

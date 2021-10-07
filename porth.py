@@ -45,8 +45,8 @@ class Intrinsic(Enum):
     NE=auto()
     SHR=auto()
     SHL=auto()
-    BOR=auto()
-    BAND=auto()
+    OR=auto()
+    AND=auto()
     PRINT=auto()
     DUP=auto()
     SWAP=auto()
@@ -254,12 +254,12 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                     b = stack.pop()
                     stack.append(int(b << a))
                     ip += 1
-                elif op.operand == Intrinsic.BOR:
+                elif op.operand == Intrinsic.OR:
                     a = stack.pop()
                     b = stack.pop()
                     stack.append(int(a | b))
                     ip += 1
-                elif op.operand == Intrinsic.BAND:
+                elif op.operand == Intrinsic.AND:
                     a = stack.pop()
                     b = stack.pop()
                     stack.append(int(a & b))
@@ -631,7 +631,7 @@ def type_check_program(program: Program):
                 else:
                     compiler_error_with_expansion_stack(op.token, "invalid argument type for SHL intrinsic")
                     exit(1)
-            elif op.operand == Intrinsic.BOR:
+            elif op.operand == Intrinsic.OR:
                 assert len(DataType) == 3, "Exhaustive type handling in BOR intrinsic"
                 if len(stack) < 2:
                     not_enough_arguments(op)
@@ -647,7 +647,7 @@ def type_check_program(program: Program):
                 else:
                     compiler_error_with_expansion_stack(op.token, "invalid argument type for BOR intrinsic")
                     exit(1)
-            elif op.operand == Intrinsic.BAND:
+            elif op.operand == Intrinsic.AND:
                 assert len(DataType) == 3, "Exhaustive type handling in BAND intrinsic"
                 if len(stack) < 2:
                     not_enough_arguments(op)
@@ -1003,13 +1003,13 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                     out.write("    pop rbx\n")
                     out.write("    shl rbx, cl\n")
                     out.write("    push rbx\n")
-                elif op.operand == Intrinsic.BOR:
+                elif op.operand == Intrinsic.OR:
                     out.write("    ;; -- bor --\n")
                     out.write("    pop rax\n")
                     out.write("    pop rbx\n")
                     out.write("    or rbx, rax\n")
                     out.write("    push rbx\n")
-                elif op.operand == Intrinsic.BAND:
+                elif op.operand == Intrinsic.AND:
                     out.write("    ;; -- band --\n")
                     out.write("    pop rax\n")
                     out.write("    pop rbx\n")
@@ -1229,8 +1229,8 @@ INTRINSIC_BY_NAMES = {
     '!=': Intrinsic.NE,
     'shr': Intrinsic.SHR,
     'shl': Intrinsic.SHL,
-    'bor': Intrinsic.BOR,
-    'band': Intrinsic.BAND,
+    'or': Intrinsic.OR,
+    'and': Intrinsic.AND,
     'dup': Intrinsic.DUP,
     'swap': Intrinsic.SWAP,
     'drop': Intrinsic.DROP,

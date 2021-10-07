@@ -11,9 +11,9 @@ include "std.porth"
 "------------------------------\n" stdout write drop
 
 // bit or
-1 2 bor print
+1 2 or print
 
 "------------------------------\n" stdout write drop
 
 // bit and
-1 2 band print
+1 2 and print
