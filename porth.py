@@ -1711,15 +1711,45 @@ def generate_rust(program: Program, out_file_path: str):
                     var_id += 1
                     out.write(("    " * offset) + "let mut v%d = v%d;\n" % (new_v, v[1]))
                     new_stack.append((v[0], new_v))
-                contexts.append((OpType.WHILE, copy(new_stack), []))
                 stack = new_stack
+                contexts.append((OpType.WHILE, copy(stack), []))
                 buffers.append(out)
                 out = StringIO()
 
                 out.write(("    " * offset) + "loop {\n")
                 offset += 1
             elif op.typ == OpType.DO:
-                out.write(("    " * offset) + "if !v%d {\n" % stack.pop()[1])
+                
+                if_arg = stack.pop()
+                _, while_context, _ = contexts.pop()
+
+                old_out = out
+                out = buffers.pop();
+                
+                while_vars = map(lambda x: x[1], while_context)
+                new_stack: List[int] = []
+                for v in stack:
+                    if v[1] in while_vars:
+                        new_stack.append(v)
+                    else:
+                        new_v = var_id
+                        var_id += 1
+                        out.write(("    " * (offset - 1)) + "let mut v%d = Default::default();\n" % new_v)
+                        new_stack.append((v[0], new_v))
+                contexts.append((OpType.WHILE, copy(new_stack), []))
+
+                out.write(old_out.getvalue())
+                old_out.close()
+
+                for (const, mut) in zip(stack, new_stack):
+                    out.write(("    " * offset) + "v%d = v%d;\n" % (mut[1], const[1]))
+
+                stack = new_stack
+
+                buffers.append(out)
+                out = StringIO()
+
+                out.write(("    " * offset) + "if !v%d {\n" % if_arg[1])
                 out.write(("    " * (offset + 1)) + "break\n")
                 out.write(("    " * offset) + "}\n")
                 assert isinstance(op.operand, int), "This could be a bug in the compilation step"
