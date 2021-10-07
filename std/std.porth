@@ -353,3 +353,7 @@ macro strlen
   while dup , 0 != do 1 + end
   swap -
 end
+
+macro puts
+  stdout write drop
+end
