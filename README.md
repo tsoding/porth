@@ -293,6 +293,11 @@ a = pop()
 b = pop()
 push(b & a)
 ```
+- `not`
+```
+a = pop()
+push(~a)
+```
 
 #### Control Flow
 
