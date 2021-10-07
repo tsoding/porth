@@ -1559,7 +1559,29 @@ def generate_rust(program: Program, out_file_path: str):
         out.write("}\n")
 
         out.write("static mut MEMORY: [u8;640_000] = [0;640_000];\n")
+        out.write("static mut MEMORY_POINTER: u64 = 0;\n")
         out.write("fn main() {\n")
+
+        out.write("    let args = std::env::args();\n")
+        out.write("    let argc = args.len() as u64;\n")
+        out.write("    let argv;\n")
+        out.write("    unsafe {\n")
+        out.write("        MEMORY_POINTER = MEMORY.as_ptr() as usize as u64;\n")
+        out.write("        argv = MEMORY_POINTER;\n")
+        out.write("        //Allocate memory for argv pointers\n")
+        out.write("        MEMORY_POINTER += 8 * argc as u64;\n")
+        out.write("        for (n, arg) in args.enumerate() {\n")
+        out.write("            let arg = arg.to_string();\n")
+        out.write("            let bs = arg.as_bytes();\n")
+        out.write("            *(MEMORY[8*n..].as_ptr() as *mut u64) = MEMORY_POINTER;\n")
+        out.write("            MEMORY[(MEMORY_POINTER as usize - MEMORY.as_ptr() as usize)..][..bs.len() as usize].copy_from_slice(bs);\n")
+        out.write("\n")
+        out.write("            MEMORY_POINTER += bs.len() as u64 /* null termination */ + 1;\n")
+        out.write("        }\n")
+        out.write("    }\n")
+        out.write("    let user_memory = unsafe {MEMORY_POINTER} as usize as u64;\n")
+        out.write("    \n\n\n\n")
+
 
         for ip in range(len(program)):
             op = program[ip]
@@ -1840,11 +1862,11 @@ def generate_rust(program: Program, out_file_path: str):
                 elif op.operand == Intrinsic.MEM:
                     var = var_id;
                     var_id += 1
-                    out.write(("    " * offset) + "let v%d = mem!(MEMORY);\n" % var)
+                    out.write(("    " * offset) + "let v%d = user_memory;\n" % var)
                     stack.append((DataType.PTR, var))
                 elif op.operand == Intrinsic.LOAD:
                     _, op0 = stack.pop()
-                    var = var_id;
+                    var = var_id
                     var_id += 1
                     out.write(("    " * offset) + "let v%d = load8!(v%d);\n" % (var, op0))
                     stack.append((DataType.INT, var))
@@ -1853,17 +1875,15 @@ def generate_rust(program: Program, out_file_path: str):
                     _, op1 = stack.pop()
                     out.write(("    " * offset) + "store8!(v%d, v%d);\n" % (op1, op0))
                 elif op.operand == Intrinsic.ARGC:
-                    assert False, "todo"
-                    out.write("    ;; -- argc --\n")
-                    out.write("    mov rax, [args_ptr]\n")
-                    out.write("    mov rax, [rax]\n")
-                    out.write("    push rax\n")
+                    var = var_id
+                    var_id += 1
+                    out.write(("    " * offset) + "let v%d = argc;\n" % var)
+                    stack.append((DataType.INT, var))
                 elif op.operand == Intrinsic.ARGV:
-                    assert False, "todo"
-                    out.write("    ;; -- argv --\n")
-                    out.write("    mov rax, [args_ptr]\n")
-                    out.write("    add rax, 8\n")
-                    out.write("    push rax\n")
+                    var = var_id
+                    var_id += 1
+                    out.write(("    " * offset) + "let v%d = argv;\n" % var)
+                    stack.append((DataType.INT, var))
                 elif op.operand == Intrinsic.LOAD64:
                     _, op0 = stack.pop()
                     var = var_id;
@@ -1875,8 +1895,8 @@ def generate_rust(program: Program, out_file_path: str):
                     _, op1 = stack.pop()
                     out.write(("    " * offset) + "store64!(v%d, v%d);\n" % (op1, op0))
                 elif op.operand == Intrinsic.CAST_PTR:
-                    assert False, "todo"
-                    out.write("    ;; -- cast(ptr) --\n")
+                    # Do nothing
+                    pass
                 elif op.operand == Intrinsic.SYSCALL0:
                     _, num = stack.pop()
                     var = var_id
