@@ -2463,7 +2463,7 @@ if __name__ == '__main__' and '__file__' in globals():
             cmd_call_echoed(["ld", "-o", basepath, basepath + ".o"], silent)
         elif subcommand == "translate":
             generate_rust(program, basepath + ".rs")
-            cmd_call_echoed(["rustc", "-o", basepath + "_rs", basepath + ".rs"], silent)
+            cmd_call_echoed(["rustc", "-C", "opt-level=3", "-o", basepath + "_rs", basepath + ".rs"], silent)
         else:
             assert False, "unreacheble"
         if run:
