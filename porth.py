@@ -1079,7 +1079,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                     out.write("    pop rdi\n")
                     out.write("    call print\n")
                 elif op.operand == Intrinsic.EQ:
-                    out.write("    ;; -- equal -- \n")
+                    out.write("    ;; -- equal --\n")
                     out.write("    mov rcx, 0\n");
                     out.write("    mov rdx, 1\n");
                     out.write("    pop rax\n");
@@ -1133,7 +1133,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                     out.write("    cmovne rcx, rdx\n")
                     out.write("    push rcx\n")
                 elif op.operand == Intrinsic.DUP:
-                    out.write("    ;; -- dup -- \n")
+                    out.write("    ;; -- dup --\n")
                     out.write("    pop rax\n")
                     out.write("    push rax\n")
                     out.write("    push rax\n")
@@ -1218,7 +1218,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                     out.write("    syscall\n")
                     out.write("    push rax\n")
                 elif op.operand == Intrinsic.SYSCALL2:
-                    out.write("    ;; -- syscall2 -- \n")
+                    out.write("    ;; -- syscall2 --\n")
                     out.write("    pop rax\n");
                     out.write("    pop rdi\n");
                     out.write("    pop rsi\n");
