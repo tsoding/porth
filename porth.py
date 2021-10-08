@@ -9,6 +9,7 @@ from typing import *
 from enum import IntEnum, Enum, auto
 from dataclasses import dataclass
 from copy import copy
+from time import sleep
 import traceback
 
 PORTH_EXT = '.porth'
@@ -53,6 +54,7 @@ class Intrinsic(Enum):
     SWAP=auto()
     DROP=auto()
     OVER=auto()
+    ROT=auto()
     MEM=auto()
     LOAD=auto()
     STORE=auto()
@@ -119,6 +121,7 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
     AT_FDCWD=-100
     O_RDONLY=0
     ENOENT=2
+    CLOCK_MONOTONIC=1
 
     stack: List[int] = []
     mem = bytearray(SIM_NULL_POINTER_PADDING + SIM_STR_CAPACITY + SIM_ARGV_CAPACITY + MEM_CAPACITY)
@@ -194,7 +197,7 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                 else:
                     ip += 1
             elif op.typ == OpType.INTRINSIC:
-                assert len(Intrinsic) == 36, "Exhaustive handling of intrinsic in simulate_little_endian_linux()"
+                assert len(Intrinsic) == 37, "Exhaustive handling of intrinsic in simulate_little_endian_linux()"
                 if op.operand == Intrinsic.PLUS:
                     a = stack.pop()
                     b = stack.pop()
@@ -295,6 +298,14 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                     stack.append(b)
                     stack.append(a)
                     stack.append(b)
+                    ip += 1
+                elif op.operand == Intrinsic.ROT:
+                    a = stack.pop()
+                    b = stack.pop()
+                    c = stack.pop()
+                    stack.append(b)
+                    stack.append(a)
+                    stack.append(c)
                     ip += 1
                 elif op.operand == Intrinsic.MEM:
                     stack.append(mem_buf_ptr)
@@ -407,7 +418,28 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                         assert False, "unknown syscall number %d" % syscall_number
                     ip += 1
                 elif op.operand == Intrinsic.SYSCALL4:
-                    assert False, "not implemented"
+                    syscall_number = stack.pop()
+                    arg1 = stack.pop()
+                    arg2 = stack.pop()
+                    arg3 = stack.pop()
+                    arg4 = stack.pop()
+
+                    if syscall_number == 230: # clock_nanosleep
+                        clock_id = arg1
+                        flags = arg2
+                        request_ptr = arg3
+                        remain_ptr = arg4
+                        assert clock_id == CLOCK_MONOTONIC, "Only CLOCK_MONOTONIC is implemented for SYS_clock_nanosleep"
+                        assert flags == 0, "Only relative time is supported for SYS_clock_nanosleep"
+                        assert request_ptr != 0, "request cannot be NULL for SYS_clock_nanosleep. We should probably return -1 in that case..."
+                        assert remain_ptr == 0, "remain is not supported for SYS_clock_nanosleep"
+                        seconds = int.from_bytes(mem[request_ptr:request_ptr+8], byteorder='little')
+                        nano_seconds = int.from_bytes(mem[request_ptr+8:request_ptr+8+8], byteorder='little')
+                        sleep(float(seconds)+float(nano_seconds)*1e-09)
+                        stack.append(0)
+                    else:
+                        assert False, "unknown syscall number %d" % syscall_number
+                    ip += 1
                 elif op.operand == Intrinsic.SYSCALL5:
                     assert False, "not implemented"
                 elif op.operand == Intrinsic.SYSCALL6:
@@ -477,7 +509,7 @@ def type_check_program(program: Program):
             stack.append((DataType.INT, op.token))
             stack.append((DataType.PTR, op.token))
         elif op.typ == OpType.INTRINSIC:
-            assert len(Intrinsic) == 36, "Exhaustive intrinsic handling in type_check_program()"
+            assert len(Intrinsic) == 37, "Exhaustive intrinsic handling in type_check_program()"
             assert isinstance(op.operand, Intrinsic), "This could be a bug in compilation step"
             if op.operand == Intrinsic.PLUS:
                 assert len(DataType) == 3, "Exhaustive type handling in PLUS intrinsic"
@@ -729,6 +761,16 @@ def type_check_program(program: Program):
                 stack.append(b)
                 stack.append(a)
                 stack.append(b)
+            elif op.operand == Intrinsic.ROT:
+                if len(stack) < 3:
+                    not_enough_arguments(op)
+                    exit(1)
+                a = stack.pop()
+                b = stack.pop()
+                c = stack.pop()
+                stack.append(b)
+                stack.append(a)
+                stack.append(c)
             elif op.operand == Intrinsic.MEM:
                 stack.append((DataType.PTR, op.token))
             elif op.operand == Intrinsic.LOAD:
@@ -999,7 +1041,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                 assert isinstance(op.operand, int), "This could be a bug in the compilation step"
                 out.write("    jz addr_%d\n" % op.operand)
             elif op.typ == OpType.INTRINSIC:
-                assert len(Intrinsic) == 36, "Exhaustive intrinsic handling in generate_nasm_linux_x86_64()"
+                assert len(Intrinsic) == 37, "Exhaustive intrinsic handling in generate_nasm_linux_x86_64()"
                 if op.operand == Intrinsic.PLUS:
                     out.write("    ;; -- plus --\n")
                     out.write("    pop rax\n")
@@ -1060,7 +1102,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                     out.write("    pop rdi\n")
                     out.write("    call print\n")
                 elif op.operand == Intrinsic.EQ:
-                    out.write("    ;; -- equal -- \n")
+                    out.write("    ;; -- equal --\n")
                     out.write("    mov rcx, 0\n");
                     out.write("    mov rdx, 1\n");
                     out.write("    pop rax\n");
@@ -1114,7 +1156,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                     out.write("    cmovne rcx, rdx\n")
                     out.write("    push rcx\n")
                 elif op.operand == Intrinsic.DUP:
-                    out.write("    ;; -- dup -- \n")
+                    out.write("    ;; -- dup --\n")
                     out.write("    pop rax\n")
                     out.write("    push rax\n")
                     out.write("    push rax\n")
@@ -1134,6 +1176,14 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                     out.write("    push rbx\n")
                     out.write("    push rax\n")
                     out.write("    push rbx\n")
+                elif op.operand == Intrinsic.ROT:
+                    out.write("    ;; -- rot --\n")
+                    out.write("    pop rax\n")
+                    out.write("    pop rbx\n")
+                    out.write("    pop rcx\n")
+                    out.write("    push rbx\n")
+                    out.write("    push rax\n")
+                    out.write("    push rcx\n")
                 elif op.operand == Intrinsic.MEM:
                     out.write("    ;; -- mem --\n")
                     out.write("    push mem\n")
@@ -1191,7 +1241,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                     out.write("    syscall\n")
                     out.write("    push rax\n")
                 elif op.operand == Intrinsic.SYSCALL2:
-                    out.write("    ;; -- syscall2 -- \n")
+                    out.write("    ;; -- syscall2 --\n")
                     out.write("    pop rax\n");
                     out.write("    pop rdi\n");
                     out.write("    pop rsi\n");
@@ -1262,7 +1312,7 @@ KEYWORD_NAMES = {
     'include': Keyword.INCLUDE,
 }
 
-assert len(Intrinsic) == 36, "Exhaustive INTRINSIC_BY_NAMES definition"
+assert len(Intrinsic) == 37, "Exhaustive INTRINSIC_BY_NAMES definition"
 INTRINSIC_BY_NAMES = {
     '+': Intrinsic.PLUS,
     '-': Intrinsic.MINUS,
@@ -1284,6 +1334,7 @@ INTRINSIC_BY_NAMES = {
     'swap': Intrinsic.SWAP,
     'drop': Intrinsic.DROP,
     'over': Intrinsic.OVER,
+    'rot': Intrinsic.ROT,
     'mem': Intrinsic.MEM,
     '.': Intrinsic.STORE,
     ',': Intrinsic.LOAD,

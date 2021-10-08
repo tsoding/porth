@@ -9,8 +9,8 @@ Porth is planned to be
 - [x] Native
 - [x] Stack-based (just like Forth)
 - [x] [Turing-complete](./examples/rule110.porth)
+- [x] Statically typed (the type checking is probably gonna be similar to the [WASM validation](https://binji.github.io/posts/webassembly-type-checking/))
 - [ ] Self-hosted (Python is used only as an initial bootstrap, once the language is mature enough we gonna rewrite it in itself)
-- [ ] Statically typed (the type checking is probably gonna be similar to the [WASM validation](https://binji.github.io/posts/webassembly-type-checking/))
 
 (these are not the selling points, but rather milestones of the development)
 
@@ -197,6 +197,15 @@ b = pop()
 push(b)
 push(a)
 push(b)
+```
+- `rot` - rotate the top three stack elements.
+```
+a = pop()
+b = pop()
+c = pop()
+push(b)
+push(a)
+push(c)
 ```
 
 #### Comparison
