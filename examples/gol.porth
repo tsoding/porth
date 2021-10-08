@@ -1,0 +1,127 @@
+include "std.porth"
+
+// constants
+macro N 10 end
+macro ROWS 10 end
+macro COLS 20 end
+macro BOARD_SIZE ROWS COLS * end
+
+// memory layout
+macro board_current_index mem end
+macro nbors board_current_index 8 + end
+macro value nbors 8 + end
+macro board_base value 8 + end
+macro display BOARD_SIZE 2 * board_base + end
+
+macro board_current
+  board_base board_current_index ,64 BOARD_SIZE * +
+end
+
+macro board_next
+  board_base 1 board_current_index ,64 - BOARD_SIZE * +
+end
+
+macro swap_boards
+  board_current_index 1 board_current_index ,64 - .64
+end
+
+macro display_row
+  0 while dup COLS < do
+    2dup + , 0 = if
+      display over + '.' .
+    else
+      display over + '*' .
+    end
+    1 +
+  end drop
+  COLS display + '\n' .
+  COLS 1 + display puts
+  drop
+end
+
+macro display_board
+  0 while dup ROWS < do
+    2dup COLS * + display_row
+    1 +
+  end drop
+  drop
+end
+
+macro display_current_board
+  board_current display_board
+end
+
+macro get_current_cell
+  swap COLS * + board_current + ,
+end
+
+macro set_next_cell
+  value swap .64
+  swap COLS * + board_next +
+  value ,64
+  .
+end
+
+// TODO: count_current_nbors does not take into account boundaries
+macro count_current_nbors
+  nbors 0 .64
+  2dup 1 - swap 1 - COLS * + board_current + , 1 = if nbors inc64 end
+  2dup 1 - swap     COLS * + board_current + , 1 = if nbors inc64 end
+  2dup 1 - swap 1 + COLS * + board_current + , 1 = if nbors inc64 end
+  2dup     swap 1 - COLS * + board_current + , 1 = if nbors inc64 end
+  2dup     swap 1 + COLS * + board_current + , 1 = if nbors inc64 end
+  2dup 1 + swap 1 - COLS * + board_current + , 1 = if nbors inc64 end
+  2dup 1 + swap     COLS * + board_current + , 1 = if nbors inc64 end
+  2dup 1 + swap 1 + COLS * + board_current + , 1 = if nbors inc64 end
+  2drop
+  nbors ,64
+end
+
+// .*.
+// ..*
+// ***
+macro put_glider
+   dup 0 COLS * 1 + + 1 .
+   dup 1 COLS * 2 + + 1 .
+   dup 2 COLS * 0 + + 1 .
+   dup 2 COLS * 1 + + 1 .
+   dup 2 COLS * 2 + + 1 .
+   drop
+end
+
+macro main
+  board_current put_glider
+  
+  // TODO: make the loop infinite like in https://github.com/rexim/aids/blob/5e02a3c608f4c000549a23e0a7eb0aa4e5b53d89/examples/gol.cpp#L103-L112
+  0 while dup N < do
+    display_current_board
+    "------------------------------\n" puts
+  
+    0 while dup ROWS < do
+      0 while dup COLS < do
+        2dup get_current_cell 1 = if
+          2dup count_current_nbors
+          dup 2 = swap 3 = or if
+            2dup 1 set_next_cell
+          else
+            2dup 0 set_next_cell
+          end
+        else
+          2dup count_current_nbors 3 = if
+            2dup 1 set_next_cell
+          else
+            2dup 0 set_next_cell
+          end
+        end
+      
+        1 +
+      end drop
+      1 +
+    end drop
+  
+    swap_boards
+    1 +
+  end drop
+end
+
+main
