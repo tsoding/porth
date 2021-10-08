@@ -9,6 +9,7 @@ from typing import *
 from enum import IntEnum, Enum, auto
 from dataclasses import dataclass
 from copy import copy
+from time import sleep
 import traceback
 
 PORTH_EXT = '.porth'
@@ -120,6 +121,7 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
     AT_FDCWD=-100
     O_RDONLY=0
     ENOENT=2
+    CLOCK_MONOTONIC=1
 
     stack: List[int] = []
     mem = bytearray(SIM_NULL_POINTER_PADDING + SIM_STR_CAPACITY + SIM_ARGV_CAPACITY + MEM_CAPACITY)
@@ -416,7 +418,28 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                         assert False, "unknown syscall number %d" % syscall_number
                     ip += 1
                 elif op.operand == Intrinsic.SYSCALL4:
-                    assert False, "not implemented"
+                    syscall_number = stack.pop()
+                    arg1 = stack.pop()
+                    arg2 = stack.pop()
+                    arg3 = stack.pop()
+                    arg4 = stack.pop()
+
+                    if syscall_number == 230: # clock_nanosleep
+                        clock_id = arg1
+                        flags = arg2
+                        request_ptr = arg3
+                        remain_ptr = arg4
+                        assert clock_id == CLOCK_MONOTONIC, "Only CLOCK_MONOTONIC is implemented for SYS_clock_nanosleep"
+                        assert flags == 0, "Only relative time is supported for SYS_clock_nanosleep"
+                        assert request_ptr != 0, "request cannot be NULL for SYS_clock_nanosleep. We should probably return -1 in that case..."
+                        assert remain_ptr == 0, "remain is not supported for SYS_clock_nanosleep"
+                        seconds = int.from_bytes(mem[request_ptr:request_ptr+8], byteorder='little')
+                        nano_seconds = int.from_bytes(mem[request_ptr+8:request_ptr+8+8], byteorder='little')
+                        sleep(float(seconds)+float(nano_seconds)*1e-09)
+                        stack.append(0)
+                    else:
+                        assert False, "unknown syscall number %d" % syscall_number
+                    ip += 1
                 elif op.operand == Intrinsic.SYSCALL5:
                     assert False, "not implemented"
                 elif op.operand == Intrinsic.SYSCALL6:
