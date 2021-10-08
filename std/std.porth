@@ -1,3 +1,8 @@
+macro NULL 0 end
+
+macro true 0 0 = end
+macro false 0 0 != end
+
 /// Standard streams
 macro stdin  0 end
 macro stdout 1 end
@@ -323,7 +328,11 @@ macro SYS_kcmp 312 end
 macro SYS_finit_module 313 end
 
 macro AT_FDCWD -100 end
+
 macro O_RDONLY 0 end
+
+macro CLOCK_MONOTONIC 1 end
+macro TIMER_ABSTIME 1 end
 
 // Wrappers for common syscalls
 macro write SYS_write syscall3 end
@@ -331,6 +340,7 @@ macro read SYS_read syscall3 end
 macro openat SYS_openat syscall3 end
 macro close SYS_close syscall1 end
 macro exit SYS_exit syscall1 drop end
+macro clock_nanosleep SYS_clock_nanosleep syscall4 end
 
 macro 2dup over over end
 macro 2drop drop drop end
