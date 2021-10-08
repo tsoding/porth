@@ -53,6 +53,7 @@ class Intrinsic(Enum):
     SWAP=auto()
     DROP=auto()
     OVER=auto()
+    ROT=auto()
     MEM=auto()
     LOAD=auto()
     STORE=auto()
@@ -194,7 +195,7 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                 else:
                     ip += 1
             elif op.typ == OpType.INTRINSIC:
-                assert len(Intrinsic) == 36, "Exhaustive handling of intrinsic in simulate_little_endian_linux()"
+                assert len(Intrinsic) == 37, "Exhaustive handling of intrinsic in simulate_little_endian_linux()"
                 if op.operand == Intrinsic.PLUS:
                     a = stack.pop()
                     b = stack.pop()
@@ -295,6 +296,14 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                     stack.append(b)
                     stack.append(a)
                     stack.append(b)
+                    ip += 1
+                elif op.operand == Intrinsic.ROT:
+                    a = stack.pop()
+                    b = stack.pop()
+                    c = stack.pop()
+                    stack.append(b)
+                    stack.append(a)
+                    stack.append(c)
                     ip += 1
                 elif op.operand == Intrinsic.MEM:
                     stack.append(mem_buf_ptr)
@@ -477,7 +486,7 @@ def type_check_program(program: Program):
             stack.append((DataType.INT, op.token))
             stack.append((DataType.PTR, op.token))
         elif op.typ == OpType.INTRINSIC:
-            assert len(Intrinsic) == 36, "Exhaustive intrinsic handling in type_check_program()"
+            assert len(Intrinsic) == 37, "Exhaustive intrinsic handling in type_check_program()"
             assert isinstance(op.operand, Intrinsic), "This could be a bug in compilation step"
             if op.operand == Intrinsic.PLUS:
                 assert len(DataType) == 3, "Exhaustive type handling in PLUS intrinsic"
@@ -729,6 +738,16 @@ def type_check_program(program: Program):
                 stack.append(b)
                 stack.append(a)
                 stack.append(b)
+            elif op.operand == Intrinsic.ROT:
+                if len(stack) < 3:
+                    not_enough_arguments(op)
+                    exit(1)
+                a = stack.pop()
+                b = stack.pop()
+                c = stack.pop()
+                stack.append(b)
+                stack.append(a)
+                stack.append(c)
             elif op.operand == Intrinsic.MEM:
                 stack.append((DataType.PTR, op.token))
             elif op.operand == Intrinsic.LOAD:
@@ -999,7 +1018,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                 assert isinstance(op.operand, int), "This could be a bug in the compilation step"
                 out.write("    jz addr_%d\n" % op.operand)
             elif op.typ == OpType.INTRINSIC:
-                assert len(Intrinsic) == 36, "Exhaustive intrinsic handling in generate_nasm_linux_x86_64()"
+                assert len(Intrinsic) == 37, "Exhaustive intrinsic handling in generate_nasm_linux_x86_64()"
                 if op.operand == Intrinsic.PLUS:
                     out.write("    ;; -- plus --\n")
                     out.write("    pop rax\n")
@@ -1134,6 +1153,14 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                     out.write("    push rbx\n")
                     out.write("    push rax\n")
                     out.write("    push rbx\n")
+                elif op.operand == Intrinsic.ROT:
+                    out.write("    ;; -- rot --\n")
+                    out.write("    pop rax\n")
+                    out.write("    pop rbx\n")
+                    out.write("    pop rcx\n")
+                    out.write("    push rbx\n")
+                    out.write("    push rax\n")
+                    out.write("    push rcx\n")
                 elif op.operand == Intrinsic.MEM:
                     out.write("    ;; -- mem --\n")
                     out.write("    push mem\n")
@@ -1262,7 +1289,7 @@ KEYWORD_NAMES = {
     'include': Keyword.INCLUDE,
 }
 
-assert len(Intrinsic) == 36, "Exhaustive INTRINSIC_BY_NAMES definition"
+assert len(Intrinsic) == 37, "Exhaustive INTRINSIC_BY_NAMES definition"
 INTRINSIC_BY_NAMES = {
     '+': Intrinsic.PLUS,
     '-': Intrinsic.MINUS,
@@ -1284,6 +1311,7 @@ INTRINSIC_BY_NAMES = {
     'swap': Intrinsic.SWAP,
     'drop': Intrinsic.DROP,
     'over': Intrinsic.OVER,
+    'rot': Intrinsic.ROT,
     'mem': Intrinsic.MEM,
     '.': Intrinsic.STORE,
     ',': Intrinsic.LOAD,

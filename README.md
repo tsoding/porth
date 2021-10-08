@@ -198,6 +198,15 @@ push(b)
 push(a)
 push(b)
 ```
+- `rot` - rotate the top three stack elements.
+```
+a = pop()
+b = pop()
+c = pop()
+push(b)
+push(a)
+push(c)
+```
 
 #### Comparison
 
