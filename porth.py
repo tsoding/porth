@@ -1653,7 +1653,7 @@ def generate_rust(program: Program, out_file_path: str):
                 for new_v_val in stack[len(prev_context):]:
                     new_v = var_id
                     var_id += 1
-                    out.write(("    " * (offset - 1)) + "let mut v%d = Default::default();\n" % new_v)
+                    out.write(("    " * (offset - 1)) + "let mut v%d;\n" % new_v)
                     new_stack_entries.append((new_v_val[0], new_v))
                 
                 out.write(old_out.getvalue())
@@ -1737,7 +1737,7 @@ def generate_rust(program: Program, out_file_path: str):
                     else:
                         new_v = var_id
                         var_id += 1
-                        out.write(("    " * (offset - 1)) + "let mut v%d = Default::default();\n" % new_v)
+                        out.write(("    " * (offset - 1)) + "let mut v%d;\n" % new_v)
                         new_stack.append((v[0], new_v))
                 contexts.append((OpType.WHILE, copy(new_stack), []))
 
