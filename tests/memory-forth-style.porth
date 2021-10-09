@@ -1,0 +1,23 @@
+// Forth-style memory access
+include "std.porth"
+
+// write "abc" into the memory
+97 mem 0 + !
+98 mem 1 + !
+99 mem 2 + !
+10 mem 3 + !
+
+// print "abc" to stdout
+4 mem stdout write print
+
+// increament each character by 1 making it "bcd"
+mem 0 + dup @ 1 + swap !
+mem 1 + dup @ 1 + swap !
+mem 2 + dup @ 1 + swap !
+
+// print "bcd" to stdout
+4 mem stdout write print
+
+// print UINT64_MAX (Largest 64 bit word)
+18446744073709551615 mem !64 
+mem @64 print
