@@ -194,8 +194,8 @@ macro usage
   "  SUBCOMMANDS:\n" eputs
   "    sim              Simulate the program.\n" eputs
   "    com              Compile the program\n" eputs
+  "    help             Print this help to stderr and exit with 0 code\n" eputs
 end
-
 
 macro main
   argc 2 < if
@@ -214,11 +214,14 @@ macro main
     simulate-ops
   else dup "com\0" swap drop streq if
     compile-ops
+  else dup "help\0" swap drop streq if
+    usage
+    0 exit
   else
     usage
-    "ERROR: unknown subcommand" eputs
+    "ERROR: unknown subcommand `" eputs dup dup strlen swap eputs "`\n" eputs
     1 exit
-  end end
+  end end end
   drop
 end
 
