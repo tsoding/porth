@@ -323,7 +323,6 @@ push(mem_addr)
 # This is not actually implemented in simulation mode
 push(byref(stack[-1]))
 ```
-
 - `.` - store a given byte at the address on the stack.
 ```
 byte = pop()
