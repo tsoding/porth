@@ -318,6 +318,12 @@ push(~a)
 ```
 push(mem_addr)
 ```
+- `ref` - pushes the address of the top of the stack onto the stack. (Compilation-only)
+```
+# This is not actually implemented in simulation mode
+push(byref(stack[-1]))
+```
+
 - `.` - store a given byte at the address on the stack.
 ```
 byte = pop()
