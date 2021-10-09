@@ -189,9 +189,37 @@ macro program123
   OP_PRINT    0 push-op
 end
 
-program69
+macro usage
+  "Usage: porth <SUBCOMMAND>\n" eputs
+  "  SUBCOMMANDS:\n" eputs
+  "    sim              Simulate the program.\n" eputs
+  "    com              Compile the program\n" eputs
+end
 
-// TODO: parsing file is not implemented
-// TODO: user cannot choose the mode (com vs sim) from the command line args
 
-simulate-ops
+macro main
+  argc 2 < if
+    usage
+    "ERROR: subcommand is not provided\n" eputs
+    1 exit
+  end
+
+  program123
+
+  // TODO: parsing file is not implemented
+
+  1 nth_argv
+  // TODO: consider adding null terminated string literals
+  dup "sim\0" swap drop streq if
+    simulate-ops
+  else dup "com\0" swap drop streq if
+    compile-ops
+  else
+    usage
+    "ERROR: unknown subcommand" eputs
+    1 exit
+  end end
+  drop
+end
+
+main

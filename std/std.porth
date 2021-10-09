@@ -368,6 +368,21 @@ macro strlen
   swap -
 end
 
+macro streq
+  while
+    over , 0 != over , 0 != and if
+       over , over , =
+    else
+       false
+    end
+  do
+    1 + swap 1 +
+  end
+  , 0 =
+  swap , 0 =
+  and
+end
+
 macro puts
   stdout write drop
 end
