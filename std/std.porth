@@ -383,8 +383,12 @@ macro streq
   and
 end
 
+macro fputs
+  write drop
+end
+
 macro puts
-  stdout write drop
+  stdout fputs
 end
 
 macro putd 
@@ -417,5 +421,5 @@ drop
 end
 
 macro eputs
-  stderr write drop
+  stderr fputs
 end
