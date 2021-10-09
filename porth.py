@@ -56,6 +56,7 @@ class Intrinsic(Enum):
     OVER=auto()
     ROT=auto()
     MEM=auto()
+    REF=auto()
     LOAD=auto()
     STORE=auto()
     FORTH_LOAD=auto()
@@ -201,7 +202,7 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                 else:
                     ip += 1
             elif op.typ == OpType.INTRINSIC:
-                assert len(Intrinsic) == 41, "Exhaustive handling of intrinsic in simulate_little_endian_linux()"
+                assert len(Intrinsic) == 42, "Exhaustive handling of intrinsic in simulate_little_endian_linux()"
                 if op.operand == Intrinsic.PLUS:
                     a = stack.pop()
                     b = stack.pop()
@@ -314,6 +315,8 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                 elif op.operand == Intrinsic.MEM:
                     stack.append(mem_buf_ptr)
                     ip += 1
+                elif op.operand == Intrinsic.REF:
+                    assert False, "%s:%d:%d Stack pointers are not allowed in simulation mode." % op.token.loc
                 elif op.operand == Intrinsic.LOAD:
                     addr = stack.pop()
                     byte = mem[addr]
@@ -538,7 +541,7 @@ def type_check_program(program: Program):
             stack.append((DataType.INT, op.token))
             stack.append((DataType.PTR, op.token))
         elif op.typ == OpType.INTRINSIC:
-            assert len(Intrinsic) == 41, "Exhaustive intrinsic handling in type_check_program()"
+            assert len(Intrinsic) == 42, "Exhaustive intrinsic handling in type_check_program()"
             assert isinstance(op.operand, Intrinsic), "This could be a bug in compilation step"
             if op.operand == Intrinsic.PLUS:
                 assert len(DataType) == 3, "Exhaustive type handling in PLUS intrinsic"
@@ -801,6 +804,8 @@ def type_check_program(program: Program):
                 stack.append(a)
                 stack.append(c)
             elif op.operand == Intrinsic.MEM:
+                stack.append((DataType.PTR, op.token))
+            elif op.operand == Intrinsic.REF:
                 stack.append((DataType.PTR, op.token))
             elif op.operand == Intrinsic.LOAD:
                 assert len(DataType) == 3, "Exhaustive type handling in LOAD intrinsic"
@@ -1122,7 +1127,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                 assert isinstance(op.operand, int), "This could be a bug in the compilation step"
                 out.write("    jz addr_%d\n" % op.operand)
             elif op.typ == OpType.INTRINSIC:
-                assert len(Intrinsic) == 41, "Exhaustive intrinsic handling in generate_nasm_linux_x86_64()"
+                assert len(Intrinsic) == 42, "Exhaustive intrinsic handling in generate_nasm_linux_x86_64()"
                 if op.operand == Intrinsic.PLUS:
                     out.write("    ;; -- plus --\n")
                     out.write("    pop rax\n")
@@ -1268,6 +1273,10 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                 elif op.operand == Intrinsic.MEM:
                     out.write("    ;; -- mem --\n")
                     out.write("    push mem\n")
+                elif op.operand == Intrinsic.REF:
+                    out.write("    ;; -- ref --\n")
+                    out.write("    mov rax, rsp\n")
+                    out.write("    push rax\n")
                 elif op.operand == Intrinsic.LOAD:
                     out.write("    ;; -- load --\n")
                     out.write("    pop rax\n")
@@ -1415,7 +1424,7 @@ KEYWORD_NAMES = {
     'include': Keyword.INCLUDE,
 }
 
-assert len(Intrinsic) == 41, "Exhaustive INTRINSIC_BY_NAMES definition"
+assert len(Intrinsic) == 42, "Exhaustive INTRINSIC_BY_NAMES definition"
 INTRINSIC_BY_NAMES = {
     '+': Intrinsic.PLUS,
     '-': Intrinsic.MINUS,
@@ -1439,6 +1448,7 @@ INTRINSIC_BY_NAMES = {
     'over': Intrinsic.OVER,
     'rot': Intrinsic.ROT,
     'mem': Intrinsic.MEM,
+    'ref': Intrinsic.REF,
     '.': Intrinsic.STORE,
     ',': Intrinsic.LOAD,
     '!': Intrinsic.FORTH_STORE,

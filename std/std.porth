@@ -387,6 +387,35 @@ macro puts
   stdout write drop
 end
 
+macro putd 
+// a 32-byte buffer on the stack
+
+0 swap // a pretty awkward way to bubble up the value
+0 swap 
+0 swap
+0 swap
+
+  dup 0 = if
+    "0" puts
+  else
+    ref 8 + 32 +
+    while over 0 > do
+      1 - dup rot
+      10 divmod
+      rot swap '0' + . swap
+    end
+    dup
+    ref 24 + 32 + swap - swap puts
+  end
+  drop
+
+// free the buffer
+drop 
+drop 
+drop 
+drop
+end
+
 macro eputs
   stderr write drop
 end
