@@ -216,7 +216,7 @@ macro main
     compile-ops
   else
     usage
-    "ERROR: unknown subcommand" eputs
+    "ERROR: unknown subcommand `" eputs dup dup strlen swap eputs "`\n" eputs
     1 exit
   end end
   drop
