@@ -118,7 +118,10 @@ def run_test_for_file(file_path: str, stats: RunStats = RunStats()):
             print("    stderr: \n%s" % com.stderr.decode("utf-8"))
             stats.com_failed += 1
     else:
-        print('[WARNING] Could not find any input/output data for %s. Skipping...' % file_path)
+        print('[WARNING] Could not find any input/output data for %s. Ignoring testing. Only checking if it compiles.' % file_path)
+        com = cmd_run_echoed([sys.executable, "./porth.py", "com", file_path])
+        if com.returncode != 0:
+            stats.com_failed += 1
         stats.ignored += 1
 
 def run_test_for_folder(folder: str):
