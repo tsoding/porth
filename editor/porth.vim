@@ -13,7 +13,7 @@ endif
 syntax keyword porthTodos TODO XXX FIXME NOTE
 
 " Language keywords
-syntax keyword porthKeywords if then elif else end while do macro include
+syntax keyword porthKeywords if elif else end while do macro include
 
 " Comments
 syntax region porthCommentLine start="//" end="$"   contains=porthTodos

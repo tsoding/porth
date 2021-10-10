@@ -42,7 +42,7 @@
 
 (eval-and-compile
   (defconst porth-keywords
-    '("if" "then" "elif" "else" "end" "while" "do" "macro" "include")))
+    '("if" "elif" "else" "end" "while" "do" "macro" "include")))
 
 (defconst porth-highlights
   `((,(regexp-opt porth-keywords 'symbols) . font-lock-keyword-face)))
