@@ -7,12 +7,12 @@ while BUFFER_CAP buffer stdin read dup 0 > do
   0 while 2dup > do
     dup buffer + ,
 
-    dup 'a' >= over 'z' <= and if
+    if dup 'a' >= over 'z' <= and do
       2dup 'a' - 13 + 26 mod 'a' +
       swap buffer + swap .
     end
 
-    dup 'A' >= over 'Z' <= and if
+    if dup 'A' >= over 'Z' <= and do
       2dup 'A' - 13 + 26 mod 'A' +
       swap buffer + swap .
     end

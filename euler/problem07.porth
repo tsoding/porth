@@ -8,7 +8,7 @@ macro primes primes-count 8 + end
 macro is-prime
   0
   while
-    2dup 8 * primes + ,64 dup * >= if
+    if 2dup 8 * primes + ,64 dup * >= do
        2dup 8 * primes + ,64 mod 0 !=
     else
        false
@@ -25,7 +25,9 @@ end
 2 add-prime
 
 3 while primes-count ,64 N < do
-  dup is-prime if dup add-prime end
+  if dup is-prime do
+    dup add-prime
+  end
   1 +
 end drop
 

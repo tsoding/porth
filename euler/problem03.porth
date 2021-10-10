@@ -1,7 +1,7 @@
 include "std.porth"
 
 600851475143 2 while over 1 > do
-  2dup mod 0 = if
+  if 2dup mod 0 = do
     swap over / swap
   else
     1 +
