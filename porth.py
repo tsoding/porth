@@ -1696,19 +1696,25 @@ def generate_rust(program: Program, out_file_path: str):
                     else_start_stack = prev_stack
 
                     # Sync existing entries
-                    existing = min(len(else_stack_start), len(else_stack_end))
+                    existing = min(len(else_start_stack), len(else_end_stack))
                     out.write(("    " * offset) + "//Sync stack\n")
                     for i in range(0, existing):
-                        start = else_stack_start[i][1]
-                        end = else_stack_end[i][1]
+                        start = else_start_stack[i][1]
+                        end = else_end_stack[i][1]
                         #if start != end:
                         out.write(("    " * offset) + "v%d = v%d;\n" % (start, end))
+
 
                     # Drop dropped entries
                     out.write(("    " * offset) + "//Drop dropped entries\n")
                     if len(else_end_stack) < len(else_start_stack):
                         for i in range(len(else_end_stack), len(else_start_stack)):
                             out.write(("    " * offset) + "let _ = v%d;\n" % else_start_stack[i][1])
+
+                    # Set previus variables
+                    stack = copy(else_start_stack)
+                    if len(else_end_stack) < len(else_start_stack):
+                        stack = stack[:len(else_end_stack)]
 
                 else:
                     assert False, "unreachable"
@@ -1724,7 +1730,7 @@ def generate_rust(program: Program, out_file_path: str):
                     out.write(("    " * offset) + "let mut v%d = v%d;\n" % (new_v, v[1]))
                     new_stack.append((v[0], new_v))
                 stack = new_stack
-                contexts.append((OpType.WHILE, copy(stack), []))
+                contexts.append((OpType.WHILE, copy(stack)))
                 buffers.append(out)
                 out = StringIO()
 
@@ -1733,7 +1739,7 @@ def generate_rust(program: Program, out_file_path: str):
             elif op.typ == OpType.DO:
                 
                 if_arg = stack.pop()
-                _, while_context, _ = contexts.pop()
+                _, while_context = contexts.pop()
 
                 old_out = out
                 out = buffers.pop();
@@ -1750,7 +1756,7 @@ def generate_rust(program: Program, out_file_path: str):
                         new_stack.append((v[0], new_v))
                     
                 out.write(("    " * (offset - 1)) + "//New Stack: %s\n" % new_stack)
-                contexts.append((OpType.DO, copy(new_stack), []))
+                contexts.append((OpType.DO, copy(new_stack)))
 
                 assert isinstance(old_out, StringIO), "Should be StringIO"
                 out.write(old_out.getvalue())
