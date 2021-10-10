@@ -1409,9 +1409,9 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
 def generate_rust(program: Program, out_file_path: str):
     var_id = 0
     offset = 1
-    stack: List[Triple[DataType, int]] = []
-    contexts: List[Triple[OpType, List[int], List[int]]] = []
-    buffers = []
+    stack: List[Tuple[DataType, int]] = []
+    contexts: List[Tuple[OpType, List[int]]] = [] # (op, stack)
+    buffers: List[Union[TextIO, StringIO]] = []
     with open(out_file_path, "w") as out:
         out.write("#![feature(asm)]\n")
         out.write("#![allow(unused)]\n")
@@ -1616,15 +1616,15 @@ def generate_rust(program: Program, out_file_path: str):
                 stack.append((DataType.PTR, str_addr))
             elif op.typ == OpType.IF:
                 _, cond = stack.pop()
-                new_stack: List[Triple[DataType,int]] = []
+                new_stack: List[Tuple[DataType,int]] = []
                 for v in stack:
                     new_v = var_id
                     var_id += 1
                     new_stack.append((v[0], new_v))
-                contexts.append((OpType.IF, copy(new_stack), []))
+                contexts.append((OpType.IF, copy(new_stack)))
 
                 out.write(("    " * offset) + "//Storing stack\n")
-                for (new_v, new_v_val) in zip(new_stack, stack):
+                for new_v, new_v_val in zip(new_stack, stack):
                     out.write(("    " * offset) + "let mut v%d = v%d;\n" % (new_v[1], new_v_val[1]))
 
                 stack = new_stack
@@ -1635,13 +1635,13 @@ def generate_rust(program: Program, out_file_path: str):
                 out.write(("    " * offset) + "if v%d {\n" % cond)
                 offset += 1
             elif op.typ == OpType.ELSE:
-                prev_op, prev_context, _ = contexts.pop()
+                prev_op, start_if_stack = contexts.pop()
 
                 out.write(("    " * offset) + "//Sync stack\n")
-                for (prev, curr) in zip(prev_context, stack[:len(prev_context)]):
+                for prev, curr in zip(start_if_stack, stack[:len(start_if_stack)]):
                     if curr != prev:
                         out.write(("    " * offset) + "v%d = v%d;\n" % (prev[1], curr[1]))
-                stack[:len(prev_context)] = copy(prev_context)
+                stack[:len(start_if_stack)] = copy(start_if_stack)
 
                 old_out = out
                 out = buffers.pop()
@@ -1650,57 +1650,66 @@ def generate_rust(program: Program, out_file_path: str):
                 new_stack_entries = []
                 # Handle new stack entries
                 out.write(("    " * (offset - 1)) + "//New stack entries\n")
-                for new_v_val in stack[len(prev_context):]:
+                for new_v_val in stack[len(start_if_stack):]:
                     new_v = var_id
                     var_id += 1
                     out.write(("    " * (offset - 1)) + "let mut v%d;\n" % new_v)
                     new_stack_entries.append((new_v_val[0], new_v))
                 
+                assert isinstance(old_out, StringIO), "Should be StringIO"
                 out.write(old_out.getvalue())
                 old_out.close()
                 
-                for (new_v_val, new_v) in zip(stack[len(prev_context):], new_stack_entries):
+                for new_v_val, new_v in zip(stack[len(start_if_stack):], new_stack_entries):
                     out.write(("    " * offset) + "v%d = v%d;\n" % (new_v[1], new_v_val[1]))
 
                 
-                stack = copy(prev_context)
+                stack = copy(start_if_stack)
 
                 offset -= 1
                 out.write(("    " * offset) + "}\n")
                 out.write(("    " * offset) + "else {\n")
                 offset += 1
-                contexts.append((OpType.ELSE, copy(prev_context), new_stack_entries))
+                contexts.append((OpType.ELSE, copy(start_if_stack)+new_stack_entries))
                 assert isinstance(op.operand, int), "This could be a bug in the compilation step"
             elif op.typ == OpType.END:
-                prev_op, prev_context, new_stack_entries = contexts.pop()
+                prev_op, prev_stack = contexts.pop()
 
                 
-                if prev_op == OpType.IF or prev_op == OpType.WHILE:
+                if prev_op == OpType.IF or prev_op == OpType.DO:
                     old_out = out
                     out = buffers.pop();
+                    assert isinstance(old_out, StringIO), "Should be StringIO"
                     out.write(old_out.getvalue())
                     old_out.close()
 
-                    for (prev, curr) in zip(prev_context, stack[:len(prev_context)]):
+                    out.write(("    " * offset) + "//END: %s\n" % ('if' if prev_op == OpType.IF else 'do'))
+                    out.write(("    " * offset) + "//Sync stack\n//Prev: %s\n//Curr: %s\n" % (prev_stack, stack))
+                    for prev, curr in zip(prev_stack, stack[:len(prev_stack)]):
                         if curr != prev:
                             out.write(("    " * offset) + "v%d = v%d;\n" % (prev[1], curr[1]))
 
-                    stack = copy(prev_context)
+                    stack = copy(prev_stack)
+
                 elif prev_op == OpType.ELSE:
-                    # Handle new stack entries
+                    else_end_stack = stack
+                    else_start_stack = prev_stack
 
-                    new_stack = copy(prev_context)
-                    for (new_v, new_v_val) in zip(new_stack_entries, stack[len(prev_context):]):
-                        out.write(("    " * offset) + "v%d = v%d;\n" % (new_v[1], new_v_val[1]))
-                        new_stack.append(new_v)
-                    
+                    # Sync existing entries
+                    existing = min(len(else_stack_start), len(else_stack_end))
                     out.write(("    " * offset) + "//Sync stack\n")
-                    for (prev, curr) in zip(prev_context, stack[:len(prev_context)]):
-                        if curr != prev:
-                            out.write(("    " * offset) + "v%d = v%d;\n" % (prev[1], curr[1]))
+                    for i in range(0, existing):
+                        start = else_stack_start[i][1]
+                        end = else_stack_end[i][1]
+                        #if start != end:
+                        out.write(("    " * offset) + "v%d = v%d;\n" % (start, end))
 
-                    stack = copy(prev_context)
-                    stack = new_stack
+                    # Drop dropped entries
+                    out.write(("    " * offset) + "//Drop dropped entries\n")
+                    if len(else_end_stack) < len(else_start_stack):
+                        for i in range(len(else_end_stack), len(else_start_stack)):
+                            out.write(("    " * offset) + "let _ = v%d;\n" % else_start_stack[i][1])
+
                 else:
                     assert False, "unreachable"
 
@@ -1739,12 +1748,15 @@ def generate_rust(program: Program, out_file_path: str):
                         var_id += 1
                         out.write(("    " * (offset - 1)) + "let mut v%d;\n" % new_v)
                         new_stack.append((v[0], new_v))
-                contexts.append((OpType.WHILE, copy(new_stack), []))
+                    
+                out.write(("    " * (offset - 1)) + "//New Stack: %s\n" % new_stack)
+                contexts.append((OpType.DO, copy(new_stack), []))
 
+                assert isinstance(old_out, StringIO), "Should be StringIO"
                 out.write(old_out.getvalue())
                 old_out.close()
 
-                for (const, mut) in zip(stack, new_stack):
+                for const, mut in zip(stack, new_stack):
                     out.write(("    " * offset) + "v%d = v%d;\n" % (mut[1], const[1]))
 
                 stack = new_stack
@@ -1999,6 +2011,12 @@ def generate_rust(program: Program, out_file_path: str):
                 assert False, "unreachable"
 
         out.write("}")
+
+        if len(stack) != 0:
+            assert False, "Stack is not empty"
+        if len(contexts) != 0:
+            assert False, "Contexts is not empty"
+
 
 
 assert len(Keyword) == 7, "Exhaustive KEYWORD_NAMES definition."
