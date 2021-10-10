@@ -1629,7 +1629,7 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str], exp
                 ip += 1
             elif token.value == Keyword.CASE:
                 program.append(Op(typ=OpType.CASE, token=token))
-                block_ip = stack.pop()
+                block_ip = stack[-1]
                 if program[block_ip].typ != OpType.SWITCH:
                     compiler_error_with_expansion_stack(program[block_ip].token, '`case` may only exist within switch block')
                 compare_value = program[ip-1]
@@ -1641,7 +1641,6 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str], exp
                     cast(list, program[block_ip].operand).insert(-2, compare_value.operand)
                     cast(list, program[block_ip].operand).insert(-2, ip)
                     program[ip].operand = ip + 1
-                stack.append(block_ip)
                 ip += 1
             elif token.value == Keyword.BREAK:
                 program.append(Op(typ=OpType.BREAK, token=token))
@@ -1706,7 +1705,7 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str], exp
                     else:
                         macro.tokens.append(token)
                         if token.typ == TokenType.KEYWORD:
-                            if token.value in [Keyword.IF, Keyword.WHILE, Keyword.MACRO]:
+                            if token.value in [Keyword.IF, Keyword.WHILE, Keyword.MACRO, Keyword.SWITCH]:
                                 nesting_depth += 1
                             elif token.value == Keyword.END:
                                 nesting_depth -= 1
