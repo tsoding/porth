@@ -116,7 +116,7 @@ OpAddr=int
 class Op:
     typ: OpType
     token: Token
-    operand: Optional[Union[int, str, Intrinsic, OpAddr, dict[Optional[int], Union[int, Tuple[int, int]]]]] = None
+    operand: Optional[Union[int, str, Intrinsic, OpAddr, dict]] = None
 
 Program=List[Op]
 
