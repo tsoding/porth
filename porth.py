@@ -1530,6 +1530,7 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str], exp
                     compiler_error_with_expansion_stack(program[do_ip].token, '`else` can only be used in `if-do` blocks')
                     exit(1)
                 if_ip = program[do_ip].operand
+                assert isinstance(if_ip, OpAddr)
                 if program[if_ip].typ != OpType.IF:
                     compiler_error_with_expansion_stack(program[if_ip].token, '`else` can only be used in `if-do` blocks')
                     exit(1)
@@ -1546,6 +1547,7 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str], exp
                     assert program[block_ip].operand is not None
                     block_begin_ip = program[block_ip].operand
 
+                    assert isinstance(block_begin_ip, OpAddr)
                     if program[block_begin_ip].typ == OpType.WHILE:
                         program[ip].operand = block_begin_ip
                         program[block_ip].operand = ip + 1
