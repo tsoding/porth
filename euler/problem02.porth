@@ -3,7 +3,7 @@ include "std.porth"
 macro acc mem end
 
 1 2 while over 4000000 < do
-  over 2 mod 0 = if
+  if over 2 mod 0 = do
     over acc ,64 + acc swap .64
   end
 
