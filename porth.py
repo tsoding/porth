@@ -116,7 +116,7 @@ OpAddr=int
 class Op:
     typ: OpType
     token: Token
-    operand: Optional[Union[int, str, Intrinsic, OpAddr, dict]] = None
+    operand: Optional[Union[int, str, Intrinsic, OpAddr, list]] = None
 
 Program=List[Op]
 
@@ -193,16 +193,18 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                     ip += 1
             elif op.typ == OpType.SWITCH:
                 a = stack.pop()
-                if a in cast(dict, op.operand):
-                    ip = cast(dict, op.operand)[a]
+                if a in cast(list, op.operand):
+                    for i in range(0, len(cast(list, op.operand)) - 3, 2):
+                        if cast(list, op.operand)[i] == a:
+                            ip = cast(list, op.operand)[i+1]
                 else:
-                    if (cast(Tuple, cast(dict, op.operand)[None])[0] != -1): # If there is a default case jump to it otherwise jump to end
-                        ip = cast(Tuple, cast(dict, op.operand)[None])[0]
-                    else: #
-                        ip = cast(Tuple, cast(dict, op.operand)[None])[1]
+                    if cast(list, op.operand)[-2] == -1: # If there is no default case jump to it otherwise jump to end
+                        ip = cast(list, op.operand)[-1]
+                    else:
+                        ip = cast(list, op.operand)[-2]
                 ip += 1
             elif op.typ == OpType.BREAK:
-                ip = cast(Tuple, cast(dict, program[cast(int, op.operand)].operand)[None])[1]
+                ip = cast(list, program[cast(int, op.operand)].operand)[-1]
             elif op.typ == OpType.CASE:
                 ip += 1
             elif op.typ == OpType.ELSE:
@@ -1153,20 +1155,20 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
             elif op.typ == OpType.SWITCH:
                 out.write("    ;; -- switch --\n")
                 out.write("    pop rax\n")
-                for key in cast(dict, op.operand).keys():
-                    if key == None:
-                        continue
-                    out.write("    cmp rax, %d\n" % key)
-                    assert isinstance(cast(dict, op.operand)[key], int), "This could be a bug in the compilation step"
-                    out.write("    je addr_%d\n" % cast(dict, op.operand)[key])
-                if cast(Tuple, cast(dict, op.operand)[None])[0] != -1: # If there is a default statement jump to it otherwise jump to the end of the switch statement
-                    out.write("    jmp addr_%d\n" % cast(Tuple, cast(dict, op.operand)[None])[0])
+                for i in range(0, len(cast(list, op.operand)) - 2, 2):
+                    assert isinstance(cast(list, op.operand)[i], int), "This could be a bug in the compilation step"
+                    out.write("    cmp rax, %d\n" % cast(list, op.operand)[i])
+                    i+=1
+                    assert isinstance(cast(list, op.operand)[i], int), "This could be a bug in the compilation step"
+                    out.write("    je addr_%d\n" % cast(list, op.operand)[i])
+                if cast(list, op.operand)[-2] != -1: # If there is a default statement jump to it otherwise jump to the end of the switch statement
+                    out.write("    jmp addr_%d\n" % cast(list, op.operand)[-2])
                 else:
-                    out.write("    jmp addr_%d\n" % cast(Tuple, cast(dict, op.operand)[None])[1])
+                    out.write("    jmp addr_%d\n" % cast(list, op.operand)[-1])
                 ip += 1
             elif op.typ == OpType.BREAK:
                 out.write("    ;; -- break --\n")
-                out.write("    jmp addr_%d\n" % cast(Tuple, cast(dict, program[cast(int, op.operand)].operand)[None])[1]) # jump to the end of the switch statement
+                out.write("    jmp addr_%d\n" % cast(list, program[cast(int, op.operand)].operand)[-1]) # jump to the end of the switch statement
             elif op.typ == OpType.CASE:
                 out.write("    ;; -- case --\n")
                 ip += 1
@@ -1610,10 +1612,7 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str], exp
                     program[block_ip].operand = ip
                     program[ip].operand = ip + 1
                 elif program[block_ip].typ == OpType.SWITCH:
-                    if None in cast(dict, program[block_ip].operand):
-                        cast(dict, program[block_ip].operand)[None] = (cast(dict, program[block_ip].operand)[None], ip)
-                    else:
-                        cast(dict, program[block_ip].operand)[None] = (-1, ip)
+                    cast(list, program[block_ip].operand)[-1] = ip  
                     program[ip].operand = ip + 1
                 elif program[block_ip].typ == OpType.DO:
                     assert program[block_ip].operand is not None
@@ -1626,7 +1625,9 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str], exp
             elif token.value == Keyword.SWITCH:
                 program.append(Op(typ=OpType.SWITCH, token=token))
                 stack.append(ip)
-                program[ip].operand = dict()
+                program[ip].operand = list()
+                program[ip].operand.append(-1)
+                program[ip].operand.append(-1)
                 ip += 1
             elif token.value == Keyword.CASE:
                 program.append(Op(typ=OpType.CASE, token=token))
@@ -1634,12 +1635,13 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str], exp
                 if program[block_ip].typ != OpType.SWITCH:
                     compiler_error_with_expansion_stack(program[block_ip].token, '`case` may only exist within switch block')
                 compare_value = program[ip-1]
-                if compare_value.typ != OpType.PUSH_INT and compare_value.typ != OpType.PUSH_STR:
-                    if None in cast(dict, program[block_ip].operand):
+                if compare_value.typ != OpType.PUSH_INT:
+                    if cast(list, program[block_ip].operand)[-2] != -1:
                         compiler_error_with_expansion_stack(program[block_ip].token, 'only one `case` may exist without an argument')
-                    cast(dict, program[block_ip].operand)[None] = ip
+                    cast(list, program[block_ip].operand)[-2] = ip
                 else:
-                    cast(dict, program[block_ip].operand)[compare_value.operand] = ip
+                    cast(list, program[block_ip].operand).insert(-2, compare_value.operand)
+                    cast(list, program[block_ip].operand).insert(-2, ip)
                     program[ip].operand = ip + 1
                 stack.append(block_ip)
                 ip += 1
