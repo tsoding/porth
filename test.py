@@ -143,7 +143,7 @@ def run_test_for_folder(folder: str):
         if entry.is_file() and entry.path.endswith(PORTH_EXT):
             run_test_for_file(entry.path, stats)
     print()
-    print("Simulation failed: %d, Compilation failed: %d, Translate failed: %d, Ignored: %d" % (stats.sim_failed, stats.com_failed, stats.translate_failed stats.ignored))
+    print("Simulation failed: %d, Compilation failed: %d, Translate failed: %d, Ignored: %d" % (stats.sim_failed, stats.com_failed, stats.translate_failed, stats.ignored))
     if stats.sim_failed != 0 or stats.com_failed != 0 or stats.translate_failed:
         exit(1)
 
