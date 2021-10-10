@@ -24,7 +24,7 @@ macro ops-count sim-stack SIM_STACK_CAP 8 * + end
 macro ops ops-count 8 + end
 
 macro sim-stack-push // u64 --
-  sim-stack-count @64 SIM_STACK_CAP >= if
+  if sim-stack-count @64 SIM_STACK_CAP >= do
     here eputs ": ERROR: data stack overflow in simulation mode" eputs 1 exit
   end
   sim-stack sim-stack-count @64 8 * + !64
@@ -32,7 +32,7 @@ macro sim-stack-push // u64 --
 end
 
 macro sim-stack-pop // -- u64
-  sim-stack-count @64 0 = if
+  if sim-stack-count @64 0 = do
     here eputs ": ERROR: data stack underflow in simulation mode" eputs 1 exit
   end
   sim-stack-count dec64
@@ -40,7 +40,7 @@ macro sim-stack-pop // -- u64
 end
 
 macro putd // u64 --
-  dup 0 = if
+  if dup 0 = do
     "0" puts
   else
     putd-buffer PUTD_BUFFER_CAP +
@@ -119,17 +119,17 @@ macro compile-ops // --
   0 while dup ops-count @64 < do
     dup sizeof(Op) * ops +
 
-    dup Op.type @64 OP_PUSH_INT = if
+    if dup Op.type @64 OP_PUSH_INT = do
        "    ;; -- push int " puts dup Op.operand @64 putd " --\n" puts
        "    mov rax, "       puts dup Op.operand @64 putd "\n" puts
        "    push rax\n"      puts
-    else dup Op.type @64 OP_PLUS = if
+    else if dup Op.type @64 OP_PLUS = do
        "    ;; -- plus --\n" puts
        "    pop rax\n" puts
        "    pop rbx\n" puts
        "    add rax, rbx\n" puts
        "    push rax\n" puts
-    else dup Op.type @64 OP_PRINT = if
+    else if dup Op.type @64 OP_PRINT = do
        "    ;; -- print --\n" puts
        "    pop rdi\n" puts
        "    call print\n" puts
@@ -155,14 +155,14 @@ macro simulate-ops // --
   0 while dup ops-count @64 < do
     dup sizeof(Op) * ops +
 
-    dup Op.type @64 OP_PUSH_INT = if
+    if dup Op.type @64 OP_PUSH_INT = do
        dup Op.operand @64 sim-stack-push
-    else dup Op.type @64 OP_PLUS = if
+    else if dup Op.type @64 OP_PLUS = do
        sim-stack-pop
        sim-stack-pop
        +
        sim-stack-push
-    else dup Op.type @64 OP_PRINT = if
+    else if dup Op.type @64 OP_PRINT = do
        sim-stack-pop print
     else
        here eputs ": unreachable\n" eputs 1 exit
@@ -201,7 +201,7 @@ macro usage // --
 end
 
 macro main // --
-  argc 2 < if
+  if argc 2 < do
     usage
     "ERROR: subcommand is not provided\n" eputs
     1 exit
@@ -213,15 +213,15 @@ macro main // --
 
   1 nth_argv
   // TODO: consider adding null terminated string literals
-  dup "sim\0" swap drop streq if
+  if dup "sim\0" swap drop streq do
     simulate-ops
-  else dup "com\0" swap drop streq if
+  else if dup "com\0" swap drop streq do
     compile-ops
-  else dup "help\0" swap drop streq if
+  else if dup "help\0" swap drop streq do
     // TODO: output usage to stdout in case of the `help` subcommand
     usage
     0 exit
-  else dup "dump\0" swap drop streq if
+  else if dup "dump\0" swap drop streq do
     dump-ops
   else
     usage
