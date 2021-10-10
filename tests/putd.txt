@@ -2,9 +2,10 @@
 :b stdin 0
 
 :i returncode 0
-:b stdout 22
+:b stdout 25
 0
 9223372036854775807
+-5
 
 :b stderr 0
 

@@ -7,3 +7,8 @@ include "std.porth"
 //max i64
 9223372036854775807 putd
 "\n" puts
+
+//negative
+0 5 - putd
+"\n" puts
+

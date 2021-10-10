@@ -414,6 +414,11 @@ macro putd
   dup 0 = if
     "0" puts
   else
+    dup 0 < if
+    "-" puts
+    -1 *
+    end
+
     dup 0 > if _putd_before 
     dup 0 > if _putd_before
     dup 0 > if _putd_before
