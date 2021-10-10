@@ -1625,9 +1625,7 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str], exp
             elif token.value == Keyword.SWITCH:
                 program.append(Op(typ=OpType.SWITCH, token=token))
                 stack.append(ip)
-                program[ip].operand = list()
-                program[ip].operand.append(-1)
-                program[ip].operand.append(-1)
+                program[ip].operand = list([-1, -1])
                 ip += 1
             elif token.value == Keyword.CASE:
                 program.append(Op(typ=OpType.CASE, token=token))
