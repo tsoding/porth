@@ -12,7 +12,7 @@ display N + 10 .
 
 0 while dup N 2 - < do
    0 while dup N < do
-      dup row + , 1 = if
+      if dup row + , 1 = do
          dup display + '*' .
       else
          dup display + ' ' .

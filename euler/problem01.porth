@@ -1,9 +1,10 @@
 include "std.porth"
 
 0 3 while dup 1000 < do
-  dup  3 mod 0 =
-  over 5 mod 0 =
-  or if
+  if dup  3 mod 0 =
+     over 5 mod 0 =
+     or
+  do
      swap over + swap
   end
   

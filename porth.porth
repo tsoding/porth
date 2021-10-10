@@ -12,6 +12,8 @@ macro OP_PRINT    2 end
 //   type: u64,
 //   operand: u64,
 // }
+macro Op.type    nop end
+macro Op.operand 8 + end
 macro sizeof(Op) 16 end
 
 // Memory Layout
@@ -21,24 +23,24 @@ macro sim-stack sim-stack-count 8 + end
 macro ops-count sim-stack SIM_STACK_CAP 8 * + end
 macro ops ops-count 8 + end
 
-macro sim-stack-push
-  sim-stack-count @64 SIM_STACK_CAP >= if
+macro sim-stack-push // u64 --
+  if sim-stack-count @64 SIM_STACK_CAP >= do
     here eputs ": ERROR: data stack overflow in simulation mode" eputs 1 exit
   end
   sim-stack sim-stack-count @64 8 * + !64
   sim-stack-count inc64
 end
 
-macro sim-stack-pop
-  sim-stack-count @64 0 = if
+macro sim-stack-pop // -- u64
+  if sim-stack-count @64 0 = do
     here eputs ": ERROR: data stack underflow in simulation mode" eputs 1 exit
   end
   sim-stack-count dec64
   sim-stack sim-stack-count @64 8 * + @64
 end
 
-macro putd
-  dup 0 = if
+macro putd // u64 --
+  if dup 0 = do
     "0" puts
   else
     putd-buffer PUTD_BUFFER_CAP +
@@ -54,19 +56,19 @@ macro putd
   drop
 end
 
-macro push-op
+macro push-op // type operand -- 
   ops-count @64 sizeof(Op) * ops +
-  dup 8 + rot swap !64
-  !64
+  dup Op.operand rot swap !64
+  Op.type !64
   ops-count inc64
 end
 
-macro dump-ops
+macro dump-ops // --
   0 while dup ops-count @64 < do
     // ptr ptr
     dup sizeof(Op) * ops +
-    "Type:    " puts dup     @64 print
-    "Operand: " puts 8 + @64 print
+    "Type:    " puts dup Op.type @64 print
+    "Operand: " puts Op.operand @64 print
     "----------\n" puts
     1 +
   end
@@ -74,7 +76,7 @@ macro dump-ops
 end
 
 // TODO: porth.porth does not run nasm and ld as external commands to finish off the process of compilation
-macro compile-ops
+macro compile-ops // --
   "BITS 64\n" puts
   "segment .text\n" puts
   "print:\n" puts
@@ -117,17 +119,17 @@ macro compile-ops
   0 while dup ops-count @64 < do
     dup sizeof(Op) * ops +
 
-    dup @64 OP_PUSH_INT = if
-       "    ;; -- push int " puts dup 8 + @64 putd " --\n" puts
-       "    mov rax, " puts dup 8 + @64 putd "\n" puts
-       "    push rax\n" puts
-    else dup @64 OP_PLUS = if
+    if dup Op.type @64 OP_PUSH_INT = do
+       "    ;; -- push int " puts dup Op.operand @64 putd " --\n" puts
+       "    mov rax, "       puts dup Op.operand @64 putd "\n" puts
+       "    push rax\n"      puts
+    else if dup Op.type @64 OP_PLUS = do
        "    ;; -- plus --\n" puts
        "    pop rax\n" puts
        "    pop rbx\n" puts
        "    add rax, rbx\n" puts
        "    push rax\n" puts
-    else dup @64 OP_PRINT = if
+    else if dup Op.type @64 OP_PRINT = do
        "    ;; -- print --\n" puts
        "    pop rdi\n" puts
        "    call print\n" puts
@@ -149,18 +151,18 @@ macro compile-ops
   "mem: resb " puts MEM_CAPACITY putd "\n" puts
 end  
 
-macro simulate-ops
+macro simulate-ops // --
   0 while dup ops-count @64 < do
     dup sizeof(Op) * ops +
 
-    dup @64 OP_PUSH_INT = if
-       dup 8 + @64 sim-stack-push
-    else dup @64 OP_PLUS = if
+    if dup Op.type @64 OP_PUSH_INT = do
+       dup Op.operand @64 sim-stack-push
+    else if dup Op.type @64 OP_PLUS = do
        sim-stack-pop
        sim-stack-pop
        +
        sim-stack-push
-    else dup @64 OP_PRINT = if
+    else if dup Op.type @64 OP_PRINT = do
        sim-stack-pop print
     else
        here eputs ": unreachable\n" eputs 1 exit
@@ -173,14 +175,14 @@ macro simulate-ops
   drop
 end  
 
-macro program69
+macro program69 // -- 
   OP_PUSH_INT 34 push-op
   OP_PUSH_INT 35 push-op
   OP_PLUS     0  push-op
   OP_PRINT    0  push-op
 end
 
-macro program123
+macro program123 // --
   OP_PUSH_INT 1 push-op
   OP_PRINT    0 push-op
   OP_PUSH_INT 2 push-op
@@ -189,16 +191,17 @@ macro program123
   OP_PRINT    0 push-op
 end
 
-macro usage
+macro usage // --
   "Usage: porth <SUBCOMMAND>\n" eputs
   "  SUBCOMMANDS:\n" eputs
   "    sim              Simulate the program.\n" eputs
   "    com              Compile the program\n" eputs
+  "    dump             Dump the ops of the program\n" eputs
   "    help             Print this help to stderr and exit with 0 code\n" eputs
 end
 
-macro main
-  argc 2 < if
+macro main // --
+  if argc 2 < do
     usage
     "ERROR: subcommand is not provided\n" eputs
     1 exit
@@ -210,18 +213,21 @@ macro main
 
   1 nth_argv
   // TODO: consider adding null terminated string literals
-  dup "sim\0" swap drop streq if
+  if dup "sim\0" swap drop streq do
     simulate-ops
-  else dup "com\0" swap drop streq if
+  else if dup "com\0" swap drop streq do
     compile-ops
-  else dup "help\0" swap drop streq if
+  else if dup "help\0" swap drop streq do
+    // TODO: output usage to stdout in case of the `help` subcommand
     usage
     0 exit
+  else if dup "dump\0" swap drop streq do
+    dump-ops
   else
     usage
     "ERROR: unknown subcommand `" eputs dup dup strlen swap eputs "`\n" eputs
     1 exit
-  end end end
+  end end end end
   drop
 end
 

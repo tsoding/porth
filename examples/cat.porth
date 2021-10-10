@@ -12,14 +12,14 @@ macro cat_fd
   end drop
 end
 
-argc 2 < if
+if argc 2 < do
   fd stdin .64
   cat_fd
 else
   1 while dup argc < do
     O_RDONLY over nth_argv AT_FDCWD openat
     
-    dup 0 < if
+    if dup 0 < do
       "ERROR: could not open file " eputs
       over nth_argv dup strlen swap eputs
       "\n" eputs

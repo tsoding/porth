@@ -1,0 +1,14 @@
+include "std.porth"
+
+1 while dup 100 < do
+  if dup 15 mod 0 = do
+    "FizzBuzz\n" puts
+  else if dup 3 mod 0 = do
+    "Fizz\n" puts
+  else if dup 5 mod 0 = do
+    "Buzz\n" puts
+  else 
+    dup print
+  end end end
+  1 +
+end drop

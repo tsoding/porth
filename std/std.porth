@@ -1,5 +1,7 @@
 macro NULL 0 end
 
+macro nop end
+
 macro true 0 0 = end
 macro false 0 0 != end
 
@@ -370,7 +372,7 @@ end
 
 macro streq
   while
-    over , 0 != over , 0 != and if
+    if over , 0 != over , 0 != and do
        over , over , =
     else
        false

@@ -6,12 +6,12 @@ macro name mem end
 "What is your name? " puts
 
 NAME_CAPACITY name stdin read
-dup 0 <= if
+if dup 0 <= do
   "ERROR: could not read your name, sorry ( ._.)\n" eputs
   1 exit
 end
 
-name over + 1 - , '\n' = if
+if name over + 1 - , '\n' = do
   1 -
 end
 

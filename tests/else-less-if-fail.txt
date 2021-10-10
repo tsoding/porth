@@ -5,7 +5,7 @@
 :b stdout 0
 
 :b stderr 274
-./tests/else-less-if-fail.porth:1:20: ERROR: else-less if block is not allowed to alter the types of the arguments on the data stack
-./tests/else-less-if-fail.porth:1:20: NOTE: Expected types: []
-./tests/else-less-if-fail.porth:1:20: NOTE: Actual types: [<DataType.INT: 1>]
+./tests/else-less-if-fail.porth:1:23: ERROR: else-less if block is not allowed to alter the types of the arguments on the data stack
+./tests/else-less-if-fail.porth:1:23: NOTE: Expected types: []
+./tests/else-less-if-fail.porth:1:23: NOTE: Actual types: [<DataType.INT: 1>]
 
