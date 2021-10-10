@@ -1,5 +1,7 @@
 macro NULL 0 end
 
+macro nop end
+
 macro true 0 0 = end
 macro false 0 0 != end
 
