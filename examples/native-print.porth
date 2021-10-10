@@ -13,8 +13,6 @@ include "std.porth"
 //   - a scratch buffer like this might make sense as a peer to mem, str, argv
 //   - alternatively, being able to allocate this temp buffer on the stack seems
 //     like it would be useful in avoiding contention for a global buffer
-// - uses `rot` which is a basic stack word from ANS forth
-//   - without it, it was not convenient to use the third item on the stack
 
 // --------------------------------------------------------------------------------
 // possibly generally useful function, maybe a std.porth candidate
@@ -94,12 +92,8 @@ end
 
 -350 signmag print print
 
-"stack ends up empty check\n"
-
 0 print1
 
 123 print1
 
 -123 print1
-
-stdout write

@@ -2,7 +2,7 @@
 :b stdin 0
 
 :i returncode 0
-:b stdout 49
+:b stdout 23
 350
 0
 350
@@ -10,7 +10,6 @@
 0
 123
 -123
-stack ends up empty check
 
 :b stderr 0
 
