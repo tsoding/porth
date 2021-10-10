@@ -187,13 +187,7 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                 stack.append(str_ptrs[ip])
                 ip += 1
             elif op.typ == OpType.IF:
-<<<<<<< HEAD
-                a = stack.pop()
-                if a == 0:
-                    assert isinstance(op.operand, OpAddr), "This could be a bug in the compilation step"
-                    ip = op.operand
-                else:
-                    ip += 1
+                ip += 1
             elif op.typ == OpType.SWITCH:
                 a = stack.pop()
                 if a in cast(list, op.operand):
@@ -210,10 +204,8 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
             elif op.typ == OpType.CASE:
                 ip += 1
             elif op.typ == OpType.DEFAULT:
-=======
                 ip += 1
             elif op.typ == OpType.WHILE:
->>>>>>> dcdfc8a247d6a33bb905bef9322fb76afe5acd68
                 ip += 1
             elif op.typ == OpType.ELSE:
                 assert isinstance(op.operand, OpAddr), "This could be a bug in the compilation step"
@@ -1014,7 +1006,7 @@ def type_check_program(program: Program):
                 compiler_error_with_expansion_stack(op.token, "Invalid argument for the switch condition. Expected INT.")
             block_stack.append((copy(stack), op.typ))
         elif op.typ == OpType.CASE:
-            if len(stack) < 1:    
+            if len(stack) < 1:
                 not_enough_arguments(op)
             a_type, a_loc = stack.pop()
             if a_type != DataType.INT:
@@ -1025,21 +1017,8 @@ def type_check_program(program: Program):
             pass # Break is only a indicator.
         elif op.typ == OpType.END:
             block_snapshot, block_type = block_stack.pop()
-<<<<<<< HEAD
             assert len(OpType) == 12, "Exhaustive handling of op types"
-            if block_type == OpType.IF:
-                expected_types = list(map(lambda x: x[0], block_snapshot))
-                actual_types = list(map(lambda x: x[0], stack))
-                if expected_types != actual_types:
-                    compiler_error_with_expansion_stack(op.token, 'else-less if block is not allowed to alter the types of the arguments on the data stack')
-                    compiler_note(op.token.loc, 'Expected types: %s' % expected_types)
-                    compiler_note(op.token.loc, 'Actual types: %s' % actual_types)
-                    exit(1)
-            elif block_type == OpType.ELSE:
-=======
-            assert len(OpType) == 8, "Exhaustive handling of op types"
             if block_type == OpType.ELSE:
->>>>>>> dcdfc8a247d6a33bb905bef9322fb76afe5acd68
                 expected_types = list(map(lambda x: x[0], block_snapshot))
                 actual_types = list(map(lambda x: x[0], stack))
                 if expected_types != actual_types:
@@ -1047,21 +1026,6 @@ def type_check_program(program: Program):
                     compiler_note(op.token.loc, 'Expected types: %s' % expected_types)
                     compiler_note(op.token.loc, 'Actual types: %s' % actual_types)
                     exit(1)
-            elif block_type == OpType.DO:
-<<<<<<< HEAD
-                while_snapshot, while_type = block_stack.pop()
-                assert while_type == OpType.WHILE
-
-                expected_types = list(map(lambda x: x[0], while_snapshot))
-                actual_types = list(map(lambda x: x[0], stack))
-
-                if expected_types != actual_types:
-                    compiler_error_with_expansion_stack(op.token, 'while-do body is not allowed to alter the types of the arguments on the data stack')
-                    compiler_note(op.token.loc, 'Expected types: %s' % expected_types)
-                    compiler_note(op.token.loc, 'Actual types: %s' % actual_types)
-                    exit(1)
-
-                stack = block_snapshot
             elif block_type == OpType.SWITCH:
                 expected_types = list(map(lambda x: x[0], block_snapshot))
                 actual_types = list(map(lambda x: x[0], stack))
@@ -1070,7 +1034,7 @@ def type_check_program(program: Program):
                     compiler_note(op.token.loc, 'Expected types: %s' % expected_types)
                     compiler_note(op.token.loc, 'Actual types: %s' % actual_types)
                     exit(1)
-=======
+            elif block_type == OpType.DO:
                 begin_snapshot, begin_type = block_stack.pop()
 
                 if begin_type == OpType.WHILE:
@@ -1097,7 +1061,6 @@ def type_check_program(program: Program):
                     stack = block_snapshot
                 else:
                     assert "unreachable"
->>>>>>> dcdfc8a247d6a33bb905bef9322fb76afe5acd68
             else:
                 assert "unreachable"
         elif op.typ == OpType.ELSE:

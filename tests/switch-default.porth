@@ -13,7 +13,7 @@ include "std.porth"
   4 case
     "case 4\n" puts
     break
-  case
+  default
     "Default\n" puts
     break
 end
