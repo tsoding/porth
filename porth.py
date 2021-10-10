@@ -28,6 +28,7 @@ class Keyword(Enum):
     IF=auto()
     SWITCH=auto()
     CASE=auto()
+    DEFAULT=auto()
     BREAK=auto()
     END=auto()
     ELSE=auto()
@@ -86,6 +87,7 @@ class OpType(Enum):
     IF=auto()
     SWITCH=auto()
     CASE=auto()
+    DEFAULT=auto()
     BREAK=auto()
     END=auto()
     ELSE=auto()
@@ -164,7 +166,7 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
 
     ip = 0
     while ip < len(program):
-        assert len(OpType) == 11, "Exhaustive op handling in simulate_little_endian_linux"
+        assert len(OpType) == 12, "Exhaustive op handling in simulate_little_endian_linux"
         op = program[ip]
         try:
             if op.typ == OpType.PUSH_INT:
@@ -202,10 +204,11 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                         ip = cast(list, op.operand)[-1]
                     else:
                         ip = cast(list, op.operand)[-2]
-                ip += 1
             elif op.typ == OpType.BREAK:
                 ip = cast(list, program[cast(int, op.operand)].operand)[-1]
             elif op.typ == OpType.CASE:
+                ip += 1
+            elif op.typ == OpType.DEFAULT:
                 ip += 1
             elif op.typ == OpType.ELSE:
                 assert isinstance(op.operand, OpAddr), "This could be a bug in the compilation step"
@@ -553,7 +556,7 @@ def type_check_program(program: Program):
     block_stack: List[Tuple[DataStack, OpType]] = []
     for ip in range(len(program)):
         op = program[ip]
-        assert len(OpType) == 11, "Exhaustive ops handling in type_check_program()"
+        assert len(OpType) == 12, "Exhaustive ops handling in type_check_program()"
         if op.typ == OpType.PUSH_INT:
             stack.append((DataType.INT, op.token))
         elif op.typ == OpType.PUSH_STR:
@@ -1012,15 +1015,18 @@ def type_check_program(program: Program):
                 compiler_error_with_expansion_stack(op.token, "Invalid argument for the switch condition. Expected INT.")
             block_stack.append((copy(stack), op.typ))
         elif op.typ == OpType.CASE:
-            if len(stack) >= 1: # If case has no arguments it is treated as a default case.
-                a_type, a_loc = stack.pop()
-                if a_type != DataType.INT:
-                    compiler_error_with_expansion_stack(op.token, "Invalid argument for the case condition. Expected INT.")
+            if len(stack) < 1:    
+                not_enough_arguments(op)
+            a_type, a_loc = stack.pop()
+            if a_type != DataType.INT:
+                compiler_error_with_expansion_stack(op.token, "Invalid argument for the case condition. Expected INT.")
+        elif op.typ == OpType.DEFAULT:
+            pass # Default is only a indicator.
         elif op.typ == OpType.BREAK:
             pass # Break is only a indicator.
         elif op.typ == OpType.END:
             block_snapshot, block_type = block_stack.pop()
-            assert len(OpType) == 11, "Exhaustive handling of op types"
+            assert len(OpType) == 12, "Exhaustive handling of op types"
             if block_type == OpType.IF:
                 expected_types = list(map(lambda x: x[0], block_snapshot))
                 actual_types = list(map(lambda x: x[0], stack))
@@ -1126,7 +1132,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
         out.write("    mov [args_ptr], rsp\n")
         for ip in range(len(program)):
             op = program[ip]
-            assert len(OpType) == 11, "Exhaustive ops handling in generate_nasm_linux_x86_64"
+            assert len(OpType) == 12, "Exhaustive ops handling in generate_nasm_linux_x86_64"
             out.write("addr_%d:\n" % ip)
             if op.typ == OpType.PUSH_INT:
                 assert isinstance(op.operand, int), "This could be a bug in the compilation step"
@@ -1468,11 +1474,12 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
         out.write("args_ptr: resq 1\n")
         out.write("mem: resb %d\n" % MEM_CAPACITY)
 
-assert len(Keyword) == 10, "Exhaustive KEYWORD_NAMES definition."
+assert len(Keyword) == 11, "Exhaustive KEYWORD_NAMES definition."
 KEYWORD_NAMES = {
     'if': Keyword.IF,
     'switch': Keyword.SWITCH,
     'case': Keyword.CASE,
+    'default': Keyword.DEFAULT,
     'break': Keyword.BREAK,
     'end': Keyword.END,
     'else': Keyword.ELSE,
@@ -1591,7 +1598,7 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str], exp
             program.append(Op(typ=OpType.PUSH_INT, operand=token.value, token=token));
             ip += 1
         elif token.typ == TokenType.KEYWORD:
-            assert len(Keyword) == 10, "Exhaustive keywords handling in compile_tokens_to_program()"
+            assert len(Keyword) == 11, "Exhaustive keywords handling in compile_tokens_to_program()"
             if token.value == Keyword.IF:
                 program.append(Op(typ=OpType.IF, token=token))
                 stack.append(ip)
@@ -1612,7 +1619,7 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str], exp
                     program[block_ip].operand = ip
                     program[ip].operand = ip + 1
                 elif program[block_ip].typ == OpType.SWITCH:
-                    cast(list, program[block_ip].operand)[-1] = ip  
+                    cast(list, program[block_ip].operand)[-1] = ip
                     program[ip].operand = ip + 1
                 elif program[block_ip].typ == OpType.DO:
                     assert program[block_ip].operand is not None
@@ -1634,14 +1641,16 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str], exp
                     compiler_error_with_expansion_stack(program[block_ip].token, '`case` may only exist within switch block')
                 compare_value = program[ip-1]
                 if compare_value.typ != OpType.PUSH_INT:
-                    if cast(list, program[block_ip].operand)[-2] != -1:
-                        compiler_error_with_expansion_stack(program[block_ip].token, 'only one `case` may exist without an argument')
-                    cast(list, program[block_ip].operand)[-2] = ip
+                    compiler_error_with_expansion_stack(program[block_ip].token, '`case` must have a compare value')
                 else:
                     cast(list, program[block_ip].operand).insert(-2, compare_value.operand)
                     cast(list, program[block_ip].operand).insert(-2, ip)
                     program[ip].operand = ip + 1
                 ip += 1
+            elif token.value == Keyword.DEFAULT:
+                if cast(list, program[block_ip].operand)[-2] != -1:
+                    compiler_error_with_expansion_stack(program[block_ip].token, 'only one `default` may exist without an switch statement')
+                cast(list, program[block_ip].operand)[-2] = ip
             elif token.value == Keyword.BREAK:
                 program.append(Op(typ=OpType.BREAK, token=token))
                 program[ip].operand = stack[-1]
