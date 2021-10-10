@@ -987,12 +987,23 @@ def type_check_program(program: Program):
             elif block_type == OpType.DO:
                 begin_snapshot, begin_type = block_stack.pop()
 
-                if begin_type == OpType.WHILE or begin_type == OpType.IF:
+                if begin_type == OpType.WHILE:
                     expected_types = list(map(lambda x: x[0], begin_snapshot))
                     actual_types = list(map(lambda x: x[0], stack))
 
                     if expected_types != actual_types:
                         compiler_error_with_expansion_stack(op.token, 'while-do body is not allowed to alter the types of the arguments on the data stack')
+                        compiler_note(op.token.loc, 'Expected types: %s' % expected_types)
+                        compiler_note(op.token.loc, 'Actual types: %s' % actual_types)
+                        exit(1)
+
+                    stack = block_snapshot
+                elif begin_type == OpType.IF:
+                    expected_types = list(map(lambda x: x[0], begin_snapshot))
+                    actual_types = list(map(lambda x: x[0], stack))
+
+                    if expected_types != actual_types:
+                        compiler_error_with_expansion_stack(op.token, 'else-less if block is not allowed to alter the types of the arguments on the data stack')
                         compiler_note(op.token.loc, 'Expected types: %s' % expected_types)
                         compiler_note(op.token.loc, 'Actual types: %s' % actual_types)
                         exit(1)
