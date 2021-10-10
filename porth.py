@@ -1198,7 +1198,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                     out.write("    pop rbx\n");
                     out.write("    pop rax\n");
                     out.write("    cmp rax, rbx\n");
-                    out.write("    cmovg rcx, rdx\n");
+                    out.write("    cmova rcx, rdx\n");
                     out.write("    push rcx\n")
                 elif op.operand == Intrinsic.LT:
                     out.write("    ;; -- gt --\n")
@@ -1207,7 +1207,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                     out.write("    pop rbx\n");
                     out.write("    pop rax\n");
                     out.write("    cmp rax, rbx\n");
-                    out.write("    cmovl rcx, rdx\n");
+                    out.write("    cmovb rcx, rdx\n");
                     out.write("    push rcx\n")
                 elif op.operand == Intrinsic.GE:
                     out.write("    ;; -- gt --\n")
@@ -1216,7 +1216,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                     out.write("    pop rbx\n");
                     out.write("    pop rax\n");
                     out.write("    cmp rax, rbx\n");
-                    out.write("    cmovge rcx, rdx\n");
+                    out.write("    cmovae rcx, rdx\n");
                     out.write("    push rcx\n")
                 elif op.operand == Intrinsic.LE:
                     out.write("    ;; -- gt --\n")
@@ -1225,7 +1225,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                     out.write("    pop rbx\n");
                     out.write("    pop rax\n");
                     out.write("    cmp rax, rbx\n");
-                    out.write("    cmovle rcx, rdx\n");
+                    out.write("    cmovbe rcx, rdx\n");
                     out.write("    push rcx\n")
                 elif op.operand == Intrinsic.NE:
                     out.write("    ;; -- ne --\n")
