@@ -1862,28 +1862,28 @@ def generate_rust(program: Program, out_file_path: str):
                     _, op1 = stack.pop()
                     var = var_id;
                     var_id += 1
-                    out.write(("    " * offset) + "let v%d = v%d > v%d;\n" % (var, op1, op0))
+                    out.write(("    " * offset) + "let v%d = v%d as i64 > v%d as i64;\n" % (var, op1, op0))
                     stack.append((DataType.BOOL, var))
                 elif op.operand == Intrinsic.LT:
                     _, op0 = stack.pop()
                     _, op1 = stack.pop()
                     var = var_id;
                     var_id += 1
-                    out.write(("    " * offset) + "let v%d = v%d < v%d;\n" % (var, op1, op0))
+                    out.write(("    " * offset) + "let v%d = v%d as i64 < v%d as i64;\n" % (var, op1, op0))
                     stack.append((DataType.BOOL, var))
                 elif op.operand == Intrinsic.GE:
                     _, op0 = stack.pop()
                     _, op1 = stack.pop()
                     var = var_id;
                     var_id += 1
-                    out.write(("    " * offset) + "let v%d = v%d >= v%d;\n" % (var, op1, op0))
+                    out.write(("    " * offset) + "let v%d = v%d as i64 >= v%d as i64;\n" % (var, op1, op0))
                     stack.append((DataType.BOOL, var))
                 elif op.operand == Intrinsic.LE:
                     _, op0 = stack.pop()
                     _, op1 = stack.pop()
                     var = var_id;
                     var_id += 1
-                    out.write(("    " * offset) + "let v%d = v%d <= v%d;\n" % (var, op1, op0))
+                    out.write(("    " * offset) + "let v%d = v%d as i64 <= v%d as i64;\n" % (var, op1, op0))
                     stack.append((DataType.BOOL, var))
                 elif op.operand == Intrinsic.NE:
                     _, op0 = stack.pop()
