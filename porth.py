@@ -1165,8 +1165,10 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                     out.write("    jmp addr_%d\n" % cast(Tuple, cast(dict, op.operand)[None])[1])
                 ip += 1
             elif op.typ == OpType.BREAK:
+                out.write("    ;; -- break --\n")
                 out.write("    jmp addr_%d\n" % cast(Tuple, cast(dict, program[cast(int, op.operand)].operand)[None])[1]) # jump to the end of the switch statement
             elif op.typ == OpType.CASE:
+                out.write("    ;; -- case --\n")
                 ip += 1
             elif op.typ == OpType.END:
                 assert isinstance(op.operand, int), "This could be a bug in the compilation step"
