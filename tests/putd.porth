@@ -1,0 +1,9 @@
+include "std.porth"
+
+//Zero
+0 putd
+"\n" puts
+
+//max i64
+9223372036854775807 putd
+"\n" puts
