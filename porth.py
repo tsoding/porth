@@ -1556,7 +1556,7 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str], exp
                         compiler_error_with_expansion_stack(program[block_begin_ip].token, '`end` can only close `do` blocks that are part of `if` or `while`')
                         exit(1)
                 else:
-                    compiler_error_with_expansion_stack(program[block_ip].token, '`end` can only close `else` or `do` blocks for now')
+                    compiler_error_with_expansion_stack(program[block_ip].token, '`end` can only close `else`, `do` or `macro` blocks for now')
                     exit(1)
                 ip += 1
             elif token.value == Keyword.WHILE:
