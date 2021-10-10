@@ -16,7 +16,7 @@ macro board_base value 8 + end
 macro display BOARD_SIZE 2 * board_base + end
 
 macro putd
-  dup 0 = if
+  if dup 0 = do
     "0" puts
   else
     putd_buffer PUTD_BUFFER_CAP +
@@ -46,7 +46,7 @@ end
 
 macro display_row
   0 while dup COLS < do
-    2dup + , 0 = if
+    if 2dup + , 0 = do
       display over + '.' .
     else
       display over + '#' .
@@ -91,37 +91,37 @@ end
 macro count_current_nbors
   nbors 0 .64
 
-  2dup 1 - swap 1 - swap 2dup in_bounds
-  rot rot swap COLS * + board_current + , 1 =
-  and if nbors inc64 end
+  if 2dup 1 - swap 1 - swap 2dup in_bounds
+     rot rot swap COLS * + board_current + , 1 =
+     and do nbors inc64 end
 
-  2dup 1 - 2dup in_bounds
-  rot rot swap COLS * + board_current + , 1 =
-  and if nbors inc64 end
+  if 2dup 1 - 2dup in_bounds
+     rot rot swap COLS * + board_current + , 1 =
+     and do nbors inc64 end
 
-  2dup 1 - swap 1 + swap 2dup in_bounds
-  rot rot swap COLS * + board_current + , 1 =
-  and if nbors inc64 end
+  if 2dup 1 - swap 1 + swap 2dup in_bounds
+     rot rot swap COLS * + board_current + , 1 =
+     and do nbors inc64 end
 
-  2dup swap 1 - swap 2dup in_bounds
-  rot rot swap COLS * + board_current + , 1 =
-  and if nbors inc64 end
+  if 2dup swap 1 - swap 2dup in_bounds
+     rot rot swap COLS * + board_current + , 1 =
+     and do nbors inc64 end
 
-  2dup swap 1 + swap 2dup in_bounds
-  rot rot swap COLS * + board_current + , 1 =
-  and if nbors inc64 end
+  if 2dup swap 1 + swap 2dup in_bounds
+     rot rot swap COLS * + board_current + , 1 =
+     and do nbors inc64 end
 
-  2dup 1 + swap 1 - swap 2dup in_bounds
-  rot rot swap COLS * + board_current + , 1 =
-  and if nbors inc64 end
+  if 2dup 1 + swap 1 - swap 2dup in_bounds
+     rot rot swap COLS * + board_current + , 1 =
+     and do nbors inc64 end
 
-  2dup 1 + 2dup in_bounds
-  rot rot swap COLS * + board_current + , 1 =
-  and if nbors inc64 end
+  if 2dup 1 + 2dup in_bounds
+     rot rot swap COLS * + board_current + , 1 =
+     and do nbors inc64 end
 
-  2dup 1 + swap 1 + swap 2dup in_bounds
-  rot rot swap COLS * + board_current + , 1 =
-  and if nbors inc64 end
+  if 2dup 1 + swap 1 + swap 2dup in_bounds
+     rot rot swap COLS * + board_current + , 1 =
+     and do nbors inc64 end
 
   2drop
   nbors ,64
@@ -130,15 +130,15 @@ end
 macro compute_next_board
   0 while dup ROWS < do
     0 while dup COLS < do
-      2dup get_current_cell 1 = if
+      if 2dup get_current_cell 1 = do
         2dup count_current_nbors
-        dup 2 = swap 3 = or if
+        if dup 2 = swap 3 = or do
           2dup 1 set_next_cell
         else
           2dup 0 set_next_cell
         end
       else
-        2dup count_current_nbors 3 = if
+        if 2dup count_current_nbors 3 = do
           2dup 1 set_next_cell
         else
           2dup 0 set_next_cell
