@@ -1,0 +1,14 @@
+include "std.porth"
+
+macro debug_strlen
+  "strlen(\"" puts
+  dup dup strlen swap puts
+  "\") == " puts
+  strlen print
+end
+
+macro str_as_ptr swap drop end
+
+
+"\0" str_as_ptr debug_strlen
+"hello\0" str_as_ptr debug_strlen
