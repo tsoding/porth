@@ -23,6 +23,21 @@ macro sim-stack sim-stack-count 8 + end
 macro ops-count sim-stack SIM_STACK_CAP 8 * + end
 macro ops ops-count 8 + end
 
+//Pushes &base[index] on top of the stack
+macro &[] // index base element_size -- element_address
+  rot * +
+end
+
+//Pushes Op &base[index] on top of the stack
+macro &[Op] // index base -- element_address
+  sizeof(Op) &[]
+end
+
+//Pushes Op &ops[index] on top of the stack
+macro &ops[] // index -- element_address
+  ops &[Op]
+end
+
 macro sim-stack-push // u64 --
   if sim-stack-count @64 SIM_STACK_CAP >= do
     here eputs ": ERROR: data stack overflow in simulation mode" eputs 1 exit
