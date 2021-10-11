@@ -72,7 +72,7 @@ macro putd // u64 --
 end
 
 macro push-op // type operand -- 
-  ops-count @64 sizeof(Op) * ops +
+  ops-count @64 &ops[]
   dup Op.operand rot swap !64
   Op.type !64
   ops-count inc64
@@ -81,7 +81,7 @@ end
 macro dump-ops // --
   0 while dup ops-count @64 < do
     // ptr ptr
-    dup sizeof(Op) * ops +
+    dup &ops[]
     "Type:    " puts dup Op.type @64 print
     "Operand: " puts Op.operand @64 print
     "----------\n" puts
