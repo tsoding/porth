@@ -126,9 +126,9 @@ def run_test_for_file(file_path: str, stats: RunStats = RunStats()):
             print("    stdout: \n%s" % tc.stdout.decode("utf-8"))
             print("    stderr: \n%s" % tc.stderr.decode("utf-8"))
             print("  Actual:")
-            print("    return code: %s" % com.returncode)
-            print("    stdout: \n%s" % com.stdout.decode("utf-8"))
-            print("    stderr: \n%s" % com.stderr.decode("utf-8"))
+            print("    return code: %s" % translate.returncode)
+            print("    stdout: \n%s" % translate.stdout.decode("utf-8"))
+            print("    stderr: \n%s" % translate.stderr.decode("utf-8"))
             stats.translate_failed += 1
     else:
         print('[WARNING] Could not find any input/output data for %s. Ignoring testing. Only checking if it compiles.' % file_path)
