@@ -1775,7 +1775,7 @@ def generate_rust(program: Program, out_file_path: str):
                 out.write(("    " * offset) + "}\n")
                 assert isinstance(op.operand, int), "This could be a bug in the compilation step"
             elif op.typ == OpType.INTRINSIC:
-                assert len(Intrinsic) == 34, "Exhaustive intrinsic handling in generate_nasm_linux_x86_64()"
+                assert len(Intrinsic) == 41, "Exhaustive intrinsic handling in generate_nasm_linux_x86_64()"
                 if op.operand == Intrinsic.PLUS:
                     _, op0 = stack.pop()
                     _, op1 = stack.pop()
@@ -1828,19 +1828,25 @@ def generate_rust(program: Program, out_file_path: str):
                     var_id += 1
                     out.write(("    " * offset) + "let v%d = v%d << v%d;\n" % (var, op1, op0))
                     stack.append((DataType.INT, var))
-                elif op.operand == Intrinsic.BOR:
+                elif op.operand == Intrinsic.OR:
                     _, op0 = stack.pop()
                     _, op1 = stack.pop()
                     var = var_id;
                     var_id += 1
                     out.write(("    " * offset) + "let v%d = v%d | v%d;\n" % (var, op1, op0))
                     stack.append((DataType.INT, var))
-                elif op.operand == Intrinsic.BAND:
+                elif op.operand == Intrinsic.AND:
                     _, op0 = stack.pop()
                     _, op1 = stack.pop()
                     var = var_id;
                     var_id += 1
                     out.write(("    " * offset) + "let v%d = v%d & v%d;\n" % (var, op1, op0))
+                    stack.append((DataType.INT, var))
+                elif op.operand == Intrinsic.NOT:
+                    _, op = stack.pop()
+                    var = var_id;
+                    var_id += 1
+                    out.write(("    " * offset) + "let v%d = !v%d;\n" % (var, op))
                     stack.append((DataType.INT, var))
                 elif op.operand == Intrinsic.PRINT:
                     typ, var = stack.pop()
@@ -1862,28 +1868,28 @@ def generate_rust(program: Program, out_file_path: str):
                     _, op1 = stack.pop()
                     var = var_id;
                     var_id += 1
-                    out.write(("    " * offset) + "let v%d = v%d as i64 > v%d as i64;\n" % (var, op1, op0))
+                    out.write(("    " * offset) + "let v%d = (v%d as i64) > (v%d as i64);\n" % (var, op1, op0))
                     stack.append((DataType.BOOL, var))
                 elif op.operand == Intrinsic.LT:
                     _, op0 = stack.pop()
                     _, op1 = stack.pop()
                     var = var_id;
                     var_id += 1
-                    out.write(("    " * offset) + "let v%d = v%d as i64 < v%d as i64;\n" % (var, op1, op0))
+                    out.write(("    " * offset) + "let v%d = (v%d as i64) < (v%d as i64);\n" % (var, op1, op0))
                     stack.append((DataType.BOOL, var))
                 elif op.operand == Intrinsic.GE:
                     _, op0 = stack.pop()
                     _, op1 = stack.pop()
                     var = var_id;
                     var_id += 1
-                    out.write(("    " * offset) + "let v%d = v%d as i64 >= v%d as i64;\n" % (var, op1, op0))
+                    out.write(("    " * offset) + "let v%d = (v%d as i64) >= (v%d as i64);\n" % (var, op1, op0))
                     stack.append((DataType.BOOL, var))
                 elif op.operand == Intrinsic.LE:
                     _, op0 = stack.pop()
                     _, op1 = stack.pop()
                     var = var_id;
                     var_id += 1
-                    out.write(("    " * offset) + "let v%d = v%d as i64 <= v%d as i64;\n" % (var, op1, op0))
+                    out.write(("    " * offset) + "let v%d = (v%d as i64) <= (v%d as i64);\n" % (var, op1, op0))
                     stack.append((DataType.BOOL, var))
                 elif op.operand == Intrinsic.NE:
                     _, op0 = stack.pop()
@@ -1910,6 +1916,13 @@ def generate_rust(program: Program, out_file_path: str):
                     stack.append(arg1);
                     stack.append(arg0);
                     stack.append(arg1);
+                elif op.operand == Intrinsic.ROT:
+                    arg0 = stack.pop()
+                    arg1 = stack.pop()
+                    arg2 = stack.pop()
+                    stack.append(arg1);
+                    stack.append(arg0);
+                    stack.append(arg2);
                 elif op.operand == Intrinsic.MEM:
                     var = var_id;
                     var_id += 1
@@ -1925,6 +1938,16 @@ def generate_rust(program: Program, out_file_path: str):
                     _, op0 = stack.pop()
                     _, op1 = stack.pop()
                     out.write(("    " * offset) + "store8!(v%d, v%d);\n" % (op1, op0))
+                elif op.operand == Intrinsic.FORTH_LOAD:
+                    _, op0 = stack.pop()
+                    var = var_id
+                    var_id += 1
+                    out.write(("    " * offset) + "let v%d = load8!(v%d);\n" % (var, op0))
+                    stack.append((DataType.INT, var))
+                elif op.operand == Intrinsic.FORTH_STORE:
+                    _, op0 = stack.pop()
+                    _, op1 = stack.pop()
+                    out.write(("    " * offset) + "store8!(v%d, v%d);\n" % (op0, op1))
                 elif op.operand == Intrinsic.ARGC:
                     var = var_id
                     var_id += 1
@@ -1945,9 +1968,38 @@ def generate_rust(program: Program, out_file_path: str):
                     _, op0 = stack.pop()
                     _, op1 = stack.pop()
                     out.write(("    " * offset) + "store64!(v%d, v%d);\n" % (op1, op0))
+                elif op.operand == Intrinsic.FORTH_LOAD64:
+                    _, op0 = stack.pop()
+                    var = var_id;
+                    var_id += 1
+                    out.write(("    " * offset) + "let v%d = load64!(v%d);\n" % (var, op0))
+                    stack.append((DataType.INT, var))
+                elif op.operand == Intrinsic.FORTH_STORE64:
+                    _, op0 = stack.pop()
+                    _, op1 = stack.pop()
+                    out.write(("    " * offset) + "store64!(v%d, v%d);\n" % (op0, op1))
                 elif op.operand == Intrinsic.CAST_PTR:
                     # Do nothing
                     pass
+                elif op.operand == Intrinsic.HERE:
+                    here_string = "%s:%d:%d" % op.token.loc
+                    var = var_id;
+                    var_id += 1
+                    out.write(("    " * offset) + "let v%d: &'static str = r#\"%s\"#;\n" % (var, here_string))
+                    str_const = var
+
+                    var = var_id;
+                    var_id += 1
+                    out.write(("    " * offset) + "let v%d: u64 = v%d.len() as u64;\n" % (var, str_const))
+                    str_len = var
+
+                    var = var_id;
+                    var_id += 1
+                    out.write(("    " * offset) + "let v%d: u64 = v%d.as_ptr() as usize as u64;\n" % (var, str_const))
+                    str_addr = var
+
+                    stack.append((DataType.INT, str_len))
+                    stack.append((DataType.PTR, str_addr))
                 elif op.operand == Intrinsic.SYSCALL0:
                     _, num = stack.pop()
                     var = var_id
