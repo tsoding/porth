@@ -1174,6 +1174,9 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
             elif op.typ == OpType.CASE:
                 out.write("    ;; -- case --\n")
                 ip += 1
+            elif op.typ == OpType.DEFAULT:
+                out.write(" ;; -- default --\n")
+                ip += 1
             elif op.typ == OpType.END:
                 assert isinstance(op.operand, int), "This could be a bug in the compilation step"
                 out.write("    ;; -- end --\n")
@@ -1657,6 +1660,8 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str], exp
                     program[ip].operand = ip + 1
                 ip += 1
             elif token.value == Keyword.DEFAULT:
+                if program[block_ip].typ != OpType.SWITCH:
+                    compiler_error_with_expansion_stack(program[block_ip].token, '`default` may only exist within switch block')
                 if cast(list, program[block_ip].operand)[-2] != -1:
                     compiler_error_with_expansion_stack(program[block_ip].token, 'only one `default` may exist without an switch statement')
                 cast(list, program[block_ip].operand)[-2] = ip
