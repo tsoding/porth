@@ -25,7 +25,7 @@ macro ops ops-count 8 + end
 
 macro sim-stack-push // u64 --
   if sim-stack-count @64 SIM_STACK_CAP >= do
-    here eputs ": ERROR: data stack overflow in simulation mode" eputs 1 exit
+    here eputs ": ERROR: data stack overflow in simulation mode\n" eputs 1 exit
   end
   sim-stack sim-stack-count @64 8 * + !64
   sim-stack-count inc64
@@ -33,7 +33,7 @@ end
 
 macro sim-stack-pop // -- u64
   if sim-stack-count @64 0 = do
-    here eputs ": ERROR: data stack underflow in simulation mode" eputs 1 exit
+    here eputs ": ERROR: data stack underflow in simulation mode\n" eputs 1 exit
   end
   sim-stack-count dec64
   sim-stack sim-stack-count @64 8 * + @64
