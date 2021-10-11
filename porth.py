@@ -1483,7 +1483,7 @@ def expand_macro(macro: Macro, expanded_from: Token) -> List[Token]:
         token.expanded_count = expanded_from.expanded_count + 1
     return result
 
-def compile_tokens_to_program(tokens: List[Token], include_paths: List[str], expansion_limit: int) -> Program:
+def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], expansion_limit: int) -> Program:
     stack: List[OpAddr] = []
     program: List[Op] = []
     rtokens: List[Token] = list(reversed(tokens))
@@ -1491,7 +1491,7 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str], exp
     ip: OpAddr = 0;
     while len(rtokens) > 0:
         token = rtokens.pop()
-        assert len(TokenType) == 5, "Exhaustive token handling in compile_tokens_to_program"
+        assert len(TokenType) == 5, "Exhaustive token handling in parse_program_from_tokens"
         if token.typ == TokenType.WORD:
             assert isinstance(token.value, str), "This could be a bug in the lexer"
             if token.value in INTRINSIC_BY_NAMES:
@@ -1518,7 +1518,7 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str], exp
             program.append(Op(typ=OpType.PUSH_INT, operand=token.value, token=token));
             ip += 1
         elif token.typ == TokenType.KEYWORD:
-            assert len(Keyword) == 7, "Exhaustive keywords handling in compile_tokens_to_program()"
+            assert len(Keyword) == 7, "Exhaustive keywords handling in parse_program_from_tokens()"
             if token.value == Keyword.IF:
                 program.append(Op(typ=OpType.IF, token=token))
                 stack.append(ip)
@@ -1728,8 +1728,8 @@ def lex_file(file_path: str, expanded_from: Optional[Token] = None) -> List[Toke
                 token.expanded_count = expanded_from.expanded_count + 1
         return result
 
-def compile_file_to_program(file_path: str, include_paths: List[str], expansion_limit: int) -> Program:
-    return compile_tokens_to_program(lex_file(file_path), include_paths, expansion_limit)
+def parse_program_from_file(file_path: str, include_paths: List[str], expansion_limit: int) -> Program:
+    return parse_program_from_tokens(lex_file(file_path), include_paths, expansion_limit)
 
 def cmd_call_echoed(cmd: List[str], silent: bool=False) -> int:
     if not silent:
@@ -1805,7 +1805,7 @@ if __name__ == '__main__' and '__file__' in globals():
             exit(1)
         program_path, *argv = argv
         include_paths.append(path.dirname(program_path))
-        program = compile_file_to_program(program_path, include_paths, expansion_limit);
+        program = parse_program_from_file(program_path, include_paths, expansion_limit);
         if not unsafe:
             type_check_program(program)
         simulate_little_endian_linux(program, [program_path] + argv)
@@ -1862,7 +1862,7 @@ if __name__ == '__main__' and '__file__' in globals():
 
         include_paths.append(path.dirname(program_path))
 
-        program = compile_file_to_program(program_path, include_paths, expansion_limit);
+        program = parse_program_from_file(program_path, include_paths, expansion_limit);
         if not unsafe:
             type_check_program(program)
         generate_nasm_linux_x86_64(program, basepath + ".asm")
