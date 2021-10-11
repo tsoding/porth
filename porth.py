@@ -1412,6 +1412,9 @@ def generate_rust(program: Program, out_file_path: str):
     stack: List[Tuple[DataType, int]] = []
     contexts: List[Tuple[OpType, List[int]]] = [] # (op, stack)
     buffers: List[Union[TextIO, StringIO]] = []
+
+    escape = lambda s: s.replace("\n", "\\n").replace("\"", "\\\"").replace("\0", "\\0")
+
     with open(out_file_path, "w") as out:
         out.write("#![feature(asm)]\n")
         out.write("#![allow(unused)]\n")
@@ -1599,7 +1602,7 @@ def generate_rust(program: Program, out_file_path: str):
                 assert isinstance(op.operand, str), "This could be a bug in the compilation step"
                 var = var_id;
                 var_id += 1
-                out.write(("    " * offset) + "let v%d: &'static str = r#\"%s\"#;\n" % (var, op.operand))
+                out.write(("    " * offset) + "let v%d: &'static str = \"%s\";\n" % (var, escape(op.operand)))
                 str_const = var
 
                 var = var_id;
@@ -1982,10 +1985,10 @@ def generate_rust(program: Program, out_file_path: str):
                     # Do nothing
                     pass
                 elif op.operand == Intrinsic.HERE:
-                    here_string = "%s:%d:%d" % op.token.loc
+                    here_string = escape("%s:%d:%d" % op.token.loc)
                     var = var_id;
                     var_id += 1
-                    out.write(("    " * offset) + "let v%d: &'static str = r#\"%s\"#;\n" % (var, here_string))
+                    out.write(("    " * offset) + "let v%d: &'static str = \"%s\";\n" % (var, here_string))
                     str_const = var
 
                     var = var_id;
