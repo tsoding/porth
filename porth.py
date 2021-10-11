@@ -26,6 +26,10 @@ Loc=Tuple[str, int, int]
 
 class Keyword(Enum):
     IF=auto()
+    SWITCH=auto()
+    CASE=auto()
+    DEFAULT=auto()
+    BREAK=auto()
     END=auto()
     ELSE=auto()
     WHILE=auto()
@@ -81,6 +85,10 @@ class OpType(Enum):
     PUSH_STR=auto()
     INTRINSIC=auto()
     IF=auto()
+    SWITCH=auto()
+    CASE=auto()
+    DEFAULT=auto()
+    BREAK=auto()
     END=auto()
     ELSE=auto()
     WHILE=auto()
@@ -110,7 +118,7 @@ OpAddr=int
 class Op:
     typ: OpType
     token: Token
-    operand: Optional[Union[int, str, Intrinsic, OpAddr]] = None
+    operand: Optional[Union[int, str, Intrinsic, OpAddr, list]] = None
 
 Program=List[Op]
 
@@ -158,7 +166,7 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
 
     ip = 0
     while ip < len(program):
-        assert len(OpType) == 8, "Exhaustive op handling in simulate_little_endian_linux"
+        assert len(OpType) == 12, "Exhaustive op handling in simulate_little_endian_linux"
         op = program[ip]
         try:
             if op.typ == OpType.PUSH_INT:
@@ -179,6 +187,23 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                 stack.append(str_ptrs[ip])
                 ip += 1
             elif op.typ == OpType.IF:
+                ip += 1
+            elif op.typ == OpType.SWITCH:
+                a = stack.pop()
+                if a in cast(list, op.operand):
+                    for i in range(0, len(cast(list, op.operand)) - 3, 2):
+                        if cast(list, op.operand)[i] == a:
+                            ip = cast(list, op.operand)[i+1]
+                else:
+                    if cast(list, op.operand)[-2] == -1: # If there is no default case jump to it otherwise jump to end
+                        ip = cast(list, op.operand)[-1]
+                    else:
+                        ip = cast(list, op.operand)[-2]
+            elif op.typ == OpType.BREAK:
+                ip = cast(list, program[cast(int, op.operand)].operand)[-1]
+            elif op.typ == OpType.CASE:
+                ip += 1
+            elif op.typ == OpType.DEFAULT:
                 ip += 1
             elif op.typ == OpType.WHILE:
                 ip += 1
@@ -527,7 +552,7 @@ def type_check_program(program: Program):
     block_stack: List[Tuple[DataStack, OpType]] = []
     for ip in range(len(program)):
         op = program[ip]
-        assert len(OpType) == 8, "Exhaustive ops handling in type_check_program()"
+        assert len(OpType) == 12, "Exhaustive ops handling in type_check_program()"
         if op.typ == OpType.PUSH_INT:
             stack.append((DataType.INT, op.token))
         elif op.typ == OpType.PUSH_STR:
@@ -973,14 +998,39 @@ def type_check_program(program: Program):
             block_stack.append((copy(stack), op.typ))
         elif op.typ == OpType.WHILE:
             block_stack.append((copy(stack), op.typ))
+        elif op.typ == OpType.SWITCH:
+            if len(stack) < 1:
+                not_enough_arguments(op)
+            a_type, a_loc = stack.pop()
+            if a_type != DataType.INT:
+                compiler_error_with_expansion_stack(op.token, "Invalid argument for the switch condition. Expected INT.")
+            block_stack.append((copy(stack), op.typ))
+        elif op.typ == OpType.CASE:
+            if len(stack) < 1:
+                not_enough_arguments(op)
+            a_type, a_loc = stack.pop()
+            if a_type != DataType.INT:
+                compiler_error_with_expansion_stack(op.token, "Invalid argument for the case condition. Expected INT.")
+        elif op.typ == OpType.DEFAULT:
+            pass # Default is only a indicator.
+        elif op.typ == OpType.BREAK:
+            pass # Break is only a indicator.
         elif op.typ == OpType.END:
             block_snapshot, block_type = block_stack.pop()
-            assert len(OpType) == 8, "Exhaustive handling of op types"
+            assert len(OpType) == 12, "Exhaustive handling of op types"
             if block_type == OpType.ELSE:
                 expected_types = list(map(lambda x: x[0], block_snapshot))
                 actual_types = list(map(lambda x: x[0], stack))
                 if expected_types != actual_types:
                     compiler_error_with_expansion_stack(op.token, 'both branches of the if-block must produce the same types of the arguments on the data stack')
+                    compiler_note(op.token.loc, 'Expected types: %s' % expected_types)
+                    compiler_note(op.token.loc, 'Actual types: %s' % actual_types)
+                    exit(1)
+            elif block_type == OpType.SWITCH:
+                expected_types = list(map(lambda x: x[0], block_snapshot))
+                actual_types = list(map(lambda x: x[0], stack))
+                if expected_types != actual_types:
+                    compiler_error_with_expansion_stack(op.token, 'switch block is not allowed to alter the types of the arguments on the data stack')
                     compiler_note(op.token.loc, 'Expected types: %s' % expected_types)
                     compiler_note(op.token.loc, 'Actual types: %s' % actual_types)
                     exit(1)
@@ -1080,7 +1130,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
         out.write("    mov [args_ptr], rsp\n")
         for ip in range(len(program)):
             op = program[ip]
-            assert len(OpType) == 8, "Exhaustive ops handling in generate_nasm_linux_x86_64"
+            assert len(OpType) == 12, "Exhaustive ops handling in generate_nasm_linux_x86_64"
             out.write("addr_%d:\n" % ip)
             if op.typ == OpType.PUSH_INT:
                 assert isinstance(op.operand, int), "This could be a bug in the compilation step"
@@ -1104,6 +1154,29 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                 out.write("    ;; -- else --\n")
                 assert isinstance(op.operand, int), "This could be a bug in the compilation step"
                 out.write("    jmp addr_%d\n" % op.operand)
+            elif op.typ == OpType.SWITCH:
+                out.write("    ;; -- switch --\n")
+                out.write("    pop rax\n")
+                for i in range(0, len(cast(list, op.operand)) - 2, 2):
+                    assert isinstance(cast(list, op.operand)[i], int), "This could be a bug in the compilation step"
+                    out.write("    cmp rax, %d\n" % cast(list, op.operand)[i])
+                    i+=1
+                    assert isinstance(cast(list, op.operand)[i], int), "This could be a bug in the compilation step"
+                    out.write("    je addr_%d\n" % cast(list, op.operand)[i])
+                if cast(list, op.operand)[-2] != -1: # If there is a default statement jump to it otherwise jump to the end of the switch statement
+                    out.write("    jmp addr_%d\n" % cast(list, op.operand)[-2])
+                else:
+                    out.write("    jmp addr_%d\n" % cast(list, op.operand)[-1])
+                ip += 1
+            elif op.typ == OpType.BREAK:
+                out.write("    ;; -- break --\n")
+                out.write("    jmp addr_%d\n" % cast(list, program[cast(int, op.operand)].operand)[-1]) # jump to the end of the switch statement
+            elif op.typ == OpType.CASE:
+                out.write("    ;; -- case --\n")
+                ip += 1
+            elif op.typ == OpType.DEFAULT:
+                out.write(" ;; -- default --\n")
+                ip += 1
             elif op.typ == OpType.END:
                 assert isinstance(op.operand, int), "This could be a bug in the compilation step"
                 out.write("    ;; -- end --\n")
@@ -1398,9 +1471,13 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
         out.write("args_ptr: resq 1\n")
         out.write("mem: resb %d\n" % MEM_CAPACITY)
 
-assert len(Keyword) == 7, "Exhaustive KEYWORD_NAMES definition."
+assert len(Keyword) == 11, "Exhaustive KEYWORD_NAMES definition."
 KEYWORD_NAMES = {
     'if': Keyword.IF,
+    'switch': Keyword.SWITCH,
+    'case': Keyword.CASE,
+    'default': Keyword.DEFAULT,
+    'break': Keyword.BREAK,
     'end': Keyword.END,
     'else': Keyword.ELSE,
     'while': Keyword.WHILE,
@@ -1518,7 +1595,7 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str], exp
             program.append(Op(typ=OpType.PUSH_INT, operand=token.value, token=token));
             ip += 1
         elif token.typ == TokenType.KEYWORD:
-            assert len(Keyword) == 7, "Exhaustive keywords handling in compile_tokens_to_program()"
+            assert len(Keyword) == 11, "Exhaustive keywords handling in compile_tokens_to_program()"
             if token.value == Keyword.IF:
                 program.append(Op(typ=OpType.IF, token=token))
                 stack.append(ip)
@@ -1543,6 +1620,9 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str], exp
                 if program[block_ip].typ == OpType.ELSE:
                     program[block_ip].operand = ip
                     program[ip].operand = ip + 1
+                elif program[block_ip].typ == OpType.SWITCH:
+                    cast(list, program[block_ip].operand)[-1] = ip
+                    program[ip].operand = ip + 1
                 elif program[block_ip].typ == OpType.DO:
                     assert program[block_ip].operand is not None
                     block_begin_ip = program[block_ip].operand
@@ -1560,6 +1640,34 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str], exp
                 else:
                     compiler_error_with_expansion_stack(program[block_ip].token, '`end` can only close `else`, `do` or `macro` blocks for now')
                     exit(1)
+                ip += 1
+            elif token.value == Keyword.SWITCH:
+                program.append(Op(typ=OpType.SWITCH, token=token))
+                stack.append(ip)
+                program[ip].operand = list([-1, -1])
+                ip += 1
+            elif token.value == Keyword.CASE:
+                program.append(Op(typ=OpType.CASE, token=token))
+                block_ip = stack[-1]
+                if program[block_ip].typ != OpType.SWITCH:
+                    compiler_error_with_expansion_stack(program[block_ip].token, '`case` may only exist within switch block')
+                compare_value = program[ip-1]
+                if compare_value.typ != OpType.PUSH_INT:
+                    compiler_error_with_expansion_stack(program[block_ip].token, '`case` must have a compare value')
+                else:
+                    cast(list, program[block_ip].operand).insert(-2, compare_value.operand)
+                    cast(list, program[block_ip].operand).insert(-2, ip)
+                    program[ip].operand = ip + 1
+                ip += 1
+            elif token.value == Keyword.DEFAULT:
+                if program[block_ip].typ != OpType.SWITCH:
+                    compiler_error_with_expansion_stack(program[block_ip].token, '`default` may only exist within switch block')
+                if cast(list, program[block_ip].operand)[-2] != -1:
+                    compiler_error_with_expansion_stack(program[block_ip].token, 'only one `default` may exist without an switch statement')
+                cast(list, program[block_ip].operand)[-2] = ip
+            elif token.value == Keyword.BREAK:
+                program.append(Op(typ=OpType.BREAK, token=token))
+                program[ip].operand = stack[-1]
                 ip += 1
             elif token.value == Keyword.WHILE:
                 program.append(Op(typ=OpType.WHILE, token=token))
@@ -1620,7 +1728,7 @@ def compile_tokens_to_program(tokens: List[Token], include_paths: List[str], exp
                     else:
                         macro.tokens.append(token)
                         if token.typ == TokenType.KEYWORD:
-                            if token.value in [Keyword.IF, Keyword.WHILE, Keyword.MACRO]:
+                            if token.value in [Keyword.IF, Keyword.WHILE, Keyword.MACRO, Keyword.SWITCH]:
                                 nesting_depth += 1
                             elif token.value == Keyword.END:
                                 nesting_depth -= 1
