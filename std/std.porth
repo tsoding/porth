@@ -411,34 +411,34 @@ macro _putd_after
 end
 
 macro putd
-  dup 0 = if
+  if dup 0 = do
     "0" puts
   else
-    dup 0 < if
+    if dup 0 < do
     "-" puts
     -1 *
     end
 
-    dup 0 > if _putd_before 
-    dup 0 > if _putd_before
-    dup 0 > if _putd_before
-    dup 0 > if _putd_before
-    dup 0 > if _putd_before
-    dup 0 > if _putd_before
-    dup 0 > if _putd_before
-    dup 0 > if _putd_before
-    dup 0 > if _putd_before
-    dup 0 > if _putd_before
-    dup 0 > if _putd_before
-    dup 0 > if _putd_before
-    dup 0 > if _putd_before
-    dup 0 > if _putd_before
-    dup 0 > if _putd_before
-    dup 0 > if _putd_before
-    dup 0 > if _putd_before
-    dup 0 > if _putd_before
-    dup 0 > if _putd_before
-    dup 0 > if _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
     _putd_after end
     _putd_after end
     _putd_after end
