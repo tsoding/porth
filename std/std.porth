@@ -370,7 +370,7 @@ macro cstrlen
   swap -
 end
 
-macro streq
+macro cstreq
   while
     if over , 0 != over , 0 != and do
        over , over , =
