@@ -364,13 +364,13 @@ macro dec64
   dup ,64 1 - .64
 end
 
-macro strlen
+macro cstrlen
   dup
   while dup , 0 != do 1 + end
   swap -
 end
 
-macro streq
+macro cstreq
   while
     if over , 0 != over , 0 != and do
        over , over , =
@@ -383,6 +383,10 @@ macro streq
   , 0 =
   swap , 0 =
   and
+end
+
+macro cstr-to-pstr
+  dup cstrlen swap
 end
 
 macro fputs

@@ -212,20 +212,19 @@ macro main // --
   // TODO: parsing file is not implemented
 
   1 nth_argv
-  // TODO: consider adding null terminated string literals
-  if dup "sim\0" swap drop streq do
+  if dup "sim"c cstreq do
     simulate-ops
-  else if dup "com\0" swap drop streq do
+  else if dup "com"c cstreq do
     compile-ops
-  else if dup "help\0" swap drop streq do
+  else if dup "help"c cstreq do
     // TODO: output usage to stdout in case of the `help` subcommand
     usage
     0 exit
-  else if dup "dump\0" swap drop streq do
+  else if dup "dump"c cstreq do
     dump-ops
   else
     usage
-    "ERROR: unknown subcommand `" eputs dup dup strlen swap eputs "`\n" eputs
+    "ERROR: unknown subcommand `" eputs dup cstr-to-pstr eputs "`\n" eputs
     1 exit
   end end end end
   drop
