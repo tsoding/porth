@@ -4,6 +4,6 @@
 :i returncode 1
 :b stdout 0
 
-:b stderr 93
-./tests/else-not-inside-if-error.porth:1:1: ERROR: `else` can only be used in `if-do` blocks
+:b stderr 90
+./tests/else-not-inside-if-error.porth:1:1: ERROR: `else` can only be used in `do` blocks
 

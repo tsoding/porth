@@ -123,19 +123,19 @@ macro compile-ops // --
        "    ;; -- push int " puts dup Op.operand @64 putd " --\n" puts
        "    mov rax, "       puts dup Op.operand @64 putd "\n" puts
        "    push rax\n"      puts
-    else if dup Op.type @64 OP_PLUS = do
+    elif dup Op.type @64 OP_PLUS = do
        "    ;; -- plus --\n" puts
        "    pop rax\n" puts
        "    pop rbx\n" puts
        "    add rax, rbx\n" puts
        "    push rax\n" puts
-    else if dup Op.type @64 OP_PRINT = do
+    elif dup Op.type @64 OP_PRINT = do
        "    ;; -- print --\n" puts
        "    pop rdi\n" puts
        "    call print\n" puts
     else
        here eputs ": unreachable\n" eputs 1 exit
-    end end end // TODO: introduce a better construction to avoid this madness
+    end
 
     drop
 
@@ -157,16 +157,16 @@ macro simulate-ops // --
 
     if dup Op.type @64 OP_PUSH_INT = do
        dup Op.operand @64 sim-stack-push
-    else if dup Op.type @64 OP_PLUS = do
+    elif dup Op.type @64 OP_PLUS = do
        sim-stack-pop
        sim-stack-pop
        +
        sim-stack-push
-    else if dup Op.type @64 OP_PRINT = do
+    elif dup Op.type @64 OP_PRINT = do
        sim-stack-pop print
     else
        here eputs ": unreachable\n" eputs 1 exit
-    end end end // TODO: introduce a better construction to avoid this madness
+    end
 
     drop
 
@@ -215,18 +215,18 @@ macro main // --
   1 nth_argv
   if dup "sim"c cstreq do
     simulate-ops
-  else if dup "com"c cstreq do
+  elif dup "com"c cstreq do
     compile-ops
-  else if dup "help"c cstreq do
+  elif dup "help"c cstreq do
     stdout usage
     0 exit
-  else if dup "dump"c cstreq do
+  elif dup "dump"c cstreq do
     dump-ops
   else
     stderr usage
     "ERROR: unknown subcommand `" eputs dup cstr-to-pstr eputs "`\n" eputs
     1 exit
-  end end end end
+  end
   drop
 end
 
