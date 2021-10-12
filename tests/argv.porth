@@ -1,7 +1,7 @@
 include "std.porth"
 
 1 while dup argc < do
-  dup nth_argv strlen
+  dup nth_argv cstrlen
   over nth_argv
   puts
 

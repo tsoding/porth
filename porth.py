@@ -79,6 +79,7 @@ class Intrinsic(Enum):
 class OpType(Enum):
     PUSH_INT=auto()
     PUSH_STR=auto()
+    PUSH_CSTR=auto()
     INTRINSIC=auto()
     IF=auto()
     END=auto()
@@ -90,10 +91,11 @@ class TokenType(Enum):
     WORD=auto()
     INT=auto()
     STR=auto()
+    CSTR=auto()
     CHAR=auto()
     KEYWORD=auto()
 
-assert len(TokenType) == 5, "Exhaustive Token type definition. The `value` field of the Token dataclass may require an update"
+assert len(TokenType) == 6, "Exhaustive Token type definition. The `value` field of the Token dataclass may require an update"
 @dataclass
 class Token:
     typ: TokenType
@@ -158,18 +160,30 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
 
     ip = 0
     while ip < len(program):
-        assert len(OpType) == 8, "Exhaustive op handling in simulate_little_endian_linux"
+        assert len(OpType) == 9, "Exhaustive op handling in simulate_little_endian_linux"
         op = program[ip]
         try:
             if op.typ == OpType.PUSH_INT:
-                assert isinstance(op.operand, int), "This could be a bug in the compilation step"
+                assert isinstance(op.operand, int), "This could be a bug in the parsing step"
                 stack.append(op.operand)
                 ip += 1
             elif op.typ == OpType.PUSH_STR:
-                assert isinstance(op.operand, str), "This could be a bug in the compilation step"
+                assert isinstance(op.operand, str), "This could be a bug in the parsing step"
                 value = op.operand.encode('utf-8')
                 n = len(value)
                 stack.append(n)
+                if ip not in str_ptrs:
+                    str_ptr = str_buf_ptr+str_size
+                    str_ptrs[ip] = str_ptr
+                    mem[str_ptr:str_ptr+n] = value
+                    str_size += n
+                    assert str_size <= SIM_STR_CAPACITY, "String buffer overflow"
+                stack.append(str_ptrs[ip])
+                ip += 1
+            elif op.typ == OpType.PUSH_CSTR:
+                assert isinstance(op.operand, str), "This could be a bug in the parsing step"
+                value = op.operand.encode('utf-8') + b'\0'
+                n = len(value)
                 if ip not in str_ptrs:
                     str_ptr = str_buf_ptr+str_size
                     str_ptrs[ip] = str_ptr
@@ -183,15 +197,15 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
             elif op.typ == OpType.WHILE:
                 ip += 1
             elif op.typ == OpType.ELSE:
-                assert isinstance(op.operand, OpAddr), "This could be a bug in the compilation step"
+                assert isinstance(op.operand, OpAddr), "This could be a bug in the parsing step"
                 ip = op.operand
             elif op.typ == OpType.END:
-                assert isinstance(op.operand, OpAddr), "This could be a bug in the compilation step"
+                assert isinstance(op.operand, OpAddr), "This could be a bug in the parsing step"
                 ip = op.operand
             elif op.typ == OpType.DO:
                 a = stack.pop()
                 if a == 0:
-                    assert isinstance(op.operand, OpAddr), "This could be a bug in the compilation step"
+                    assert isinstance(op.operand, OpAddr), "This could be a bug in the parsing step"
                     ip = op.operand
                 else:
                     ip += 1
@@ -527,11 +541,13 @@ def type_check_program(program: Program):
     block_stack: List[Tuple[DataStack, OpType]] = []
     for ip in range(len(program)):
         op = program[ip]
-        assert len(OpType) == 8, "Exhaustive ops handling in type_check_program()"
+        assert len(OpType) == 9, "Exhaustive ops handling in type_check_program()"
         if op.typ == OpType.PUSH_INT:
             stack.append((DataType.INT, op.token))
         elif op.typ == OpType.PUSH_STR:
             stack.append((DataType.INT, op.token))
+            stack.append((DataType.PTR, op.token))
+        elif op.typ == OpType.PUSH_CSTR:
             stack.append((DataType.PTR, op.token))
         elif op.typ == OpType.INTRINSIC:
             assert len(Intrinsic) == 41, "Exhaustive intrinsic handling in type_check_program()"
@@ -975,7 +991,7 @@ def type_check_program(program: Program):
             block_stack.append((copy(stack), op.typ))
         elif op.typ == OpType.END:
             block_snapshot, block_type = block_stack.pop()
-            assert len(OpType) == 8, "Exhaustive handling of op types"
+            assert len(OpType) == 9, "Exhaustive handling of op types"
             if block_type == OpType.ELSE:
                 expected_types = list(map(lambda x: x[0], block_snapshot))
                 actual_types = list(map(lambda x: x[0], stack))
@@ -1080,20 +1096,26 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
         out.write("    mov [args_ptr], rsp\n")
         for ip in range(len(program)):
             op = program[ip]
-            assert len(OpType) == 8, "Exhaustive ops handling in generate_nasm_linux_x86_64"
+            assert len(OpType) == 9, "Exhaustive ops handling in generate_nasm_linux_x86_64"
             out.write("addr_%d:\n" % ip)
             if op.typ == OpType.PUSH_INT:
-                assert isinstance(op.operand, int), "This could be a bug in the compilation step"
+                assert isinstance(op.operand, int), "This could be a bug in the parsing step"
                 out.write("    ;; -- push int %d --\n" % op.operand)
                 out.write("    mov rax, %d\n" % op.operand)
                 out.write("    push rax\n")
             elif op.typ == OpType.PUSH_STR:
-                assert isinstance(op.operand, str), "This could be a bug in the compilation step"
+                assert isinstance(op.operand, str), "This could be a bug in the parsing step"
                 value = op.operand.encode('utf-8')
                 n = len(value)
                 out.write("    ;; -- push str --\n")
                 out.write("    mov rax, %d\n" % n)
                 out.write("    push rax\n")
+                out.write("    push str_%d\n" % len(strs))
+                strs.append(value)
+            elif op.typ == OpType.PUSH_CSTR:
+                assert isinstance(op.operand, str), "This could be a bug in the parsing step"
+                value = op.operand.encode('utf-8') + b'\0'
+                out.write("    ;; -- push str --\n")
                 out.write("    push str_%d\n" % len(strs))
                 strs.append(value)
             elif op.typ == OpType.IF:
@@ -1102,10 +1124,10 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                 out.write("    ;; -- while --\n")
             elif op.typ == OpType.ELSE:
                 out.write("    ;; -- else --\n")
-                assert isinstance(op.operand, int), "This could be a bug in the compilation step"
+                assert isinstance(op.operand, int), "This could be a bug in the parsing step"
                 out.write("    jmp addr_%d\n" % op.operand)
             elif op.typ == OpType.END:
-                assert isinstance(op.operand, int), "This could be a bug in the compilation step"
+                assert isinstance(op.operand, int), "This could be a bug in the parsing step"
                 out.write("    ;; -- end --\n")
                 if ip + 1 != op.operand:
                     out.write("    jmp addr_%d\n" % op.operand)
@@ -1113,7 +1135,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                 out.write("    ;; -- do --\n")
                 out.write("    pop rax\n")
                 out.write("    test rax, rax\n")
-                assert isinstance(op.operand, int), "This could be a bug in the compilation step"
+                assert isinstance(op.operand, int), "This could be a bug in the parsing step"
                 out.write("    jz addr_%d\n" % op.operand)
             elif op.typ == OpType.INTRINSIC:
                 assert len(Intrinsic) == 41, "Exhaustive intrinsic handling in generate_nasm_linux_x86_64()"
@@ -1462,13 +1484,15 @@ class Macro:
 
 def human(obj: Union[TokenType, Op, Intrinsic]) -> str:
     '''Human readable representation of an object that can be used in error messages'''
-    assert len(TokenType) == 5, "Exhaustive handling of token types in human()"
+    assert len(TokenType) == 6, "Exhaustive handling of token types in human()"
     if obj == TokenType.WORD:
         return "a word"
     elif obj == TokenType.INT:
         return "an integer"
     elif obj == TokenType.STR:
         return "a string"
+    elif obj == TokenType.CSTR:
+        return "a C-style string"
     elif obj == TokenType.CHAR:
         return "a character"
     elif obj == TokenType.KEYWORD:
@@ -1491,7 +1515,7 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
     ip: OpAddr = 0;
     while len(rtokens) > 0:
         token = rtokens.pop()
-        assert len(TokenType) == 5, "Exhaustive token handling in parse_program_from_tokens"
+        assert len(TokenType) == 6, "Exhaustive token handling in parse_program_from_tokens"
         if token.typ == TokenType.WORD:
             assert isinstance(token.value, str), "This could be a bug in the lexer"
             if token.value in INTRINSIC_BY_NAMES:
@@ -1512,6 +1536,10 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
         elif token.typ == TokenType.STR:
             assert isinstance(token.value, str), "This could be a bug in the lexer"
             program.append(Op(typ=OpType.PUSH_STR, operand=token.value, token=token));
+            ip += 1
+        elif token.typ == TokenType.CSTR:
+            assert isinstance(token.value, str), "This could be a bug in the lexer"
+            program.append(Op(typ=OpType.PUSH_CSTR, operand=token.value, token=token));
             ip += 1
         elif token.typ == TokenType.CHAR:
             assert isinstance(token.value, int)
@@ -1660,7 +1688,7 @@ def find_string_literal_end(line: str, start: int) -> int:
     return start
 
 def lex_lines(file_path: str, lines: List[str]) -> Generator[Token, None, None]:
-    assert len(TokenType) == 5, 'Exhaustive handling of token types in lex_lines'
+    assert len(TokenType) == 6, 'Exhaustive handling of token types in lex_lines'
     row = 0
     str_literal_buf = ""
     while row < len(lines):
@@ -1687,10 +1715,16 @@ def lex_lines(file_path: str, lines: List[str]) -> Generator[Token, None, None]:
                 if row >= len(lines):
                     compiler_error(loc, "unclosed string literal")
                     exit(1)
+                assert line[col_end] == '"'
+                col_end += 1
                 text_of_token = str_literal_buf
                 str_literal_buf = ""
-                yield Token(TokenType.STR, text_of_token, loc, unescape_string(text_of_token))
-                col = find_col(line, col_end+1, lambda x: not x.isspace())
+                if col_end < len(line) and line[col_end] == 'c':
+                    col_end += 1
+                    yield Token(TokenType.CSTR, text_of_token, loc, unescape_string(text_of_token))
+                else:
+                    yield Token(TokenType.STR, text_of_token, loc, unescape_string(text_of_token))
+                col = find_col(line, col_end, lambda x: not x.isspace())
             elif line[col] == "'":
                 col_end = find_col(line, col+1, lambda x: x == "'")
                 if col_end >= len(line) or line[col_end] != "'":

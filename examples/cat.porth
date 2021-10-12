@@ -21,7 +21,7 @@ else
     
     if dup 0 < do
       "ERROR: could not open file " eputs
-      over nth_argv dup strlen swap eputs
+      over nth_argv dup cstrlen swap eputs
       "\n" eputs
       drop
     else

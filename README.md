@@ -150,6 +150,30 @@ The `puts` macro from `std.porth` module expects two values on the data stack:
 
 The size and the pointer are provided by the string `"Hello, World"`.
 
+#### C-style String
+
+It's like a regular string but it does not push its size on the stack and implicitly ends with [NULL-terminator](https://en.wikipedia.org/wiki/Null-terminated_string). Designed specifically to interact with C code or any other kind of code that expects NULL-terminated strings.
+
+```
+include "std.porth"
+
+O_RDONLY "input.txt"c AT_FDCWD openat
+//                  ^
+//                  |
+//                  postfix that indicates a C-style string
+
+if dup 0 < do
+    "ERROR: could not open the file\n" eputs
+    1 exit
+else
+    "Successfully opened the file!\n" puts
+end
+
+close
+```
+
+Here we are using [openat(2)](https://linux.die.net/man/2/openat) Linux syscall to open a file. The syscall expects the pathname to be a NULL-terminated string.
+
 #### Character
 
 Currently a character is a single byte sandwiched between two `'`. Escaping is done by [unicode_escape codec](https://docs.python.org/3/library/codecs.html#text-encodings) of Python. No way to escape `'` themselves for now. No special support for Unicode is provided right now too.

@@ -8,7 +8,7 @@ foo
 :b stdin 0
 
 :i returncode 0
-:b stdout 589
+:b stdout 590
 include "std.porth"
 
 macro BUFFER_CAP 1024 end
@@ -32,7 +32,7 @@ else
     
     if dup 0 < do
       "ERROR: could not open file " eputs
-      over nth_argv dup strlen swap eputs
+      over nth_argv dup cstrlen swap eputs
       "\n" eputs
       drop
     else
