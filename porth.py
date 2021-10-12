@@ -1012,7 +1012,7 @@ def type_check_program(program: Program):
                 else:
                     assert "unreachable"
             else:
-                assert "unreachable"
+                assert False, "unreachable"
         elif op.typ == OpType.ELSE:
             do_snapshot, do_type = block_stack.pop()
             assert do_type == OpType.DO
