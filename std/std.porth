@@ -386,7 +386,7 @@ macro cstreq
 end
 
 macro cstr-to-pstr
-  cstrlen swap
+  dup cstrlen swap
 end
 
 macro fputs
