@@ -364,7 +364,7 @@ macro dec64
   dup ,64 1 - .64
 end
 
-macro strlen
+macro cstrlen
   dup
   while dup , 0 != do 1 + end
   swap -
