@@ -192,17 +192,18 @@ macro program123 // --
 end
 
 macro usage // --
-  "Usage: porth <SUBCOMMAND>\n" eputs
-  "  SUBCOMMANDS:\n" eputs
-  "    sim              Simulate the program.\n" eputs
-  "    com              Compile the program\n" eputs
-  "    dump             Dump the ops of the program\n" eputs
-  "    help             Print this help to stderr and exit with 0 code\n" eputs
+  dup "Usage: porth <SUBCOMMAND>\n" rot fputs
+  dup "  SUBCOMMANDS:\n" rot fputs
+  dup "    sim              Simulate the program.\n" rot fputs
+  dup "    com              Compile the program\n" rot fputs
+  dup "    dump             Dump the ops of the program\n" rot fputs
+  dup "    help             Print this help to stdout and exit with 0 code\n" rot fputs
+  drop
 end
 
 macro main // --
   if argc 2 < do
-    usage
+    stderr usage
     "ERROR: subcommand is not provided\n" eputs
     1 exit
   end
@@ -217,13 +218,12 @@ macro main // --
   else if dup "com"c cstreq do
     compile-ops
   else if dup "help"c cstreq do
-    // TODO: output usage to stdout in case of the `help` subcommand
-    usage
+    stdout usage
     0 exit
   else if dup "dump"c cstreq do
     dump-ops
   else
-    usage
+    stderr usage
     "ERROR: unknown subcommand `" eputs dup cstr-to-pstr eputs "`\n" eputs
     1 exit
   end end end end
