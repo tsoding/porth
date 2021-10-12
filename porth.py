@@ -541,6 +541,7 @@ def not_enough_arguments(op: Op):
 
 DataStack=List[Tuple[DataType, Token]]
 
+# TODO: `if 1 10 < do 69 32 elif 2 10 < do 420 end` does not properly type check
 def type_check_program(program: Program):
     stack: DataStack = []
     block_stack: List[Tuple[DataStack, OpType]] = []
