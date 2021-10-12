@@ -1,0 +1,11 @@
+:i argc 0
+:b stdin 0
+
+:i returncode 0
+:b stdout 12
+425
+375
+200
+
+:b stderr 0
+
