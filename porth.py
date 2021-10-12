@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from copy import copy
 from time import sleep
 import traceback
+from io import StringIO
 
 PORTH_EXT = '.porth'
 DEFAULT_EXPANSION_LIMIT=1000
@@ -1420,6 +1421,646 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
         out.write("args_ptr: resq 1\n")
         out.write("mem: resb %d\n" % MEM_CAPACITY)
 
+
+def generate_rust(program: Program, out_file_path: str):
+    var_id = 0
+    offset = 1
+    stack: List[Tuple[DataType, int]] = []
+    contexts: List[Tuple[OpType, List[int]]] = [] # (op, stack)
+    buffers: List[Union[TextIO, StringIO]] = []
+
+    escape = lambda s: s.replace("\n", "\\n").replace("\"", "\\\"").replace("\0", "\\0")
+
+    def alloc_var():
+        nonlocal var_id
+        var = var_id
+        var_id += 1
+        return var
+
+    with open(out_file_path, "w") as out:
+        out.write("#![feature(asm)]\n")
+        out.write("#![allow(unused)]\n")
+        out.write("macro_rules! syscall {\n")
+        out.write("   ($num: expr) => {{\n")
+        out.write("       unsafe {\n")
+        out.write("           let ret : u64;\n")
+        out.write("           asm!(\"syscall\",\n")
+        out.write("                in(\"rax\") $num,\n")
+        out.write("                out(\"rcx\") _,\n")
+        out.write("                out(\"r11\") _,\n")
+        out.write("                lateout(\"rax\") ret\n")
+        out.write("           );\n")
+        out.write("           ret\n")
+        out.write("       }\n")
+        out.write("   }};\n")
+        out.write("   ($num: expr, $arg0: expr) => {{\n")
+        out.write("       unsafe {\n")
+        out.write("           let ret : u64;\n")
+        out.write("           asm!(\"syscall\",\n")
+        out.write("                in(\"rax\") $num,\n")
+        out.write("                in(\"rdi\") $arg0,\n")
+        out.write("                out(\"rcx\") _,\n")
+        out.write("                out(\"r11\") _,\n")
+        out.write("                lateout(\"rax\") ret\n")
+        out.write("           );\n")
+        out.write("           ret\n")
+        out.write("       }\n")
+        out.write("   }};\n")
+        out.write("   ($num: expr, $arg0: expr, $arg1: expr) => {{\n")
+        out.write("       unsafe {\n")
+        out.write("           let ret : u64;\n")
+        out.write("           asm!(\"syscall\",\n")
+        out.write("                in(\"rax\") $num,\n")
+        out.write("                in(\"rdi\") $arg0,\n")
+        out.write("                in(\"rsi\") $arg1,\n")
+        out.write("                out(\"rcx\") _,\n")
+        out.write("                out(\"r11\") _,\n")
+        out.write("                lateout(\"rax\") ret\n")
+        out.write("           );\n")
+        out.write("           ret\n")
+        out.write("       }\n")
+        out.write("   }};\n")
+        out.write("   ($num: expr, $arg0: expr, $arg1: expr, $arg2: expr) => {{\n")
+        out.write("       unsafe {\n")
+        out.write("           let ret : u64;\n")
+        out.write("           asm!(\"syscall\",\n")
+        out.write("                in(\"rax\") $num,\n")
+        out.write("                in(\"rdi\") $arg0,\n")
+        out.write("                in(\"rsi\") $arg1,\n")
+        out.write("                in(\"rdx\") $arg2,\n")
+        out.write("                out(\"rcx\") _,\n")
+        out.write("                out(\"r11\") _,\n")
+        out.write("                lateout(\"rax\") ret\n")
+        out.write("           );\n")
+        out.write("           ret\n")
+        out.write("       }\n")
+        out.write("   }};\n")
+        out.write("   ($num: expr, $arg0: expr, $arg1: expr, $arg2: expr, $arg3: expr) => {{\n")
+        out.write("       unsafe {\n")
+        out.write("           let ret : u64;\n")
+        out.write("           asm!(\"syscall\",\n")
+        out.write("                in(\"rax\") $num,\n")
+        out.write("                in(\"rdi\") $arg0,\n")
+        out.write("                in(\"rsi\") $arg1,\n")
+        out.write("                in(\"rdx\") $arg2,\n")
+        out.write("                in(\"r10\") $arg3,\n")
+        out.write("                out(\"rcx\") _,\n")
+        out.write("                out(\"r11\") _,\n")
+        out.write("                lateout(\"rax\") ret\n")
+        out.write("           );\n")
+        out.write("           ret\n")
+        out.write("       }\n")
+        out.write("   }};\n")
+        out.write("   ($num: expr, $arg0: expr, $arg1: expr, $arg2: expr, $arg3: expr, $arg4: expr) => {{\n")
+        out.write("       unsafe {\n")
+        out.write("           let ret : u64;\n")
+        out.write("           asm!(\"syscall\",\n")
+        out.write("                in(\"rax\") $num,\n")
+        out.write("                in(\"rdi\") $arg0,\n")
+        out.write("                in(\"rsi\") $arg1,\n")
+        out.write("                in(\"rdx\") $arg2,\n")
+        out.write("                in(\"r10\") $arg3,\n")
+        out.write("                in(\"r8\") $arg4,\n")
+        out.write("                out(\"rcx\") _,\n")
+        out.write("                out(\"r11\") _,\n")
+        out.write("                lateout(\"rax\") ret\n")
+        out.write("           );\n")
+        out.write("           ret\n")
+        out.write("       }\n")
+        out.write("   }};\n")
+        out.write("   ($num: expr, $arg0: expr, $arg1: expr, $arg2: expr, $arg3: expr, $arg4: expr, $arg5: expr) => {{\n")
+        out.write("       unsafe {\n")
+        out.write("           let ret : u64;\n")
+        out.write("           asm!(\"syscall\",\n")
+        out.write("                in(\"rax\") $num,\n")
+        out.write("                in(\"rdi\") $arg0,\n")
+        out.write("                in(\"rsi\") $arg1,\n")
+        out.write("                in(\"rdx\") $arg2,\n")
+        out.write("                in(\"r10\") $arg3,\n")
+        out.write("                in(\"r8\") $arg4,\n")
+        out.write("                in(\"r9\") $arg5,\n")
+        out.write("                out(\"rcx\") _,\n")
+        out.write("                out(\"r11\") _,\n")
+        out.write("                lateout(\"rax\") ret\n")
+        out.write("           );\n")
+        out.write("           ret\n")
+        out.write("       }\n")
+        out.write("   }}\n")
+        out.write("}\n")
+        out.write("macro_rules! mem {\n")
+        out.write("   ($memory: expr) => {{\n")
+        out.write("       unsafe {\n")
+        out.write("         (&$memory).as_ptr() as usize as u64\n")
+        out.write("       }\n")
+        out.write("   }}\n")
+        out.write("}\n")
+        out.write("macro_rules! load8 {\n")
+        out.write("   ($addr: expr) => {{\n")
+        out.write("       unsafe {\n")
+        out.write("         (*($addr as *const u8)) as u64\n")
+        out.write("       }\n")
+        out.write("   }}\n")
+        out.write("}\n")
+        out.write("macro_rules! store8 {\n")
+        out.write("   ($addr: expr, $value: expr) => {{\n")
+        out.write("       unsafe {\n")
+        out.write("         *($addr as *mut u8) = $value as u8;\n")
+        out.write("       }\n")
+        out.write("   }}\n")
+        out.write("}\n")
+        out.write("macro_rules! load64 {\n")
+        out.write("   ($addr: expr) => {{\n")
+        out.write("       unsafe {\n")
+        out.write("         *($addr as *const u64)\n")
+        out.write("       }\n")
+        out.write("   }}\n")
+        out.write("}\n")
+        out.write("macro_rules! store64 {\n")
+        out.write("   ($addr: expr, $value: expr) => {{\n")
+        out.write("       unsafe {\n")
+        out.write("         *($addr as *mut u64) = $value;\n")
+        out.write("       }\n")
+        out.write("   }}\n")
+        out.write("}\n")
+
+        out.write("static mut MEMORY: [u8;640_000] = [0;640_000];\n")
+        out.write("static mut MEMORY_POINTER: u64 = 0;\n")
+        out.write("fn main() {\n")
+
+        out.write("    let args = std::env::args();\n")
+        out.write("    let argc = args.len() as u64;\n")
+        out.write("    let argv;\n")
+        out.write("    unsafe {\n")
+        out.write("        MEMORY_POINTER = MEMORY.as_ptr() as usize as u64;\n")
+        out.write("        argv = MEMORY_POINTER;\n")
+        out.write("        //Allocate memory for argv pointers\n")
+        out.write("        MEMORY_POINTER += 8 * argc as u64;\n")
+        out.write("        for (n, arg) in args.enumerate() {\n")
+        out.write("            let arg = arg.to_string();\n")
+        out.write("            let bs = arg.as_bytes();\n")
+        out.write("            *(MEMORY[8*n..].as_ptr() as *mut u64) = MEMORY_POINTER;\n")
+        out.write("            MEMORY[(MEMORY_POINTER as usize - MEMORY.as_ptr() as usize)..][..bs.len() as usize].copy_from_slice(bs);\n")
+        out.write("\n")
+        out.write("            MEMORY_POINTER += bs.len() as u64 /* null termination */ + 1;\n")
+        out.write("        }\n")
+        out.write("    }\n")
+        out.write("    let user_memory = unsafe {MEMORY_POINTER} as usize as u64;\n")
+        out.write("    \n\n\n\n")
+
+
+        for ip in range(len(program)):
+            op = program[ip]
+            assert len(OpType) == 8, "Exhaustive ops handling in generate_rust"
+            if op.typ == OpType.PUSH_INT:
+                assert isinstance(op.operand, int), "This could be a bug in the compilation step"
+                var = alloc_var()
+                if op.operand < 0:
+                    out.write(("    " * offset) + "let v%d: u64 = %d as i64 as u64;\n" % (var, op.operand))
+                else:
+                    out.write(("    " * offset) + "let v%d: u64 = %d;\n" % (var, op.operand))
+                stack.append((DataType.INT, var))
+            elif op.typ == OpType.PUSH_STR:
+                assert isinstance(op.operand, str), "This could be a bug in the compilation step"
+                var = alloc_var()
+                out.write(("    " * offset) + "let v%d: &'static str = \"%s\";\n" % (var, escape(op.operand)))
+                str_const = var
+
+                var = alloc_var()
+                out.write(("    " * offset) + "let v%d: u64 = v%d.len() as u64;\n" % (var, str_const))
+                str_len = var
+
+                var = alloc_var()
+                out.write(("    " * offset) + "let v%d: u64 = v%d.as_ptr() as usize as u64;\n" % (var, str_const))
+                str_addr = var
+
+                stack.append((DataType.INT, str_len))
+                stack.append((DataType.PTR, str_addr))
+            elif op.typ == OpType.IF:
+                _, cond = stack.pop()
+                new_stack: List[Tuple[DataType,int]] = []
+                for v in stack:
+                    new_v = alloc_var()
+                    new_stack.append((v[0], new_v))
+                contexts.append((OpType.IF, copy(new_stack)))
+
+                out.write(("    " * offset) + "//Storing stack\n")
+                for new_v, new_v_val in zip(new_stack, stack):
+                    out.write(("    " * offset) + "let mut v%d = v%d;\n" % (new_v[1], new_v_val[1]))
+
+                stack = new_stack
+
+                buffers.append(out)
+                out = StringIO()
+
+                out.write(("    " * offset) + "if v%d {\n" % cond)
+                offset += 1
+            elif op.typ == OpType.ELSE:
+                prev_op, start_if_stack = contexts.pop()
+
+                out.write(("    " * offset) + "//Sync stack\n")
+                for prev, curr in zip(start_if_stack, stack[:len(start_if_stack)]):
+                    if curr != prev:
+                        out.write(("    " * offset) + "v%d = v%d;\n" % (prev[1], curr[1]))
+                stack[:len(start_if_stack)] = copy(start_if_stack)
+
+                old_out = out
+                out = buffers.pop()
+                
+
+                new_stack_entries = []
+                # Handle new stack entries
+                out.write(("    " * (offset - 1)) + "//New stack entries\n")
+                for new_v_val in stack[len(start_if_stack):]:
+                    new_v = alloc_var()
+                    out.write(("    " * (offset - 1)) + "let mut v%d;\n" % new_v)
+                    new_stack_entries.append((new_v_val[0], new_v))
+                
+                assert isinstance(old_out, StringIO), "Should be StringIO"
+                out.write(old_out.getvalue())
+                old_out.close()
+                
+                for new_v_val, new_v in zip(stack[len(start_if_stack):], new_stack_entries):
+                    out.write(("    " * offset) + "v%d = v%d;\n" % (new_v[1], new_v_val[1]))
+
+                
+                stack = copy(start_if_stack)
+
+                offset -= 1
+                out.write(("    " * offset) + "}\n")
+                out.write(("    " * offset) + "else {\n")
+                offset += 1
+                contexts.append((OpType.ELSE, copy(start_if_stack)+new_stack_entries))
+                assert isinstance(op.operand, int), "This could be a bug in the compilation step"
+            elif op.typ == OpType.END:
+                prev_op, prev_stack = contexts.pop()
+
+                
+                if prev_op == OpType.IF or prev_op == OpType.DO:
+                    old_out = out
+                    out = buffers.pop();
+                    assert isinstance(old_out, StringIO), "Should be StringIO"
+                    out.write(old_out.getvalue())
+                    old_out.close()
+
+                    out.write(("    " * offset) + "//END: %s\n" % ('if' if prev_op == OpType.IF else 'do'))
+                    out.write(("    " * offset) + "//Sync stack\n//Prev: %s\n//Curr: %s\n" % (prev_stack, stack))
+                    for prev, curr in zip(prev_stack, stack[:len(prev_stack)]):
+                        if curr != prev:
+                            out.write(("    " * offset) + "v%d = v%d;\n" % (prev[1], curr[1]))
+
+                    stack = copy(prev_stack)
+
+                elif prev_op == OpType.ELSE:
+                    else_end_stack = stack
+                    else_start_stack = prev_stack
+
+                    # Sync existing entries
+                    existing = min(len(else_start_stack), len(else_end_stack))
+                    out.write(("    " * offset) + "//Sync stack\n")
+                    for i in range(0, existing):
+                        start = else_start_stack[i][1]
+                        end = else_end_stack[i][1]
+                        #if start != end:
+                        out.write(("    " * offset) + "v%d = v%d;\n" % (start, end))
+
+
+                    # Drop dropped entries
+                    out.write(("    " * offset) + "//Drop dropped entries\n")
+                    if len(else_end_stack) < len(else_start_stack):
+                        for i in range(len(else_end_stack), len(else_start_stack)):
+                            out.write(("    " * offset) + "let _ = v%d;\n" % else_start_stack[i][1])
+
+                    # Set previus variables
+                    stack = copy(else_start_stack)
+                    if len(else_end_stack) < len(else_start_stack):
+                        stack = stack[:len(else_end_stack)]
+
+                else:
+                    assert False, "unreachable"
+
+                offset -= 1
+                out.write(("    " * offset) + "}\n")
+                assert isinstance(op.operand, int), "This could be a bug in the compilation step"
+            elif op.typ == OpType.WHILE:
+                new_stack: List[int] = []
+                for v in stack:
+                    new_v = alloc_var()
+                    out.write(("    " * offset) + "let mut v%d = v%d;\n" % (new_v, v[1]))
+                    new_stack.append((v[0], new_v))
+                stack = new_stack
+                contexts.append((OpType.WHILE, copy(stack)))
+                buffers.append(out)
+                out = StringIO()
+
+                out.write(("    " * offset) + "loop {\n")
+                offset += 1
+            elif op.typ == OpType.DO:
+                
+                if_arg = stack.pop()
+                _, while_context = contexts.pop()
+
+                old_out = out
+                out = buffers.pop();
+                
+                while_vars = map(lambda x: x[1], while_context)
+                new_stack: List[int] = []
+                for v in stack:
+                    if v[1] in while_vars:
+                        new_stack.append(v)
+                    else:
+                        new_v = alloc_var()
+                        out.write(("    " * (offset - 1)) + "let mut v%d;\n" % new_v)
+                        new_stack.append((v[0], new_v))
+                    
+                out.write(("    " * (offset - 1)) + "//New Stack: %s\n" % new_stack)
+                contexts.append((OpType.DO, copy(new_stack)))
+
+                assert isinstance(old_out, StringIO), "Should be StringIO"
+                out.write(old_out.getvalue())
+                old_out.close()
+
+                for const, mut in zip(stack, new_stack):
+                    out.write(("    " * offset) + "v%d = v%d;\n" % (mut[1], const[1]))
+
+                stack = new_stack
+
+                buffers.append(out)
+                out = StringIO()
+
+                out.write(("    " * offset) + "if !v%d {\n" % if_arg[1])
+                out.write(("    " * (offset + 1)) + "break\n")
+                out.write(("    " * offset) + "}\n")
+                assert isinstance(op.operand, int), "This could be a bug in the compilation step"
+            elif op.typ == OpType.INTRINSIC:
+                assert len(Intrinsic) == 41, "Exhaustive intrinsic handling in generate_nasm_linux_x86_64()"
+                if op.operand == Intrinsic.PLUS:
+                    _, op0 = stack.pop()
+                    _, op1 = stack.pop()
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d = v%d.wrapping_add(v%d);\n" % (var, op1, op0))
+                    stack.append((DataType.INT, var))
+                elif op.operand == Intrinsic.MINUS:
+                    _, op0 = stack.pop()
+                    _, op1 = stack.pop()
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d = v%d.wrapping_sub(v%d);\n" % (var, op1, op0))
+                    stack.append((DataType.INT, var))
+                elif op.operand == Intrinsic.MUL:
+                    _, op0 = stack.pop()
+                    _, op1 = stack.pop()
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d = v%d * v%d;\n" % (var, op1, op0))
+                    stack.append((DataType.INT, var))
+                elif op.operand == Intrinsic.DIVMOD:
+                    _, op0 = stack.pop()
+                    _, op1 = stack.pop()
+
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d = v%d / v%d;\n" % (var, op1, op0))
+                    div = var
+
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d = v%d %% v%d;\n" % (var, op1, op0))
+                    mod = var
+
+                    stack.append((DataType.INT, div))
+                    stack.append((DataType.INT, mod))
+
+                elif op.operand == Intrinsic.SHR:
+                    _, op0 = stack.pop()
+                    _, op1 = stack.pop()
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d = v%d >> v%d;\n" % (var, op1, op0))
+                    stack.append((DataType.INT, var))
+                elif op.operand == Intrinsic.SHL:
+                    _, op0 = stack.pop()
+                    _, op1 = stack.pop()
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d = v%d << v%d;\n" % (var, op1, op0))
+                    stack.append((DataType.INT, var))
+                elif op.operand == Intrinsic.OR:
+                    _, op0 = stack.pop()
+                    _, op1 = stack.pop()
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d = v%d | v%d;\n" % (var, op1, op0))
+                    stack.append((DataType.INT, var))
+                elif op.operand == Intrinsic.AND:
+                    _, op0 = stack.pop()
+                    _, op1 = stack.pop()
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d = v%d & v%d;\n" % (var, op1, op0))
+                    stack.append((DataType.INT, var))
+                elif op.operand == Intrinsic.NOT:
+                    _, op = stack.pop()
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d = !v%d;\n" % (var, op))
+                    stack.append((DataType.INT, var))
+                elif op.operand == Intrinsic.PRINT:
+                    typ, var = stack.pop()
+                    if typ == DataType.INT or typ == DataType.PTR:
+                        out.write(("    " * offset) + "println!(\"{}\", v%d);\n" % var)
+                    elif typ == DataType.BOOL:
+                        out.write(("    " * offset) + "println!(\"{}\", v%d as u64);\n" % var)
+                    else:
+                        assert False, "unreachable"
+                elif op.operand == Intrinsic.EQ:
+                    _, op0 = stack.pop()
+                    _, op1 = stack.pop()
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d = v%d == v%d;\n" % (var, op1, op0))
+                    stack.append((DataType.BOOL, var))
+                elif op.operand == Intrinsic.GT:
+                    _, op0 = stack.pop()
+                    _, op1 = stack.pop()
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d = (v%d as i64) > (v%d as i64);\n" % (var, op1, op0))
+                    stack.append((DataType.BOOL, var))
+                elif op.operand == Intrinsic.LT:
+                    _, op0 = stack.pop()
+                    _, op1 = stack.pop()
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d = (v%d as i64) < (v%d as i64);\n" % (var, op1, op0))
+                    stack.append((DataType.BOOL, var))
+                elif op.operand == Intrinsic.GE:
+                    _, op0 = stack.pop()
+                    _, op1 = stack.pop()
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d = (v%d as i64) >= (v%d as i64);\n" % (var, op1, op0))
+                    stack.append((DataType.BOOL, var))
+                elif op.operand == Intrinsic.LE:
+                    _, op0 = stack.pop()
+                    _, op1 = stack.pop()
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d = (v%d as i64) <= (v%d as i64);\n" % (var, op1, op0))
+                    stack.append((DataType.BOOL, var))
+                elif op.operand == Intrinsic.NE:
+                    _, op0 = stack.pop()
+                    _, op1 = stack.pop()
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d = v%d != v%d;\n" % (var, op1, op0))
+                    stack.append((DataType.BOOL, var))
+                elif op.operand == Intrinsic.DUP:
+                    arg = stack.pop()
+                    stack.append(arg);
+                    stack.append(arg);
+                elif op.operand == Intrinsic.SWAP:
+                    arg0 = stack.pop()
+                    arg1 = stack.pop()
+                    stack.append(arg0);
+                    stack.append(arg1);
+                elif op.operand == Intrinsic.DROP:
+                    _, var = stack.pop();
+                    out.write(("    " * offset) + "let _ = v%d;\n" % var)
+                elif op.operand == Intrinsic.OVER:
+                    arg0 = stack.pop()
+                    arg1 = stack.pop()
+                    stack.append(arg1);
+                    stack.append(arg0);
+                    stack.append(arg1);
+                elif op.operand == Intrinsic.ROT:
+                    arg0 = stack.pop()
+                    arg1 = stack.pop()
+                    arg2 = stack.pop()
+                    stack.append(arg1);
+                    stack.append(arg0);
+                    stack.append(arg2);
+                elif op.operand == Intrinsic.MEM:
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d = user_memory;\n" % var)
+                    stack.append((DataType.PTR, var))
+                elif op.operand == Intrinsic.LOAD:
+                    _, op0 = stack.pop()
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d = load8!(v%d);\n" % (var, op0))
+                    stack.append((DataType.INT, var))
+                elif op.operand == Intrinsic.STORE:
+                    _, op0 = stack.pop()
+                    _, op1 = stack.pop()
+                    out.write(("    " * offset) + "store8!(v%d, v%d);\n" % (op1, op0))
+                elif op.operand == Intrinsic.FORTH_LOAD:
+                    _, op0 = stack.pop()
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d = load8!(v%d);\n" % (var, op0))
+                    stack.append((DataType.INT, var))
+                elif op.operand == Intrinsic.FORTH_STORE:
+                    _, op0 = stack.pop()
+                    _, op1 = stack.pop()
+                    out.write(("    " * offset) + "store8!(v%d, v%d);\n" % (op0, op1))
+                elif op.operand == Intrinsic.ARGC:
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d = argc;\n" % var)
+                    stack.append((DataType.INT, var))
+                elif op.operand == Intrinsic.ARGV:
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d = argv;\n" % var)
+                    stack.append((DataType.INT, var))
+                elif op.operand == Intrinsic.LOAD64:
+                    _, op0 = stack.pop()
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d = load64!(v%d);\n" % (var, op0))
+                    stack.append((DataType.INT, var))
+                elif op.operand == Intrinsic.STORE64:
+                    _, op0 = stack.pop()
+                    _, op1 = stack.pop()
+                    out.write(("    " * offset) + "store64!(v%d, v%d);\n" % (op1, op0))
+                elif op.operand == Intrinsic.FORTH_LOAD64:
+                    _, op0 = stack.pop()
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d = load64!(v%d);\n" % (var, op0))
+                    stack.append((DataType.INT, var))
+                elif op.operand == Intrinsic.FORTH_STORE64:
+                    _, op0 = stack.pop()
+                    _, op1 = stack.pop()
+                    out.write(("    " * offset) + "store64!(v%d, v%d);\n" % (op0, op1))
+                elif op.operand == Intrinsic.CAST_PTR:
+                    # Do nothing
+                    pass
+                elif op.operand == Intrinsic.HERE:
+                    here_string = escape("%s:%d:%d" % op.token.loc)
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d: &'static str = \"%s\";\n" % (var, here_string))
+                    str_const = var
+
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d: u64 = v%d.len() as u64;\n" % (var, str_const))
+                    str_len = var
+
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d: u64 = v%d.as_ptr() as usize as u64;\n" % (var, str_const))
+                    str_addr = var
+
+                    stack.append((DataType.INT, str_len))
+                    stack.append((DataType.PTR, str_addr))
+                elif op.operand == Intrinsic.SYSCALL0:
+                    _, num = stack.pop()
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d: u64 = syscall!(v%d);\n" % (var, num))
+                    stack.append((DataType.INT, var))
+                elif op.operand == Intrinsic.SYSCALL1:
+                    _, num = stack.pop()
+                    _, arg0 = stack.pop()
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d: u64 = syscall!(v%d, v%d);\n" % (var, num, arg0))
+                    stack.append((DataType.INT, var))
+                elif op.operand == Intrinsic.SYSCALL2:
+                    _, num = stack.pop()
+                    _, arg0 = stack.pop()
+                    _, arg1 = stack.pop()
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d: u64 = syscall!(v%d, v%d, v%d);\n" % (var, num, arg0, arg1))
+                    stack.append((DataType.INT, var))
+                elif op.operand == Intrinsic.SYSCALL3:
+                    _, num = stack.pop()
+                    _, arg0 = stack.pop()
+                    _, arg1 = stack.pop()
+                    _, arg2 = stack.pop()
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d: u64 = syscall!(v%d, v%d, v%d, v%d);\n" % (var, num, arg0, arg1, arg2))
+                    stack.append((DataType.INT, var))
+                elif op.operand == Intrinsic.SYSCALL4:
+                    _, num = stack.pop();
+                    _, arg0 = stack.pop()
+                    _, arg1 = stack.pop()
+                    _, arg2 = stack.pop()
+                    _, arg3 = stack.pop()
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d: u64 = syscall!(v%d, v%d, v%d, v%d, v%d);\n" % (var, num, arg0, arg1, arg2, arg3))
+                    stack.append((DataType.INT, var))
+                elif op.operand == Intrinsic.SYSCALL5:
+                    _, num = stack.pop()
+                    _, arg0 = stack.pop()
+                    _, arg1 = stack.pop()
+                    _, arg2 = stack.pop()
+                    _, arg3 = stack.pop()
+                    _, arg4 = stack.pop()
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d: u64 = syscall!(v%d, v%d, v%d, v%d, v%d, v%d);\n" % (var, num, arg0, arg1, arg2, arg3, arg4))
+                    stack.append((DataType.INT, var))
+                elif op.operand == Intrinsic.SYSCALL6:
+                    _, num = stack.pop();
+                    _, arg0 = stack.pop();
+                    _, arg1 = stack.pop();
+                    _, arg2 = stack.pop();
+                    _, arg3 = stack.pop();
+                    _, arg4 = stack.pop();
+                    _, arg5 = stack.pop();
+                    var = alloc_var()
+                    out.write(("    " * offset) + "let v%d: u64 = syscall!(v%d, v%d, v%d, v%d, v%d, v%d, v%d);\n" % (var, num, arg0, arg1, arg2, arg3, arg4, arg5))
+                    stack.append((DataType.INT, var))
+                else:
+                    assert False, "unreachable"
+            else:
+                assert False, "unreachable"
+
+        out.write("}")
+
+        if len(stack) != 0:
+            assert False, "Stack is not empty"
+        if len(contexts) != 0:
+            assert False, "Contexts is not empty"
+
+
+
 assert len(Keyword) == 7, "Exhaustive KEYWORD_NAMES definition."
 KEYWORD_NAMES = {
     'if': Keyword.IF,
@@ -1843,7 +2484,7 @@ if __name__ == '__main__' and '__file__' in globals():
         if not unsafe:
             type_check_program(program)
         simulate_little_endian_linux(program, [program_path] + argv)
-    elif subcommand == "com":
+    elif subcommand == "com" or subcommand == "translate":
         silent = False
         run = False
         output_path = None
@@ -1892,18 +2533,31 @@ if __name__ == '__main__' and '__file__' in globals():
         basepath = path.join(basedir, basename)
 
         if not silent:
-            print("[INFO] Generating %s" % (basepath + ".asm"))
+            if subcommand == "com":
+                print("[INFO] Generating %s" % (basepath + ".asm"))
+            elif subcommand == "translate":
+                print("[INFO] Generating %s" % (basepath + ".rs"))
 
         include_paths.append(path.dirname(program_path))
 
         program = parse_program_from_file(program_path, include_paths, expansion_limit);
         if not unsafe:
             type_check_program(program)
-        generate_nasm_linux_x86_64(program, basepath + ".asm")
-        cmd_call_echoed(["nasm", "-felf64", basepath + ".asm"], silent)
-        cmd_call_echoed(["ld", "-o", basepath, basepath + ".o"], silent)
+
+        if subcommand == "com":
+            generate_nasm_linux_x86_64(program, basepath + ".asm")
+            cmd_call_echoed(["nasm", "-felf64", basepath + ".asm"], silent)
+            cmd_call_echoed(["ld", "-o", basepath, basepath + ".o"], silent)
+        elif subcommand == "translate":
+            generate_rust(program, basepath + ".rs")
+            cmd_call_echoed(["rustc", "-C", "opt-level=3", "-o", basepath + "_rs", basepath + ".rs"], silent)
+        else:
+            assert False, "unreacheble"
         if run:
-            exit(cmd_call_echoed([basepath] + argv, silent))
+            if subcommand == "com":
+                exit(cmd_call_echoed([basepath] + argv, silent))
+            elif subcommand == "translate":
+                exit(cmd_call_echoed([basepath+"_rs"] + argv, silent))
     elif subcommand == "help":
         usage(compiler_name)
         exit(0)

@@ -80,6 +80,7 @@ def save_test_case(file_path: str,
 class RunStats:
     sim_failed: int = 0
     com_failed: int = 0
+    translate_failed: int = 0
     ignored: int = 0
 
 def run_test_for_file(file_path: str, stats: RunStats = RunStats()):
@@ -117,6 +118,18 @@ def run_test_for_file(file_path: str, stats: RunStats = RunStats()):
             print("    stdout: \n%s" % com.stdout.decode("utf-8"))
             print("    stderr: \n%s" % com.stderr.decode("utf-8"))
             stats.com_failed += 1
+        translate = cmd_run_echoed([sys.executable, "./porth.py", "translate", "-r", "-s", file_path, *tc.argv], input=tc.stdin, capture_output=True)
+        if translate.returncode != tc.returncode or translate.stdout != tc.stdout or translate.stderr != tc.stderr:
+            print("[ERROR] Unexpected translation output")
+            print("  Expected:")
+            print("    return code: %s" % tc.returncode)
+            print("    stdout: \n%s" % tc.stdout.decode("utf-8"))
+            print("    stderr: \n%s" % tc.stderr.decode("utf-8"))
+            print("  Actual:")
+            print("    return code: %s" % translate.returncode)
+            print("    stdout: \n%s" % translate.stdout.decode("utf-8"))
+            print("    stderr: \n%s" % translate.stderr.decode("utf-8"))
+            stats.translate_failed += 1
     else:
         print('[WARNING] Could not find any input/output data for %s. Ignoring testing. Only checking if it compiles.' % file_path)
         com = cmd_run_echoed([sys.executable, "./porth.py", "com", file_path])
@@ -130,8 +143,8 @@ def run_test_for_folder(folder: str):
         if entry.is_file() and entry.path.endswith(PORTH_EXT):
             run_test_for_file(entry.path, stats)
     print()
-    print("Simulation failed: %d, Compilation failed: %d, Ignored: %d" % (stats.sim_failed, stats.com_failed, stats.ignored))
-    if stats.sim_failed != 0 or stats.com_failed != 0:
+    print("Simulation failed: %d, Compilation failed: %d, Translate failed: %d, Ignored: %d" % (stats.sim_failed, stats.com_failed, stats.translate_failed, stats.ignored))
+    if stats.sim_failed != 0 or stats.com_failed != 0 or stats.translate_failed:
         exit(1)
 
 def update_input_for_file(file_path: str, argv: List[str]):
