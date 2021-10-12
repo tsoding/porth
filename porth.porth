@@ -212,7 +212,6 @@ macro main // --
   // TODO: parsing file is not implemented
 
   1 nth_argv
-  // TODO: consider adding null terminated string literals
   if dup "sim"c cstreq do
     simulate-ops
   else if dup "com"c cstreq do
