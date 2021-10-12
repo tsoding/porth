@@ -385,6 +385,10 @@ macro cstreq
   and
 end
 
+macro cstr-to-pstr
+  cstrlen swap
+end
+
 macro fputs
   write drop
 end
