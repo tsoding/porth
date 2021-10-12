@@ -364,6 +364,12 @@ macro dec64
   dup ,64 1 - .64
 end
 
+macro abs
+  if dup 0 < do
+    0 over - swap drop
+  end
+end
+
 macro strlen
   dup
   while dup , 0 != do 1 + end
