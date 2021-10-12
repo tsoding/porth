@@ -1,0 +1,21 @@
+:i argc 0
+:b stdin 0
+
+:i returncode 1
+:b stdout 209
+Perfect square: 100
+Perfect square: 81
+Perfect square: 64
+Perfect square: 49
+Perfect square: 36
+Perfect square: 25
+Perfect square: 16
+Perfect square: 9
+Perfect square: 4
+Perfect square: 1
+Perfect square: 0
+-1
+
+:b stderr 89
+
+Value error, input: ./examples/whole-sqrt.porth:22:5 Can't get sqrt from negative number
