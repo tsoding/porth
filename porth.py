@@ -1777,15 +1777,19 @@ def generate_control_flow_graph_as_dot_file(program: Program, dot_path: str):
         for ip in range(len(program)):
             op = program[ip]
             if op.typ == OpType.INTRINSIC:
+                assert isinstance(op.operand, Intrinsic)
                 f.write(f"    Node_{ip} [label={repr(repr(INTRINSIC_NAMES[op.operand]))}];\n")
                 f.write(f"    Node_{ip} -> Node_{ip + 1};\n")
             elif op.typ == OpType.PUSH_STR:
+                assert isinstance(op.operand, str)
                 f.write(f"    Node_{ip} [label={repr(repr(op.operand))}];\n")
                 f.write(f"    Node_{ip} -> Node_{ip + 1};\n")
             elif op.typ == OpType.PUSH_CSTR:
+                assert isinstance(op.operand, str)
                 f.write(f"    Node_{ip} [label={repr(repr(op.operand))}];\n")
                 f.write(f"    Node_{ip} -> Node_{ip + 1};\n")
             elif op.typ == OpType.PUSH_INT:
+                assert isinstance(op.operand, int)
                 f.write(f"    Node_{ip} [label={op.operand}]\n")
                 f.write(f"    Node_{ip} -> Node_{ip + 1};\n")
             elif op.typ == OpType.IF:
@@ -1795,13 +1799,16 @@ def generate_control_flow_graph_as_dot_file(program: Program, dot_path: str):
                 f.write(f"    Node_{ip} [shape=record label=while];\n")
                 f.write(f"    Node_{ip} -> Node_{ip + 1};\n")
             elif op.typ == OpType.DO:
+                assert isinstance(op.operand, OpAddr)
                 f.write(f"    Node_{ip} [shape=record label=do];\n")
                 f.write(f"    Node_{ip} -> Node_{ip + 1} [label=true];\n")
                 f.write(f"    Node_{ip} -> Node_{op.operand} [label=false style=dashed];\n")
             elif op.typ == OpType.ELSE:
+                assert isinstance(op.operand, OpAddr)
                 f.write(f"    Node_{ip} [shape=record label=else];\n")
                 f.write(f"    Node_{ip} -> Node_{op.operand};\n")
             elif op.typ == OpType.END:
+                assert isinstance(op.operand, OpAddr)
                 f.write(f"    Node_{ip} [shape=record label=end];\n")
                 f.write(f"    Node_{ip} -> Node_{op.operand};\n")
             else:
