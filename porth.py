@@ -546,7 +546,7 @@ def type_check_program(program: Program):
     block_stack: List[Tuple[DataStack, OpType]] = []
     for ip in range(len(program)):
         op = program[ip]
-        assert len(OpType) == 9, "Exhaustive ops handling in type_check_program()"
+        assert len(OpType) == 10, "Exhaustive ops handling in type_check_program()"
         if op.typ == OpType.PUSH_INT:
             stack.append((DataType.INT, op.token))
         elif op.typ == OpType.PUSH_STR:
@@ -996,12 +996,20 @@ def type_check_program(program: Program):
             block_stack.append((copy(stack), op.typ))
         elif op.typ == OpType.END:
             block_snapshot, block_type = block_stack.pop()
-            assert len(OpType) == 9, "Exhaustive handling of op types"
+            assert len(OpType) == 10, "Exhaustive handling of op types"
             if block_type == OpType.ELSE:
                 expected_types = list(map(lambda x: x[0], block_snapshot))
                 actual_types = list(map(lambda x: x[0], stack))
                 if expected_types != actual_types:
-                    compiler_error_with_expansion_stack(op.token, 'both branches of the if-block must produce the same types of the arguments on the data stack')
+                    compiler_error_with_expansion_stack(op.token, 'all branches of the if-block must produce the same types of the arguments on the data stack')
+                    compiler_note(op.token.loc, 'Expected types: %s' % expected_types)
+                    compiler_note(op.token.loc, 'Actual types: %s' % actual_types)
+                    exit(1)
+            elif block_type == OpType.ELIF:
+                expected_types = list(map(lambda x: x[0], block_snapshot))
+                actual_types = list(map(lambda x: x[0], stack))
+                if expected_types != actual_types:
+                    compiler_error_with_expansion_stack(op.token, 'all branches of the if-block must produce the same types of the arguments on the data stack')
                     compiler_note(op.token.loc, 'Expected types: %s' % expected_types)
                     compiler_note(op.token.loc, 'Actual types: %s' % actual_types)
                     exit(1)
@@ -1038,8 +1046,35 @@ def type_check_program(program: Program):
             do_snapshot, do_type = block_stack.pop()
             assert do_type == OpType.DO
 
-            if_snapshot, if_type = block_stack.pop()
-            assert if_type == OpType.IF
+            pre_do_snapshot, pre_do_type = block_stack.pop()
+            assert pre_do_type == OpType.IF or pre_do_type == OpType.ELIF, pre_do_type
+
+            if pre_do_type == OpType.ELIF:
+                expected_types = list(map(lambda x: x[0], pre_do_snapshot))
+                actual_types = list(map(lambda x: x[0], stack))
+                if expected_types != actual_types:
+                    compiler_error_with_expansion_stack(op.token, 'all branches of the if-block must produce the same types of the arguments on the data stack')
+                    compiler_note(op.token.loc, 'Expected types: %s' % expected_types)
+                    compiler_note(op.token.loc, 'Actual types: %s' % actual_types)
+                    exit(1)
+
+            block_stack.append((copy(stack), op.typ))
+            stack = do_snapshot
+        elif op.typ == OpType.ELIF:
+            do_snapshot, do_type = block_stack.pop()
+            assert do_type == OpType.DO
+
+            pre_do_snapshot, pre_do_type = block_stack.pop()
+            assert pre_do_type == OpType.IF or pre_do_type == OpType.ELIF, pre_do_type
+
+            if pre_do_type == OpType.ELIF:
+                expected_types = list(map(lambda x: x[0], pre_do_snapshot))
+                actual_types = list(map(lambda x: x[0], stack))
+                if expected_types != actual_types:
+                    compiler_error_with_expansion_stack(op.token, 'all branches of the if-block must produce the same types of the arguments on the data stack')
+                    compiler_note(op.token.loc, 'Expected types: %s' % expected_types)
+                    compiler_note(op.token.loc, 'Actual types: %s' % actual_types)
+                    exit(1)
 
             block_stack.append((copy(stack), op.typ))
             stack = do_snapshot
@@ -1609,17 +1644,21 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                     program[ip].operand = ip + 1
                 elif program[block_ip].typ == OpType.DO:
                     assert program[block_ip].operand is not None
-                    block_begin_ip = program[block_ip].operand
+                    pre_do_ip = program[block_ip].operand
 
-                    assert isinstance(block_begin_ip, OpAddr)
-                    if program[block_begin_ip].typ == OpType.WHILE:
-                        program[ip].operand = block_begin_ip
+                    assert isinstance(pre_do_ip, OpAddr)
+                    if program[pre_do_ip].typ == OpType.WHILE:
+                        program[ip].operand = pre_do_ip
                         program[block_ip].operand = ip + 1
-                    elif program[block_begin_ip].typ == OpType.IF:
+                    elif program[pre_do_ip].typ == OpType.IF:
+                        program[ip].operand = ip + 1
+                        program[block_ip].operand = ip + 1
+                    elif program[pre_do_ip].typ == OpType.ELIF:
+                        program[pre_do_ip].operand = ip
                         program[ip].operand = ip + 1
                         program[block_ip].operand = ip + 1
                     else:
-                        compiler_error_with_expansion_stack(program[block_begin_ip].token, '`end` can only close `do` blocks that are part of `if` or `while`')
+                        compiler_error_with_expansion_stack(program[pre_do_ip].token, '`end` can only close `do` blocks that are preceded by `if`, `while` or `elif`')
                         exit(1)
                 else:
                     compiler_error_with_expansion_stack(program[block_ip].token, '`end` can only close `else`, `do` or `macro` blocks for now')
