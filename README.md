@@ -214,7 +214,7 @@ pop()
 a = pop()
 print(a)
 ```
-- `over`
+- `over` - copy the second item on the stack to the top
 ```
 a = pop()
 b = pop()

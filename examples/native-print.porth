@@ -1,0 +1,99 @@
+include "std.porth"
+
+// print1 - prints an integer
+//
+// - improves on the built-in print by handling negative integers in compiled
+//   code "properly" -- with a leading minus sign the same as in the simulator.
+// - currently expands inline due to macros being the only code abstraction
+//   we have
+// - perhaps useful as a basis of a native print written in porth at some point
+//   - the built-in print is derived from compiling a similar conversion in C
+// - uses a temporary area within mem (32 bytes) to accumulate the characters
+//   of the output string from back to front.
+//   - a scratch buffer like this might make sense as a peer to mem, str, argv
+//   - alternatively, being able to allocate this temp buffer on the stack seems
+//     like it would be useful in avoiding contention for a global buffer
+
+// --------------------------------------------------------------------------------
+// possibly generally useful function, maybe a std.porth candidate
+
+// (num:int -- neg?:bool mag:int)
+// converts num to sign-magnitude form
+macro signmag
+  dup 0 <
+  dup if
+    swap 0 swap - swap
+  end
+  swap
+end
+
+// --------------------------------------------------------------------------------
+// temporary buffer
+
+macro printbuf-start
+  mem 10000 +
+end
+
+macro printbuf-end
+  printbuf-start 31 +
+end
+
+// --------------------------------------------------------------------------------
+// helpers for the main print1 word
+
+// (ptr:addr mag:int -- ptr(-1):addr mag(/10):int)
+// stores the character code for the least significant
+// decimal digit of non-negative mag to ptr,
+// decrements ptr, divs mag by 10.
+
+macro buffer-digit!
+  10 divmod               // ptr div mod
+  rot dup                 // div mod ptr ptr
+  rot                     // div ptr ptr mod
+  '0' + . 1 -             // div ptr(-1)
+  swap                    // ptr div
+end
+
+// (ptr:addr mag:int -- ptr(-n):addr)
+// stores the character codes for the decimal digits
+// of mag in reverse order starting at ptr. decrements
+// ptr by the number of characters stored.
+macro buffer-mag!
+  buffer-digit!           // ptr(-1) mag(/10)
+  while dup 0 > do
+    buffer-digit!         // ptr(-1) mag(/10)
+  end                     // ptr 0
+  drop                    // ptr
+end
+
+// --------------------------------------------------------------------------------
+// (int --)
+// prints an int to stdout followed by a newline
+// overwrites printbuf, accumulating characters backward from its end
+macro print1
+  signmag printbuf-end    // neg? mag ptr
+
+  dup '\n' . 1 -          // neg? mag ptr(-1)
+  swap buffer-mag!        // neg? ptr
+  swap                    // ptr neg?
+  if                      // ptr
+    dup '-' . 1 -         // ptr(-1)
+  end
+
+  dup printbuf-end swap - // ptr len
+  swap 1 +                // len ptr(+1)
+  stdout write drop
+end
+
+// --------------------------------------------------------------------------------
+// tests
+
+350 signmag print print
+
+-350 signmag print print
+
+0 print1
+
+123 print1
+
+-123 print1
