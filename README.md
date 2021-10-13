@@ -227,21 +227,23 @@ This program pushes integer `69` onto the stack (since the ASCII code of letter 
 | ---   | ---                                    | ---                           |
 | `shr` | `([a: int] [b: int] -- [a >> b: int])` | right **unsigned** bit shift. |
 | `shl` | `([a: int] [b: int] -- [a << b: int])` | light bit shift.              |
-| `or`  | `([a: int] [b: int] -- [a \| b: int])`  | bit `or`.                     |
+| `or`  | `([a: int] [b: int] -- [a \| b: int])` | bit `or`.                     |
 | `and` | `([a: int] [b: int] -- [a & b: int])`  | bit `and`.                    |
 | `not` | `([a: int] -- [~a: int])`              | bit `not`.                    |
 
 #### Memory
 
-- `mem (-- [mem: ptr])` - pushes the address of the beginning of the memory where you can read and write onto the stack.
-- `. ([place: ptr] [byte: int] --)` - store a given byte at the address on the stack.
-- `, ([place: ptr] -- [byte: int])` - load a byte from the address on the stack.
-- `! ([byte: int] [place: ptr] -- )` - store a given byte at the address on the stack. Same as `.` but the arguments swapped.
-- `@ ([place: ptr] -- [byte: int])` - load a byte from the address on the stack. Synonym to `,`.
-- `.64 ([place: ptr] [byte: int] --)` - store an 8-byte word at the address on the stack.
-- `,64 ([place: ptr] -- [byte: int])` - load an 8-byte word from the address on the stack.
-- `!64 ([place: ptr] [byte: int] --)` - store an 8-byte word at the address on the stack. Same as `.64` but the arguments swapped.
-- `@64 ([place: ptr] -- [byte: int])` - load an 8-byte word from the address on the stack. Synonym to `,64`.
+| Name  | Signature                        | Description                                                                                    |
+| ---   | ---                              | ---                                                                                            |
+| `mem` | `(-- [mem: ptr])`                | pushes the address of the beginning of the memory where you can read and write onto the stack. |
+| `.`   | `([place: ptr] [byte: int] --)`  | store a given byte at the address on the stack.                                                |
+| `,`   | `([place: ptr] -- [byte: int])`  | load a byte from the address on the stack.                                                     |
+| `!`   | `([byte: int] [place: ptr] -- )` | store a given byte at the address on the stack. Same as `.` but the arguments swapped.         |
+| `@`   | `([place: ptr] -- [byte: int])`  | load a byte from the address on the stack. Synonym to `,`.                                     |
+| `.64` | `([place: ptr] [byte: int] --)`  | store an 8-byte word at the address on the stack.                                              |
+| `,64` | `([place: ptr] -- [byte: int])`  | load an 8-byte word from the address on the stack.                                             |
+| `!64` | `([place: ptr] [byte: int] --)`  | store an 8-byte word at the address on the stack. Same as `.64` but the arguments swapped.     |
+| `@64` | `([place: ptr] -- [byte: int])`  | load an 8-byte word from the address on the stack. Synonym to `,64`.                           |
 
 #### System
 
