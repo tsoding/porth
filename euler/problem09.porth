@@ -1,0 +1,21 @@
+include "std.porth"
+
+macro sum 1000 end
+
+sum
+1 while over over >= do
+  1 while over over >= do
+    2dup over dup * over dup * +
+    rot rot
+    + sum swap -
+    if 2dup dup * = do
+      swap drop print
+      2dup swap print print
+      0 exit  // can be commented to test that it's the only one solution
+    else
+      2drop
+    end
+    1 +
+  end drop
+  1 +
+end 2drop
