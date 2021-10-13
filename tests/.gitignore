@@ -8,7 +8,7 @@ macros
 dead-recursive-macro
 argv
 if-else
-else-less-if
+if-else-less
 while
 here
 memory-forth-style
