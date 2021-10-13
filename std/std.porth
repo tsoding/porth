@@ -400,3 +400,69 @@ end
 macro eputs
   stderr fputs
 end
+
+macro _put_digit
+    "0123456789" swap drop + 1 swap puts
+end
+
+macro _putd_before
+    dup 10 %
+    over 10 /
+end
+macro _putd_after
+    drop
+    _put_digit
+end
+
+macro putd
+  if dup 0 = do
+    "0" puts
+  else
+    if dup 0 < do
+    "-" puts
+    -1 *
+    end
+
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    if dup 0 > do _putd_before
+    _putd_after end
+    _putd_after end
+    _putd_after end
+    _putd_after end
+    _putd_after end
+    _putd_after end
+    _putd_after end
+    _putd_after end
+    _putd_after end
+    _putd_after end
+    _putd_after end
+    _putd_after end
+    _putd_after end
+    _putd_after end
+    _putd_after end
+    _putd_after end
+    _putd_after end
+    _putd_after end
+    _putd_after end
+    _putd_after end
+  end drop
+end
+
