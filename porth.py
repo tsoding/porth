@@ -2214,6 +2214,26 @@ def usage(compiler_name: str):
     print("        -s                  Silent mode. Don't print any info about compilation phases.")
     print("        -cf                 Dump Control Flow graph of the program in a dot format.")
     print("    help                  Print this help to stdout and exit with 0 code")
+class IntrinRepr:
+    def __init__(self, string_value): 
+        self.repr_string = string_value
+    def __repr__(val):
+        return "OpType.Intrinsic"
+
+Intrinsic.as_string = IntrinRepr("OpType.Intrinsic")
+
+def op_repr(op):
+    if op.typ == OpType.INTRINSIC:
+        return (Intrinsic.as_string, INTRINSIC_NAMES[op.operand])
+    return ()
+
+def print_whole_program(program):
+    for i in range(64):
+        op = program[i]
+        if op.typ == OpType.INTRINSIC:
+            print(op_repr(op))
+        else:
+            print(op_repr(op),(op.typ, op.operand))
 
 if __name__ == '__main__' and '__file__' in globals():
     argv = sys.argv
@@ -2274,6 +2294,7 @@ if __name__ == '__main__' and '__file__' in globals():
         control_flow = False
         run = False
         output_path = None
+        print_program = False
         while len(argv) > 0:
             arg, *argv = argv
             if arg == '-r':
@@ -2288,6 +2309,8 @@ if __name__ == '__main__' and '__file__' in globals():
                 output_path, *argv = argv
             elif arg == '-cf':
                 control_flow = True
+            elif arg == "-p":
+                print_program = True
             else:
                 program_path = arg
                 break
