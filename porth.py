@@ -1819,7 +1819,7 @@ def lex_lines(file_path: str, lines: List[str]) -> Generator[Token, None, None]:
                 text_of_token = line[col:col_end]
 
                 try:
-                    yield Token(TokenType.INT, text_of_token, loc, int(text_of_token))
+                    yield Token(TokenType.INT, text_of_token, loc, int(text_of_token, base=0))
                 except ValueError:
                     if text_of_token in KEYWORD_NAMES:
                         yield Token(TokenType.KEYWORD, text_of_token, loc, KEYWORD_NAMES[text_of_token])

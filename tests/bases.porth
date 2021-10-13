@@ -1,0 +1,6 @@
+include "std.porth"
+
+0b1010 print
+0o1010 print
+1010 print
+0x1010 print
