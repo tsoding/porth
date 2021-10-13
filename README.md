@@ -219,11 +219,13 @@ This program pushes integer `69` onto the stack (since the ASCII code of letter 
 
 #### Bitwise
 
-- `shr ([a: int] [b: int] -- [a >> b: int])` - right **unsigned** bit shift.
-- `shl ([a: int] [b: int] -- [a << b: int])` - light bit shift.
-- `or ([a: int] [b: int] -- [a | b: int])` - bit `or`.
-- `and ([a: int] [b: int] -- [a & b: int])` - bit `and`.
-- `not ([a: int] -- [~a: int])` - bit `not`.
+| Name  | Signature                              | Description                   |
+| ---   | ---                                    | ---                           |
+| `shr` | `([a: int] [b: int] -- [a >> b: int])` | right **unsigned** bit shift. |
+| `shl` | `([a: int] [b: int] -- [a << b: int])` | light bit shift.              |
+| `or`  | `([a: int] [b: int] -- [a | b: int])`  | bit `or`.                     |
+| `and` | `([a: int] [b: int] -- [a & b: int])`  | bit `and`.                    |
+| `not` | `([a: int] -- [~a: int])`              | bit `not`.                    |
 
 #### Memory
 
