@@ -203,19 +203,23 @@ This program pushes integer `69` onto the stack (since the ASCII code of letter 
 
 #### Comparison
 
-- `= ([a: int] [b: int] -- [a == b: bool])` - checks if two elements on top of the stack are equal.
-- `!= ([a: int] [b: int] -- [a != b: bool])` - checks if two elements on top of the stack are not equal.
-- `> ([a: int] [b: int] -- [a > b: bool])` - applies the greater comparison on top two elements.
-- `< ([a: int] [b: int] -- [a < b: bool])` - applies the less comparison on top two elements.
-- `>= ([a: int] [b: int] -- [a >= b: bool])` - applies the greater or equal comparison on top two elements
-- `<= ([a: int] [b: int] -- [a <= b: bool])` - applies the greater or equal comparison on top two elements.
+| Name | Signature                                | Description                                                  |
+| ---  | ---                                      | ---                                                          |
+| `= ` | `[a: int] [b: int] -- [a == b : bool]`  | checks if two elements on top of the stack are equal.        |
+| `!=` | `[a: int] [b: int] -- [a != b : bool]` | checks if two elements on top of the stack are not equal.    |
+| `> ` | `[a: int] [b: int] -- [a > b  : bool]`   | applies the greater comparison on top two elements.          |
+| `< ` | `[a: int] [b: int] -- [a < b  : bool]`   | applies the less comparison on top two elements.             |
+| `>=` | `[a: int] [b: int] -- [a >= b : bool]` | applies the greater or equal comparison on top two elements  |
+| `<=` | `[a: int] [b: int] -- [a <= b : bool]` | applies the greater or equal comparison on top two elements. |
 
 #### Arithmetic
 
-- `+ ([a: int] [b: int] -- [a + b: int])` - sums up two elements on the top of the stack.
-- `- ([a: int] [b: int] -- [a - b: int])` - subtracts two elements on the top of the stack
-- `* ([a: int] [b: int] -- [a * b: int])` - multiples two elements on top of the stack
-- `divmod ([a: int] [b: int] -- [a / b: int] [a % b: int])` - perform [Euclidean division](https://en.wikipedia.org/wiki/Euclidean_division) between two elements on top of the stack.
+| Name     | Signature                                          | Description                                                                                                              |
+| ---      | ---                                                | ---                                                                                                                      |
+| `+`      | `([a: int] [b: int] -- [a + b: int])`              | sums up two elements on the top of the stack.                                                                            |
+| `-`      | `([a: int] [b: int] -- [a - b: int])`              | subtracts two elements on the top of the stack                                                                           |
+| `*`      | `([a: int] [b: int] -- [a * b: int])`              | multiples two elements on top of the stack                                                                               |
+| `divmod` | `([a: int] [b: int] -- [a / b: int] [a % b: int])` | perform [Euclidean division](https://en.wikipedia.org/wiki/Euclidean_division) between two elements on top of the stack. |
 
 #### Bitwise
 
@@ -223,7 +227,7 @@ This program pushes integer `69` onto the stack (since the ASCII code of letter 
 | ---   | ---                                    | ---                           |
 | `shr` | `([a: int] [b: int] -- [a >> b: int])` | right **unsigned** bit shift. |
 | `shl` | `([a: int] [b: int] -- [a << b: int])` | light bit shift.              |
-| `or`  | `([a: int] [b: int] -- [a | b: int])`  | bit `or`.                     |
+| `or`  | `([a: int] [b: int] -- [a \| b: int])`  | bit `or`.                     |
 | `and` | `([a: int] [b: int] -- [a & b: int])`  | bit `and`.                    |
 | `not` | `([a: int] -- [~a: int])`              | bit `not`.                    |
 
