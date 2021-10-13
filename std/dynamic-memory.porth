@@ -1,0 +1,70 @@
+// requires std.porth - currently there's no include guards so do this yourself!
+
+// TODO: Get from include files, or run C preprocessor?
+macro PROT_READ 1 end
+macro PROT_WRITE 2 end
+macro MAP_PRIVATE 2 end
+macro MAP_ANONYMOUS 32 end
+
+macro exit_if_failed
+  // stack: ptr
+  // if failed: exit(1)
+  // if succeeded: leave ptr on stack
+  if dup 0 < do
+    "Failed to allocate memory!\n" puts
+    1 exit
+  end
+end
+
+macro palloc_raw
+  // takes length of memory to be allocated in bytes
+  // returns pointer to the start
+  // void *addr, size_t length, int prot, int flags, int fd, off_t offset SYSCALL_NUMBER
+  0 swap
+  -1 swap 
+  MAP_PRIVATE MAP_ANONYMOUS or swap
+  PROT_READ PROT_WRITE or swap
+  NULL
+  SYS_mmap
+  syscall6
+  // stack is now: size, returncode/ptr
+  
+  exit_if_failed
+  cast(ptr)
+end
+macro palloc
+  // allocates a page, but no need to keep track of the size
+  // may allocate more in order to store the length
+  // pointer returned is still start of useable space (so can write to *ptr but shouldn't write to *(ptr-8))
+  8 + // need 8 bytes extra allocated for housekeeping
+  dup // keep size for later
+
+  palloc_raw
+
+  // stick size on the front, for housekeeping
+  swap over !64
+  // left with just the pointer
+  8 +
+end
+
+macro pfree_raw
+  // Takes pointer, size on stack
+  swap
+  SYS_munmap
+  syscall2
+  if dup 0 != do
+    "Error freeing: " puts print " not equal to 0\n" puts
+  else
+    drop
+    "Freed successfully\n" puts
+  end
+end
+
+macro pfree
+  // takes pointer of allocated memory
+  // size stored at ptr - 8
+  8 -
+  dup
+  @64
+  pfree_raw
+end

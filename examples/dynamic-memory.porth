@@ -1,0 +1,44 @@
+include "std.porth"
+include "dynamic-memory.porth"
+
+// Test raw memory allocation
+"Allocating memory without housekeeping\n" puts
+
+4096 palloc_raw
+"Pointer: " puts
+dup print
+
+4096 palloc_raw
+"Pointer: " puts
+dup print
+
+// is the difference equal to page size?
+"Difference: " puts
+over over - abs
+print
+"(should be =4096 if addresses aren't randomized)\n" puts
+// CLEAN UP!
+4096 pfree_raw
+4096 pfree_raw // needs to take the size
+
+"\n" puts
+
+// Test housekeeping
+"Allocating memory with housekeeping\n" puts
+
+4096 palloc
+"Pointer: " puts
+dup print
+
+4096 palloc
+"Pointer: " puts
+dup print
+
+// is the difference the page size?
+"Difference: " puts
+over over - abs
+print
+"(should be >4096 due to housekeeping)\n" puts
+// clean up - no need to worry about size
+pfree
+pfree
