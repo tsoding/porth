@@ -1842,15 +1842,15 @@ def lex_file(file_path: str, expanded_from: Optional[Token] = None) -> List[Toke
 def parse_program_from_file(file_path: str, include_paths: List[str], expansion_limit: int) -> Program:
     return parse_program_from_tokens(lex_file(file_path), include_paths, expansion_limit)
 
-def cmd_call_echoed(cmd: List[str], silent: bool=False) -> int:
+def cmd_call_echoed(cmd: List[str], silent: bool) -> int:
     if not silent:
         print("[CMD] %s" % " ".join(map(shlex.quote, cmd)))
     return subprocess.call(cmd)
 
 def generate_control_flow_graph_as_dot_file(program: Program, dot_path: str):
-    print(f"[INFO] Generating {dot_path}")
     with open(dot_path, "w") as f:
         f.write("digraph Program {\n")
+        assert len(OpType) == 10, "Exhaustive handling of OpType in generate_control_flow_graph_as_dot_file()"
         for ip in range(len(program)):
             op = program[ip]
             if op.typ == OpType.INTRINSIC:
@@ -1896,7 +1896,6 @@ def generate_control_flow_graph_as_dot_file(program: Program, dot_path: str):
                 assert False, f"unimplemented operation {op.typ}"
         f.write(f"    Node_{len(program)} [label=halt];\n")
         f.write("}\n")
-    cmd_call_echoed(["dot", "-Tsvg", "-O", dot_path])
 
 def usage(compiler_name: str):
     print("Usage: %s [OPTIONS] <SUBCOMMAND> [ARGS]" % compiler_name)
@@ -2023,16 +2022,19 @@ if __name__ == '__main__' and '__file__' in globals():
             basedir = os.getcwd()
         basepath = path.join(basedir, basename)
 
-        if not silent:
-            print("[INFO] Generating %s" % (basepath + ".asm"))
-
         include_paths.append(path.dirname(program_path))
 
         program = parse_program_from_file(program_path, include_paths, expansion_limit);
         if control_flow:
-            generate_control_flow_graph_as_dot_file(program, basepath + ".dot")
+            dot_path = basepath + ".dot"
+            if not silent:
+                print(f"[INFO] Generating {dot_path}")
+            generate_control_flow_graph_as_dot_file(program, dot_path)
+            cmd_call_echoed(["dot", "-Tsvg", "-O", dot_path], silent)
         if not unsafe:
             type_check_program(program)
+        if not silent:
+            print("[INFO] Generating %s" % (basepath + ".asm"))
         generate_nasm_linux_x86_64(program, basepath + ".asm")
         cmd_call_echoed(["nasm", "-felf64", basepath + ".asm"], silent)
         cmd_call_echoed(["ld", "-o", basepath, basepath + ".o"], silent)
