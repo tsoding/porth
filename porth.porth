@@ -1,5 +1,5 @@
 // In progress rewrite of ./porth.py in Porth
-//patch_rebase_fix1
+//patch_rebase_fix2
 include "std.porth"
 
 const MEM_CAPACITY 640000 end
