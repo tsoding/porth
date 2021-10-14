@@ -4,8 +4,6 @@
 :i returncode 1
 :b stdout 0
 
-:b stderr 274
-./tests/if-else-less-fail.porth:1:23: ERROR: else-less if block is not allowed to alter the types of the arguments on the data stack
-./tests/if-else-less-fail.porth:1:23: NOTE: Expected types: []
-./tests/if-else-less-fail.porth:1:23: NOTE: Actual types: [<DataType.INT: 1>]
+:b stderr 92
+./tests/if-else-less-fail.porth:1:27: ERROR: not enough arguments for the `print` intrinsic
 

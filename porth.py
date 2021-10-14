@@ -541,305 +541,313 @@ def not_enough_arguments(op: Op):
 
 DataStack=List[Tuple[DataType, Token]]
 
-# TODO: `if 1 10 < do 69 32 elif 2 10 < do 420 end` does not properly type check
+@dataclass
+class Context:
+    stack: DataStack
+    ip: OpAddr
+
 def type_check_program(program: Program):
-    stack: DataStack = []
-    block_stack: List[Tuple[DataStack, OpType]] = []
-    for ip in range(len(program)):
-        op = program[ip]
+    visited_dos: Dict[OpAddr, DataStack] = {}
+    contexts: List[Context] = [Context(stack=[], ip=0)]
+    while len(contexts) > 0:
+        ctx = contexts[-1];
+        op = program[ctx.ip]
         assert len(OpType) == 10, "Exhaustive ops handling in type_check_program()"
         if op.typ == OpType.PUSH_INT:
-            stack.append((DataType.INT, op.token))
+            ctx.stack.append((DataType.INT, op.token))
+            ctx.ip += 1
         elif op.typ == OpType.PUSH_STR:
-            stack.append((DataType.INT, op.token))
-            stack.append((DataType.PTR, op.token))
+            ctx.stack.append((DataType.INT, op.token))
+            ctx.stack.append((DataType.PTR, op.token))
+            ctx.ip += 1
         elif op.typ == OpType.PUSH_CSTR:
-            stack.append((DataType.PTR, op.token))
+            ctx.stack.append((DataType.PTR, op.token))
+            ctx.ip += 1
         elif op.typ == OpType.INTRINSIC:
             assert len(Intrinsic) == 41, "Exhaustive intrinsic handling in type_check_program()"
             assert isinstance(op.operand, Intrinsic), "This could be a bug in compilation step"
             if op.operand == Intrinsic.PLUS:
                 assert len(DataType) == 3, "Exhaustive type handling in PLUS intrinsic"
-                if len(stack) < 2:
+                if len(ctx.stack) < 2:
                     not_enough_arguments(op)
                     exit(1)
-                a_type, a_loc = stack.pop()
-                b_type, b_loc = stack.pop()
+                a_type, a_loc = ctx.stack.pop()
+                b_type, b_loc = ctx.stack.pop()
 
                 if a_type == DataType.INT and b_type == DataType.INT:
-                    stack.append((DataType.INT, op.token))
+                    ctx.stack.append((DataType.INT, op.token))
                 elif a_type == DataType.INT and b_type == DataType.PTR:
-                    stack.append((DataType.PTR, op.token))
+                    ctx.stack.append((DataType.PTR, op.token))
                 elif a_type == DataType.PTR and b_type == DataType.INT:
-                    stack.append((DataType.PTR, op.token))
+                    ctx.stack.append((DataType.PTR, op.token))
                 else:
                     compiler_error_with_expansion_stack(op.token, "invalid argument types for PLUS intrinsic. Expected INT or PTR")
                     exit(1)
             elif op.operand == Intrinsic.MINUS:
                 assert len(DataType) == 3, "Exhaustive type handling in MINUS intrinsic"
-                if len(stack) < 2:
+                if len(ctx.stack) < 2:
                     not_enough_arguments(op)
                     exit(1)
-                a_type, a_loc = stack.pop()
-                b_type, b_loc = stack.pop()
+                a_type, a_loc = ctx.stack.pop()
+                b_type, b_loc = ctx.stack.pop()
 
                 if a_type == b_type and (a_type == DataType.INT or a_type == DataType.PTR):
-                    stack.append((DataType.INT, op.token))
+                    ctx.stack.append((DataType.INT, op.token))
                 elif b_type == DataType.PTR and a_type == DataType.INT:
-                    stack.append((DataType.PTR, op.token))
+                    ctx.stack.append((DataType.PTR, op.token))
                 else:
                     compiler_error_with_expansion_stack(op.token, "invalid argument types fo MINUS intrinsic: %s" % [b_type, a_type])
                     exit(1)
             elif op.operand == Intrinsic.MUL:
                 assert len(DataType) == 3, "Exhaustive type handling in MUL intrinsic"
-                if len(stack) < 2:
+                if len(ctx.stack) < 2:
                     not_enough_arguments(op)
                     exit(1)
-                a_type, a_loc = stack.pop()
-                b_type, b_loc = stack.pop()
+                a_type, a_loc = ctx.stack.pop()
+                b_type, b_loc = ctx.stack.pop()
 
                 if a_type == b_type and a_type == DataType.INT:
-                    stack.append((DataType.INT, op.token))
+                    ctx.stack.append((DataType.INT, op.token))
                 else:
                     compiler_error_with_expansion_stack(op.token, "invalid argument types fo MUL intrinsic. Expected INT.")
                     exit(1)
             elif op.operand == Intrinsic.DIVMOD:
                 assert len(DataType) == 3, "Exhaustive type handling in DIVMOD intrinsic"
-                if len(stack) < 2:
+                if len(ctx.stack) < 2:
                     not_enough_arguments(op)
                     exit(1)
-                a_type, a_loc = stack.pop()
-                b_type, b_loc = stack.pop()
+                a_type, a_loc = ctx.stack.pop()
+                b_type, b_loc = ctx.stack.pop()
 
                 if a_type == b_type and a_type == DataType.INT:
-                    stack.append((DataType.INT, op.token))
-                    stack.append((DataType.INT, op.token))
+                    ctx.stack.append((DataType.INT, op.token))
+                    ctx.stack.append((DataType.INT, op.token))
                 else:
                     compiler_error_with_expansion_stack(op.token, "invalid argument types fo DIVMOD intrinsic. Expected INT.")
                     exit(1)
             elif op.operand == Intrinsic.EQ:
                 assert len(DataType) == 3, "Exhaustive type handling in EQ intrinsic"
-                if len(stack) < 2:
+                if len(ctx.stack) < 2:
                     not_enough_arguments(op)
                     exit(1)
-                a_type, a_loc = stack.pop()
-                b_type, b_loc = stack.pop()
+                a_type, a_loc = ctx.stack.pop()
+                b_type, b_loc = ctx.stack.pop()
 
                 if a_type == b_type and a_type == DataType.INT:
-                    stack.append((DataType.BOOL, op.token))
+                    ctx.stack.append((DataType.BOOL, op.token))
                 else:
                     compiler_error_with_expansion_stack(op.token, "invalid argument types fo EQ intrinsic. Expected INT.")
                     exit(1)
             elif op.operand == Intrinsic.GT:
                 assert len(DataType) == 3, "Exhaustive type handling in GT intrinsic"
-                if len(stack) < 2:
+                if len(ctx.stack) < 2:
                     not_enough_arguments(op)
                     exit(1)
 
-                a_type, a_loc = stack.pop()
-                b_type, b_loc = stack.pop()
+                a_type, a_loc = ctx.stack.pop()
+                b_type, b_loc = ctx.stack.pop()
 
                 if a_type == b_type and a_type == DataType.INT:
-                    stack.append((DataType.BOOL, op.token))
+                    ctx.stack.append((DataType.BOOL, op.token))
                 else:
                     compiler_error_with_expansion_stack(op.token, "invalid argument type for GT intrinsic")
                     exit(1)
             elif op.operand == Intrinsic.LT:
                 assert len(DataType) == 3, "Exhaustive type handling in LT intrinsic"
-                if len(stack) < 2:
+                if len(ctx.stack) < 2:
                     not_enough_arguments(op)
                     exit(1)
 
-                a_type, a_loc = stack.pop()
-                b_type, b_loc = stack.pop()
+                a_type, a_loc = ctx.stack.pop()
+                b_type, b_loc = ctx.stack.pop()
 
                 if a_type == b_type and a_type == DataType.INT:
-                    stack.append((DataType.BOOL, op.token))
+                    ctx.stack.append((DataType.BOOL, op.token))
                 else:
                     compiler_error_with_expansion_stack(op.token, "invalid argument type for LT intrinsic")
                     exit(1)
             elif op.operand == Intrinsic.GE:
                 assert len(DataType) == 3, "Exhaustive type handling in GE intrinsic"
-                if len(stack) < 2:
+                if len(ctx.stack) < 2:
                     not_enough_arguments(op)
                     exit(1)
 
-                a_type, a_loc = stack.pop()
-                b_type, b_loc = stack.pop()
+                a_type, a_loc = ctx.stack.pop()
+                b_type, b_loc = ctx.stack.pop()
 
                 if a_type == b_type and a_type == DataType.INT:
-                    stack.append((DataType.BOOL, op.token))
+                    ctx.stack.append((DataType.BOOL, op.token))
                 else:
                     compiler_error_with_expansion_stack(op.token, "invalid argument type for GE intrinsic")
                     exit(1)
             elif op.operand == Intrinsic.LE:
                 assert len(DataType) == 3, "Exhaustive type handling in LE intrinsic"
-                if len(stack) < 2:
+                if len(ctx.stack) < 2:
                     not_enough_arguments(op)
                     exit(1)
 
-                a_type, a_loc = stack.pop()
-                b_type, b_loc = stack.pop()
+                a_type, a_loc = ctx.stack.pop()
+                b_type, b_loc = ctx.stack.pop()
 
                 if a_type == b_type and a_type == DataType.INT:
-                    stack.append((DataType.BOOL, op.token))
+                    ctx.stack.append((DataType.BOOL, op.token))
                 else:
                     compiler_error_with_expansion_stack(op.token, "invalid argument type for LE intrinsic")
                     exit(1)
             elif op.operand == Intrinsic.NE:
                 assert len(DataType) == 3, "Exhaustive type handling in NE intrinsic"
-                if len(stack) < 2:
+                if len(ctx.stack) < 2:
                     not_enough_arguments(op)
                     exit(1)
 
-                a_type, a_loc = stack.pop()
-                b_type, b_loc = stack.pop()
+                a_type, a_loc = ctx.stack.pop()
+                b_type, b_loc = ctx.stack.pop()
 
                 if a_type == b_type and a_type == DataType.INT:
-                    stack.append((DataType.BOOL, op.token))
+                    ctx.stack.append((DataType.BOOL, op.token))
                 else:
                     compiler_error_with_expansion_stack(op.token, "invalid argument type for NE intrinsic")
                     exit(1)
             elif op.operand == Intrinsic.SHR:
                 assert len(DataType) == 3, "Exhaustive type handling in SHR intrinsic"
-                if len(stack) < 2:
+                if len(ctx.stack) < 2:
                     not_enough_arguments(op)
                     exit(1)
 
-                a_type, a_loc = stack.pop()
-                b_type, b_loc = stack.pop()
+                a_type, a_loc = ctx.stack.pop()
+                b_type, b_loc = ctx.stack.pop()
 
                 if a_type == b_type and a_type == DataType.INT:
-                    stack.append((DataType.INT, op.token))
+                    ctx.stack.append((DataType.INT, op.token))
                 else:
                     compiler_error_with_expansion_stack(op.token, "invalid argument type for SHR intrinsic")
                     exit(1)
             elif op.operand == Intrinsic.SHL:
                 assert len(DataType) == 3, "Exhaustive type handling in SHL intrinsic"
-                if len(stack) < 2:
+                if len(ctx.stack) < 2:
                     not_enough_arguments(op)
                     exit(1)
 
-                a_type, a_loc = stack.pop()
-                b_type, b_loc = stack.pop()
+                a_type, a_loc = ctx.stack.pop()
+                b_type, b_loc = ctx.stack.pop()
 
                 if a_type == b_type and a_type == DataType.INT:
-                    stack.append((DataType.INT, op.token))
+                    ctx.stack.append((DataType.INT, op.token))
                 else:
                     compiler_error_with_expansion_stack(op.token, "invalid argument type for SHL intrinsic")
                     exit(1)
             elif op.operand == Intrinsic.OR:
                 assert len(DataType) == 3, "Exhaustive type handling in OR intrinsic"
-                if len(stack) < 2:
+                if len(ctx.stack) < 2:
                     not_enough_arguments(op)
                     exit(1)
 
-                a_type, a_loc = stack.pop()
-                b_type, b_loc = stack.pop()
+                a_type, a_loc = ctx.stack.pop()
+                b_type, b_loc = ctx.stack.pop()
 
                 if a_type == b_type and a_type == DataType.INT:
-                    stack.append((DataType.INT, op.token))
+                    ctx.stack.append((DataType.INT, op.token))
                 elif a_type == b_type and a_type == DataType.BOOL:
-                    stack.append((DataType.BOOL, op.token))
+                    ctx.stack.append((DataType.BOOL, op.token))
                 else:
                     compiler_error_with_expansion_stack(op.token, "invalid argument type for OR intrinsic")
                     exit(1)
             elif op.operand == Intrinsic.AND:
                 assert len(DataType) == 3, "Exhaustive type handling in AND intrinsic"
-                if len(stack) < 2:
+                if len(ctx.stack) < 2:
                     not_enough_arguments(op)
                     exit(1)
 
-                a_type, a_loc = stack.pop()
-                b_type, b_loc = stack.pop()
+                a_type, a_loc = ctx.stack.pop()
+                b_type, b_loc = ctx.stack.pop()
 
                 if a_type == b_type and a_type == DataType.INT:
-                    stack.append((DataType.INT, op.token))
+                    ctx.stack.append((DataType.INT, op.token))
                 elif a_type == b_type and a_type == DataType.BOOL:
-                    stack.append((DataType.BOOL, op.token))
+                    ctx.stack.append((DataType.BOOL, op.token))
                 else:
                     compiler_error_with_expansion_stack(op.token, "invalid argument type for AND intrinsic")
                     exit(1)
             elif op.operand == Intrinsic.NOT:
                 assert len(DataType) == 3, "Exhaustive type handling in NOT intrinsic"
-                if len(stack) < 1:
+                if len(ctx.stack) < 1:
                     not_enough_arguments(op)
                     exit(1)
-                a_type, a_loc = stack.pop()
+                a_type, a_loc = ctx.stack.pop()
 
                 if a_type == DataType.INT:
-                    stack.append((DataType.INT, op.token))
+                    ctx.stack.append((DataType.INT, op.token))
                 elif a_type == DataType.BOOL:
-                    stack.append((DataType.BOOL, op.token))
+                    ctx.stack.append((DataType.BOOL, op.token))
                 else:
                     compiler_error_with_expansion_stack(op.token, "invalid argument type for NOT intrinsic")
                     exit(1)
             elif op.operand == Intrinsic.PRINT:
-                if len(stack) < 1:
+                if len(ctx.stack) < 1:
                     not_enough_arguments(op)
                     exit(1)
-                stack.pop()
+                ctx.stack.pop()
             elif op.operand == Intrinsic.DUP:
-                if len(stack) < 1:
+                if len(ctx.stack) < 1:
                     not_enough_arguments(op)
                     exit(1)
-                a = stack.pop()
-                stack.append(a)
-                stack.append(a)
+                a = ctx.stack.pop()
+                ctx.stack.append(a)
+                ctx.stack.append(a)
             elif op.operand == Intrinsic.SWAP:
-                if len(stack) < 2:
+                if len(ctx.stack) < 2:
                     not_enough_arguments(op)
                     exit(1)
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(a)
-                stack.append(b)
+                a = ctx.stack.pop()
+                b = ctx.stack.pop()
+                ctx.stack.append(a)
+                ctx.stack.append(b)
             elif op.operand == Intrinsic.DROP:
-                if len(stack) < 1:
+                if len(ctx.stack) < 1:
                     not_enough_arguments(op)
                     exit(1)
-                stack.pop()
+                ctx.stack.pop()
             elif op.operand == Intrinsic.OVER:
-                if len(stack) < 2:
+                if len(ctx.stack) < 2:
                     not_enough_arguments(op)
                     exit(1)
-                a = stack.pop()
-                b = stack.pop()
-                stack.append(b)
-                stack.append(a)
-                stack.append(b)
+                a = ctx.stack.pop()
+                b = ctx.stack.pop()
+                ctx.stack.append(b)
+                ctx.stack.append(a)
+                ctx.stack.append(b)
             elif op.operand == Intrinsic.ROT:
-                if len(stack) < 3:
+                if len(ctx.stack) < 3:
                     not_enough_arguments(op)
                     exit(1)
-                a = stack.pop()
-                b = stack.pop()
-                c = stack.pop()
-                stack.append(b)
-                stack.append(a)
-                stack.append(c)
+                a = ctx.stack.pop()
+                b = ctx.stack.pop()
+                c = ctx.stack.pop()
+                ctx.stack.append(b)
+                ctx.stack.append(a)
+                ctx.stack.append(c)
             elif op.operand == Intrinsic.MEM:
-                stack.append((DataType.PTR, op.token))
+                ctx.stack.append((DataType.PTR, op.token))
             elif op.operand == Intrinsic.LOAD:
                 assert len(DataType) == 3, "Exhaustive type handling in LOAD intrinsic"
-                if len(stack) < 1:
+                if len(ctx.stack) < 1:
                     not_enough_arguments(op)
                     exit(1)
-                a_type, a_loc = stack.pop()
+                a_type, a_loc = ctx.stack.pop()
 
                 if a_type == DataType.PTR:
-                    stack.append((DataType.INT, op.token))
+                    ctx.stack.append((DataType.INT, op.token))
                 else:
                     compiler_error_with_expansion_stack(op.token, "invalid argument type for LOAD intrinsic: %s" % a_type)
                     exit(1)
             elif op.operand == Intrinsic.STORE:
                 assert len(DataType) == 3, "Exhaustive type handling in STORE intrinsic"
-                if len(stack) < 2:
+                if len(ctx.stack) < 2:
                     not_enough_arguments(op)
                     exit(1)
 
-                a_type, a_loc = stack.pop()
-                b_type, b_loc = stack.pop()
+                a_type, a_loc = ctx.stack.pop()
+                b_type, b_loc = ctx.stack.pop()
 
                 if a_type == DataType.INT and b_type == DataType.PTR:
                     pass
@@ -848,24 +856,24 @@ def type_check_program(program: Program):
                     exit(1)
             elif op.operand == Intrinsic.FORTH_LOAD:
                 assert len(DataType) == 3, "Exhaustive type handling in LOAD intrinsic"
-                if len(stack) < 1:
+                if len(ctx.stack) < 1:
                     not_enough_arguments(op)
                     exit(1)
-                a_type, a_loc = stack.pop()
+                a_type, a_loc = ctx.stack.pop()
 
                 if a_type == DataType.PTR:
-                    stack.append((DataType.INT, op.token))
+                    ctx.stack.append((DataType.INT, op.token))
                 else:
                     compiler_error_with_expansion_stack(op.token, "invalid argument type for LOAD intrinsic: %s" % a_type)
                     exit(1)
             elif op.operand == Intrinsic.FORTH_STORE:
                 assert len(DataType) == 3, "Exhaustive type handling in STORE intrinsic"
-                if len(stack) < 2:
+                if len(ctx.stack) < 2:
                     not_enough_arguments(op)
                     exit(1)
 
-                a_type, a_loc = stack.pop()
-                b_type, b_loc = stack.pop()
+                a_type, a_loc = ctx.stack.pop()
+                b_type, b_loc = ctx.stack.pop()
 
                 if a_type == DataType.PTR and b_type == DataType.INT:
                     pass
@@ -874,24 +882,24 @@ def type_check_program(program: Program):
                     exit(1)
             elif op.operand == Intrinsic.LOAD64:
                 assert len(DataType) == 3, "Exhaustive type handling in LOAD64 intrinsic"
-                if len(stack) < 1:
+                if len(ctx.stack) < 1:
                     not_enough_arguments(op)
                     exit(1)
-                a_type, a_loc = stack.pop()
+                a_type, a_loc = ctx.stack.pop()
 
                 if a_type == DataType.PTR:
-                    stack.append((DataType.INT, op.token))
+                    ctx.stack.append((DataType.INT, op.token))
                 else:
                     compiler_error_with_expansion_stack(op.token, "invalid argument type for LOAD64 intrinsic")
                     exit(1)
             elif op.operand == Intrinsic.STORE64:
                 assert len(DataType) == 3, "Exhaustive type handling in STORE64 intrinsic"
-                if len(stack) < 2:
+                if len(ctx.stack) < 2:
                     not_enough_arguments(op)
                     exit(1)
 
-                a_type, a_loc = stack.pop()
-                b_type, b_loc = stack.pop()
+                a_type, a_loc = ctx.stack.pop()
+                b_type, b_loc = ctx.stack.pop()
 
                 if (a_type == DataType.INT or a_type == DataType.PTR) and b_type == DataType.PTR:
                     pass
@@ -900,24 +908,24 @@ def type_check_program(program: Program):
                     exit(1)
             elif op.operand == Intrinsic.FORTH_LOAD64:
                 assert len(DataType) == 3, "Exhaustive type handling in LOAD64 intrinsic"
-                if len(stack) < 1:
+                if len(ctx.stack) < 1:
                     not_enough_arguments(op)
                     exit(1)
-                a_type, a_loc = stack.pop()
+                a_type, a_loc = ctx.stack.pop()
 
                 if a_type == DataType.PTR:
-                    stack.append((DataType.INT, op.token))
+                    ctx.stack.append((DataType.INT, op.token))
                 else:
                     compiler_error_with_expansion_stack(op.token, "invalid argument type for LOAD64 intrinsic")
                     exit(1)
             elif op.operand == Intrinsic.FORTH_STORE64:
                 assert len(DataType) == 3, "Exhaustive type handling in STORE64 intrinsic"
-                if len(stack) < 2:
+                if len(ctx.stack) < 2:
                     not_enough_arguments(op)
                     exit(1)
 
-                a_type, a_loc = stack.pop()
-                b_type, b_loc = stack.pop()
+                a_type, a_loc = ctx.stack.pop()
+                b_type, b_loc = ctx.stack.pop()
 
                 if (b_type == DataType.INT or b_type == DataType.PTR) and a_type == DataType.PTR:
                     pass
@@ -925,177 +933,121 @@ def type_check_program(program: Program):
                     compiler_error_with_expansion_stack(op.token, "invalid argument type for STORE64 intrinsic: %s" % [b_type, a_type])
                     exit(1)
             elif op.operand == Intrinsic.CAST_PTR:
-                if len(stack) < 1:
+                if len(ctx.stack) < 1:
                     not_enough_arguments(op)
                     exit(1)
 
-                a_type, a_token = stack.pop()
+                a_type, a_token = ctx.stack.pop()
 
-                stack.append((DataType.PTR, a_token))
+                ctx.stack.append((DataType.PTR, a_token))
             elif op.operand == Intrinsic.ARGC:
-                stack.append((DataType.INT, op.token))
+                ctx.stack.append((DataType.INT, op.token))
             elif op.operand == Intrinsic.ARGV:
-                stack.append((DataType.PTR, op.token))
+                ctx.stack.append((DataType.PTR, op.token))
             elif op.operand == Intrinsic.HERE:
-                stack.append((DataType.INT, op.token))
-                stack.append((DataType.PTR, op.token))
+                ctx.stack.append((DataType.INT, op.token))
+                ctx.stack.append((DataType.PTR, op.token))
             # TODO: figure out how to type check syscall arguments and return types
             elif op.operand == Intrinsic.SYSCALL0:
-                if len(stack) < 1:
+                if len(ctx.stack) < 1:
                     not_enough_arguments(op)
                     exit(1)
                 for i in range(1):
-                    stack.pop()
-                stack.append((DataType.INT, op.token))
+                    ctx.stack.pop()
+                ctx.stack.append((DataType.INT, op.token))
             elif op.operand == Intrinsic.SYSCALL1:
-                if len(stack) < 2:
+                if len(ctx.stack) < 2:
                     not_enough_arguments(op)
                     exit(1)
                 for i in range(2):
-                    stack.pop()
-                stack.append((DataType.INT, op.token))
+                    ctx.stack.pop()
+                ctx.stack.append((DataType.INT, op.token))
             elif op.operand == Intrinsic.SYSCALL2:
-                if len(stack) < 3:
+                if len(ctx.stack) < 3:
                     not_enough_arguments(op)
                     exit(1)
                 for i in range(3):
-                    stack.pop()
-                stack.append((DataType.INT, op.token))
+                    ctx.stack.pop()
+                ctx.stack.append((DataType.INT, op.token))
             elif op.operand == Intrinsic.SYSCALL3:
-                if len(stack) < 4:
+                if len(ctx.stack) < 4:
                     not_enough_arguments(op)
                     exit(1)
                 for i in range(4):
-                    stack.pop()
-                stack.append((DataType.INT, op.token))
+                    ctx.stack.pop()
+                ctx.stack.append((DataType.INT, op.token))
             elif op.operand == Intrinsic.SYSCALL4:
-                if len(stack) < 5:
+                if len(ctx.stack) < 5:
                     not_enough_arguments(op)
                     exit(1)
                 for i in range(5):
-                    stack.pop()
-                stack.append((DataType.INT, op.token))
+                    ctx.stack.pop()
+                ctx.stack.append((DataType.INT, op.token))
             elif op.operand == Intrinsic.SYSCALL5:
-                if len(stack) < 6:
+                if len(ctx.stack) < 6:
                     not_enough_arguments(op)
                     exit(1)
                 for i in range(6):
-                    stack.pop()
-                stack.append((DataType.INT, op.token))
+                    ctx.stack.pop()
+                ctx.stack.append((DataType.INT, op.token))
             elif op.operand == Intrinsic.SYSCALL6:
-                if len(stack) < 7:
+                if len(ctx.stack) < 7:
                     not_enough_arguments(op)
                     exit(1)
                 for i in range(7):
-                    stack.pop()
-                stack.append((DataType.INT, op.token))
+                    ctx.stack.pop()
+                ctx.stack.append((DataType.INT, op.token))
             else:
                 assert False, "unreachable"
+            ctx.ip += 1
         elif op.typ == OpType.IF:
-            block_stack.append((copy(stack), op.typ))
+            ctx.ip += 1
         elif op.typ == OpType.WHILE:
-            block_stack.append((copy(stack), op.typ))
+            ctx.ip += 1
         elif op.typ == OpType.END:
-            block_snapshot, block_type = block_stack.pop()
-            assert len(OpType) == 10, "Exhaustive handling of op types"
-            if block_type == OpType.ELSE:
-                expected_types = list(map(lambda x: x[0], block_snapshot))
-                actual_types = list(map(lambda x: x[0], stack))
-                if expected_types != actual_types:
-                    compiler_error_with_expansion_stack(op.token, 'all branches of the if-block must produce the same types of the arguments on the data stack')
-                    compiler_note(op.token.loc, 'Expected types: %s' % expected_types)
-                    compiler_note(op.token.loc, 'Actual types: %s' % actual_types)
-                    exit(1)
-            elif block_type == OpType.DO:
-                begin_snapshot, begin_type = block_stack.pop()
-
-                if begin_type == OpType.WHILE:
-                    expected_types = list(map(lambda x: x[0], begin_snapshot))
-                    actual_types = list(map(lambda x: x[0], stack))
-
-                    if expected_types != actual_types:
-                        compiler_error_with_expansion_stack(op.token, 'while-do body is not allowed to alter the types of the arguments on the data stack')
-                        compiler_note(op.token.loc, 'Expected types: %s' % expected_types)
-                        compiler_note(op.token.loc, 'Actual types: %s' % actual_types)
-                        exit(1)
-
-                    stack = block_snapshot
-                elif begin_type == OpType.IF:
-                    expected_types = list(map(lambda x: x[0], begin_snapshot))
-                    actual_types = list(map(lambda x: x[0], stack))
-
-                    if expected_types != actual_types:
-                        compiler_error_with_expansion_stack(op.token, 'else-less if block is not allowed to alter the types of the arguments on the data stack')
-                        compiler_note(op.token.loc, 'Expected types: %s' % expected_types)
-                        compiler_note(op.token.loc, 'Actual types: %s' % actual_types)
-                        exit(1)
-
-                    stack = block_snapshot
-                elif begin_type == OpType.ELIF:
-                    expected_types = list(map(lambda x: x[0], begin_snapshot))
-                    actual_types = list(map(lambda x: x[0], stack))
-
-                    if expected_types != actual_types:
-                        compiler_error_with_expansion_stack(op.token, 'else-less if block is not allowed to alter the types of the arguments on the data stack')
-                        compiler_note(op.token.loc, 'Expected types: %s' % expected_types)
-                        compiler_note(op.token.loc, 'Actual types: %s' % actual_types)
-                        exit(1)
-
-                    stack = block_snapshot
-                else:
-                    assert False, "unreachable"
-            else:
-                assert False, "unreachable"
+            assert isinstance(op.operand, OpAddr)
+            ctx.ip = op.operand
         elif op.typ == OpType.ELSE:
-            do_snapshot, do_type = block_stack.pop()
-            assert do_type == OpType.DO
-
-            pre_do_snapshot, pre_do_type = block_stack.pop()
-            assert pre_do_type == OpType.IF or pre_do_type == OpType.ELIF, pre_do_type
-
-            if pre_do_type == OpType.ELIF:
-                expected_types = list(map(lambda x: x[0], pre_do_snapshot))
-                actual_types = list(map(lambda x: x[0], stack))
-                if expected_types != actual_types:
-                    compiler_error_with_expansion_stack(op.token, 'all branches of the if-block must produce the same types of the arguments on the data stack')
-                    compiler_note(op.token.loc, 'Expected types: %s' % expected_types)
-                    compiler_note(op.token.loc, 'Actual types: %s' % actual_types)
-                    exit(1)
-
-            block_stack.append((copy(stack), op.typ))
-            stack = do_snapshot
+            assert isinstance(op.operand, OpAddr)
+            ctx.ip = op.operand
         elif op.typ == OpType.ELIF:
-            do_snapshot, do_type = block_stack.pop()
-            assert do_type == OpType.DO
-
-            pre_do_snapshot, pre_do_type = block_stack.pop()
-            assert pre_do_type == OpType.IF or pre_do_type == OpType.ELIF, pre_do_type
-
-            if pre_do_type == OpType.ELIF:
-                expected_types = list(map(lambda x: x[0], pre_do_snapshot))
-                actual_types = list(map(lambda x: x[0], stack))
-                if expected_types != actual_types:
-                    compiler_error_with_expansion_stack(op.token, 'all branches of the if-block must produce the same types of the arguments on the data stack')
-                    compiler_note(op.token.loc, 'Expected types: %s' % expected_types)
-                    compiler_note(op.token.loc, 'Actual types: %s' % actual_types)
-                    exit(1)
-
-            block_stack.append((copy(stack), op.typ))
-            stack = do_snapshot
+            assert isinstance(op.operand, OpAddr)
+            ctx.ip = op.operand
         elif op.typ == OpType.DO:
-            if len(stack) < 1:
+            assert isinstance(op.operand, OpAddr)
+            if len(ctx.stack) < 1:
                 not_enough_arguments(op)
                 exit(1)
-            a_type, a_token = stack.pop()
+            a_type, a_token = ctx.stack.pop()
             if a_type != DataType.BOOL:
                 compiler_error_with_expansion_stack(op.token, "Invalid argument for the while-do condition. Expected BOOL.")
                 exit(1)
-            block_stack.append((copy(stack), op.typ))
+            if ctx.ip in visited_dos:
+                expected_types = list(map(lambda x: x[0], visited_dos[ctx.ip]))
+                actual_types = list(map(lambda x: x[0], ctx.stack))
+                if expected_types != actual_types:
+                    compiler_error_with_expansion_stack(op.token, 'Loops are not allowed to alter types and amount of elements on the stack.')
+                    compiler_note(op.token.loc, 'Expected elements: %s' % expected_types)
+                    compiler_note(op.token.loc, 'Actual elements: %s' % actual_types)
+                    exit(1)
+                contexts.pop()
+                if len(contexts) > 0:
+                    ctx = contexts[-1]
+                else:
+                    continue
+            else:
+                visited_dos[ctx.ip] = copy(ctx.stack)
+                ctx.ip += 1
+                contexts.append(Context(stack=copy(ctx.stack), ip=op.operand))
+                ctx = contexts[-1]
         else:
             assert False, "unreachable"
-    if len(stack) != 0:
-        compiler_error_with_expansion_stack(stack[-1][1], "unhandled data on the stack: %s" % list(map(lambda x: x[0], stack)))
-        exit(1)
+
+        if ctx.ip >= len(program):
+            if len(ctx.stack) != 0:
+                compiler_error_with_expansion_stack(ctx.stack[-1][1], "unhandled data on the ctx.stack: %s" % list(map(lambda x: x[0], ctx.stack)))
+                exit(1)
+            contexts.pop()
 
 def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
     strs: List[bytes] = []
@@ -1739,7 +1691,6 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                 assert False, 'unreachable';
         else:
             assert False, 'unreachable'
-
 
     if len(stack) > 0:
         compiler_error_with_expansion_stack(program[stack.pop()].token, 'unclosed block')
