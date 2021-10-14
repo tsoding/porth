@@ -291,3 +291,9 @@ Include tokens of file `file.porth`
 ```
 include "file.porth"
 ```
+
+### Type Checking
+
+TBD
+
+<!-- TODO: Document Type Checking process -->

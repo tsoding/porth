@@ -4,8 +4,6 @@
 :i returncode 1
 :b stdout 0
 
-:b stderr 263
-./tests/if-else-fail.porth:1:38: ERROR: all branches of the if-block must produce the same types of the arguments on the data stack
-./tests/if-else-fail.porth:1:38: NOTE: Expected types: []
-./tests/if-else-fail.porth:1:38: NOTE: Actual types: [<DataType.INT: 1>]
+:b stderr 93
+./tests/if-else-fail.porth:1:34: ERROR: unhandled data on the ctx.stack: [<DataType.INT: 1>]
 
