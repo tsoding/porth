@@ -1626,8 +1626,13 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                 ip += 1
             elif token.value == Keyword.DO:
                 program.append(Op(typ=OpType.DO, token=token))
+                if len(stack) == 0:
+                    compiler_error_with_expansion_stack(token, "`do` is not preceded by `if`, `while` or `elif`")
+                    exit(1)
                 pre_do_ip = stack.pop()
-                assert program[pre_do_ip].typ == OpType.WHILE or program[pre_do_ip].typ == OpType.IF or program[pre_do_ip].typ == OpType.ELIF
+                if program[pre_do_ip].typ != OpType.WHILE and program[pre_do_ip].typ != OpType.IF and program[pre_do_ip].typ != OpType.ELIF:
+                    compiler_error_with_expansion_stack(token, "`do` is not preceded by `if`, `while` or `elif`")
+                    exit(1)
                 program[ip].operand = pre_do_ip
                 stack.append(ip)
                 ip += 1
