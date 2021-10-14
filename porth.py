@@ -1006,14 +1006,6 @@ def type_check_program(program: Program):
                     compiler_note(op.token.loc, 'Expected types: %s' % expected_types)
                     compiler_note(op.token.loc, 'Actual types: %s' % actual_types)
                     exit(1)
-            elif block_type == OpType.ELIF:
-                expected_types = list(map(lambda x: x[0], block_snapshot))
-                actual_types = list(map(lambda x: x[0], stack))
-                if expected_types != actual_types:
-                    compiler_error_with_expansion_stack(op.token, 'all branches of the if-block must produce the same types of the arguments on the data stack')
-                    compiler_note(op.token.loc, 'Expected types: %s' % expected_types)
-                    compiler_note(op.token.loc, 'Actual types: %s' % actual_types)
-                    exit(1)
             elif block_type == OpType.DO:
                 begin_snapshot, begin_type = block_stack.pop()
 
@@ -1039,10 +1031,21 @@ def type_check_program(program: Program):
                         exit(1)
 
                     stack = block_snapshot
+                elif begin_type == OpType.ELIF:
+                    expected_types = list(map(lambda x: x[0], begin_snapshot))
+                    actual_types = list(map(lambda x: x[0], stack))
+
+                    if expected_types != actual_types:
+                        compiler_error_with_expansion_stack(op.token, 'else-less if block is not allowed to alter the types of the arguments on the data stack')
+                        compiler_note(op.token.loc, 'Expected types: %s' % expected_types)
+                        compiler_note(op.token.loc, 'Actual types: %s' % actual_types)
+                        exit(1)
+
+                    stack = block_snapshot
                 else:
-                    assert "unreachable"
+                    assert False, "unreachable"
             else:
-                assert "unreachable"
+                assert False, "unreachable"
         elif op.typ == OpType.ELSE:
             do_snapshot, do_type = block_stack.pop()
             assert do_type == OpType.DO
