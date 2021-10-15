@@ -9,8 +9,8 @@ if argc 2 < do
 end
 
 1 nth_argv
-while dup @ 0 != do
-  if dup @ '0' < over @ '9' > or do
+while dup @8 0 != do
+  if dup @8 '0' < over @8 '9' > or do
     "ERROR: `" eputs
     1 nth_argv cstrlen 1 nth_argv eputs
     "` is not a correct integer\n" eputs
@@ -18,7 +18,7 @@ while dup @ 0 != do
   end
 
   limit @64 10 *
-  over @ '0' -
+  over @8 '0' -
   +
   limit !64
 

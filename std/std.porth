@@ -355,6 +355,8 @@ macro div / end
 // Old Style Memory Access (Deprecated)
 macro .64 swap !64 end
 macro ,64 @64 end
+macro ! !8 end
+macro @ @8 end
 macro . swap ! end
 macro , @ end
 
@@ -372,22 +374,22 @@ end
 
 macro cstrlen
   dup
-  while dup @ 0 != do 1 + end
+  while dup @8 0 != do 1 + end
   swap -
 end
 
 macro cstreq
   while
-    if over @ 0 != over @ 0 != and do
-       over @ over @ =
+    if over @8 0 != over @8 0 != and do
+       over @8 over @8 =
     else
        false
     end
   do
     1 + swap 1 +
   end
-  @ 0 =
-  swap @ 0 =
+  @8 0 =
+  swap @8 0 =
   and
 end
 

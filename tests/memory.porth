@@ -1,18 +1,18 @@
 include "std.porth"
 
 // write "abc" into the memory
-97 mem 0 + !
-98 mem 1 + !
-99 mem 2 + !
-10 mem 3 + !
+97 mem 0 + !8
+98 mem 1 + !8
+99 mem 2 + !8
+10 mem 3 + !8
 
 // print "abc" to stdout
 4 mem stdout write print
 
 // increament each character by 1 making it "bcd"
-mem 0 + dup @ 1 + swap !
-mem 1 + dup @ 1 + swap !
-mem 2 + dup @ 1 + swap !
+mem 0 + dup @8 1 + swap !8
+mem 1 + dup @8 1 + swap !8
+mem 2 + dup @8 1 + swap !8
 
 // print "bcd" to stdout
 4 mem stdout write print

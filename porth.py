@@ -1354,8 +1354,8 @@ INTRINSIC_BY_NAMES = {
     'rot': Intrinsic.ROT,
     'mem': Intrinsic.MEM,
     # TODO: rename ! and @ to !8 and @8
-    '!': Intrinsic.FORTH_STORE,
-    '@': Intrinsic.FORTH_LOAD,
+    '!8': Intrinsic.FORTH_STORE,
+    '@8': Intrinsic.FORTH_LOAD,
     '!64': Intrinsic.STORE64,
     '@64': Intrinsic.LOAD64,
     'cast(ptr)': Intrinsic.CAST_PTR,
