@@ -1,0 +1,93 @@
+include "std.porth"
+
+macro fd mem end
+macro statbuf fd 8 + end
+macro content statbuf sizeof(stat) + end
+macro line content sizeof(Str) + end
+macro word line sizeof(Str) + end
+macro a word sizeof(Str) + end
+macro b a sizeof(Str) + end
+
+macro str-copy // count data dst
+  @Str rot !Str
+end
+
+macro streq // s1 s2
+   if
+     2dup Str.count @64
+     swap Str.count @64
+     =
+   do
+     // count data1 data2 *data2 = *data1
+     dup Str.count @64
+     rot Str.data  @64 cast(ptr)
+     rot Str.data  @64 cast(ptr)
+     rot
+     while
+       if dup 0 > do
+         rot rot
+         2dup
+         @8
+         swap @8
+         =
+      else false end
+     do
+       1 +
+       swap 1 +
+       rot  1 -
+     end
+     dup 0 =
+     swap drop
+     swap drop
+   else drop drop false end
+end
+
+if argc 2 < do
+  "Usage: " eputs 0 nth_argv cstr-to-pstr eputs " <file>\n" eputs
+  "ERROR: no input file is provided\n" eputs
+  1 exit
+end
+
+"File name is " puts 1 nth_argv cstr-to-pstr puts "\n" puts
+
+O_RDONLY   // flags
+1 nth_argv // pathname
+AT_FDCWD   // dirfd
+openat
+
+if dup 0 < do
+  "ERROR: could not open file " eputs 1 nth_argv cstr-to-pstr eputs "\n" eputs
+  1 exit
+end
+
+fd !64
+
+if statbuf fd @64 fstat 0 < do
+  "ERROR: could not determine the size of file " eputs 1 nth_argv cstr-to-pstr eputs "\n" eputs
+  1 exit
+end
+
+statbuf stat.st_size @64 content Str.count !64
+
+0                        // offset
+fd @64                   // fd
+MAP_PRIVATE              // flags
+PROT_READ                // prot
+content Str.count @64    // length
+NULL                     // addr
+mmap
+content Str.data !64
+
+if content Str.data @64 0 < do
+  "ERROR: could not memory map file " eputs 1 nth_argv cstr-to-pstr eputs "\n" eputs
+  1 exit
+end
+
+while content Str.count @64 0 > do
+  line content str-chop-line
+  while line Str.count @64 0 > do
+     line str-trim-left
+     word line str-chop-word
+     "|" puts word @Str puts "|\n" puts
+  end
+end
