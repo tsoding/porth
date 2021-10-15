@@ -5,16 +5,16 @@ macro buffer mem end
 
 while BUFFER_CAP buffer stdin read dup 0 > do
   0 while 2dup > do
-    dup buffer + ,
+    dup buffer + @8
 
     if dup 'a' >= over 'z' <= and do
       2dup 'a' - 13 + 26 mod 'a' +
-      swap buffer + swap .
+      swap buffer + !8
     end
 
     if dup 'A' >= over 'Z' <= and do
       2dup 'A' - 13 + 26 mod 'A' +
-      swap buffer + swap .
+      swap buffer + !8
     end
 
     drop

@@ -18,7 +18,7 @@ len !64
   1 acc !64
 
   0 while dup N < do
-    2dup + str @64 cast(ptr) + @ '0' -
+    2dup + str @64 cast(ptr) + @8 '0' -
     acc @64 * acc !64
     1 +
   end drop

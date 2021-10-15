@@ -11,7 +11,7 @@ if dup 0 <= do
   1 exit
 end
 
-if name over + 1 - , '\n' = do
+if name over + 1 - @8 '\n' = do
   1 -
 end
 
