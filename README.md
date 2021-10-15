@@ -296,5 +296,3 @@ include "file.porth"
 TBD
 
 <!-- TODO: Document Type Checking process -->
-
-<!-- test -->
