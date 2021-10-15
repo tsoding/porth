@@ -355,6 +355,8 @@ macro div / end
 // Old Style Memory Access (Deprecated)
 macro .64 swap !64 end
 macro ,64 @64 end
+macro . swap ! end
+macro , @ end
 
 macro nth_argv
   8 * argv + @64 cast(ptr)
@@ -370,22 +372,22 @@ end
 
 macro cstrlen
   dup
-  while dup , 0 != do 1 + end
+  while dup @ 0 != do 1 + end
   swap -
 end
 
 macro cstreq
   while
-    if over , 0 != over , 0 != and do
-       over , over , =
+    if over @ 0 != over @ 0 != and do
+       over @ over @ =
     else
        false
     end
   do
     1 + swap 1 +
   end
-  , 0 =
-  swap , 0 =
+  @ 0 =
+  swap @ 0 =
   and
 end
 

@@ -57,8 +57,6 @@ class Intrinsic(Enum):
     OVER=auto()
     ROT=auto()
     MEM=auto()
-    LOAD=auto()
-    STORE=auto()
     FORTH_LOAD=auto()
     FORTH_STORE=auto()
     LOAD64=auto()
@@ -213,7 +211,7 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                 else:
                     ip += 1
             elif op.typ == OpType.INTRINSIC:
-                assert len(Intrinsic) == 39, "Exhaustive handling of intrinsic in simulate_little_endian_linux()"
+                assert len(Intrinsic) == 37, "Exhaustive handling of intrinsic in simulate_little_endian_linux()"
                 if op.operand == Intrinsic.PLUS:
                     a = stack.pop()
                     b = stack.pop()
@@ -325,16 +323,6 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                     ip += 1
                 elif op.operand == Intrinsic.MEM:
                     stack.append(mem_buf_ptr)
-                    ip += 1
-                elif op.operand == Intrinsic.LOAD:
-                    addr = stack.pop()
-                    byte = mem[addr]
-                    stack.append(byte)
-                    ip += 1
-                elif op.operand == Intrinsic.STORE:
-                    store_value = stack.pop()
-                    store_addr = stack.pop()
-                    mem[store_addr] = store_value & 0xFF
                     ip += 1
                 elif op.operand == Intrinsic.FORTH_LOAD:
                     addr = stack.pop()
@@ -547,7 +535,7 @@ def type_check_program(program: Program):
             ctx.stack.append((DataType.PTR, op.token))
             ctx.ip += 1
         elif op.typ == OpType.INTRINSIC:
-            assert len(Intrinsic) == 39, "Exhaustive intrinsic handling in type_check_program()"
+            assert len(Intrinsic) == 37, "Exhaustive intrinsic handling in type_check_program()"
             assert isinstance(op.operand, Intrinsic), "This could be a bug in compilation step"
             if op.operand == Intrinsic.PLUS:
                 assert len(DataType) == 3, "Exhaustive type handling in PLUS intrinsic"
@@ -811,32 +799,6 @@ def type_check_program(program: Program):
                 ctx.stack.append(c)
             elif op.operand == Intrinsic.MEM:
                 ctx.stack.append((DataType.PTR, op.token))
-            elif op.operand == Intrinsic.LOAD:
-                assert len(DataType) == 3, "Exhaustive type handling in LOAD intrinsic"
-                if len(ctx.stack) < 1:
-                    not_enough_arguments(op)
-                    exit(1)
-                a_type, a_loc = ctx.stack.pop()
-
-                if a_type == DataType.PTR:
-                    ctx.stack.append((DataType.INT, op.token))
-                else:
-                    compiler_error_with_expansion_stack(op.token, "invalid argument type for LOAD intrinsic: %s" % a_type)
-                    exit(1)
-            elif op.operand == Intrinsic.STORE:
-                assert len(DataType) == 3, "Exhaustive type handling in STORE intrinsic"
-                if len(ctx.stack) < 2:
-                    not_enough_arguments(op)
-                    exit(1)
-
-                a_type, a_loc = ctx.stack.pop()
-                b_type, b_loc = ctx.stack.pop()
-
-                if a_type == DataType.INT and b_type == DataType.PTR:
-                    pass
-                else:
-                    compiler_error_with_expansion_stack(op.token, "invalid argument type for STORE intrinsic")
-                    exit(1)
             elif op.operand == Intrinsic.FORTH_LOAD:
                 assert len(DataType) == 3, "Exhaustive type handling in LOAD intrinsic"
                 if len(ctx.stack) < 1:
@@ -1095,7 +1057,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                 assert isinstance(op.operand, int), "This could be a bug in the parsing step"
                 out.write("    jz addr_%d\n" % op.operand)
             elif op.typ == OpType.INTRINSIC:
-                assert len(Intrinsic) == 39, "Exhaustive intrinsic handling in generate_nasm_linux_x86_64()"
+                assert len(Intrinsic) == 37, "Exhaustive intrinsic handling in generate_nasm_linux_x86_64()"
                 if op.operand == Intrinsic.PLUS:
                     out.write("    ;; -- plus --\n")
                     out.write("    pop rax\n")
@@ -1241,17 +1203,6 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                 elif op.operand == Intrinsic.MEM:
                     out.write("    ;; -- mem --\n")
                     out.write("    push mem\n")
-                elif op.operand == Intrinsic.LOAD:
-                    out.write("    ;; -- load --\n")
-                    out.write("    pop rax\n")
-                    out.write("    xor rbx, rbx\n")
-                    out.write("    mov bl, [rax]\n")
-                    out.write("    push rbx\n")
-                elif op.operand == Intrinsic.STORE:
-                    out.write("    ;; -- store --\n")
-                    out.write("    pop rbx\n");
-                    out.write("    pop rax\n");
-                    out.write("    mov [rax], bl\n");
                 elif op.operand == Intrinsic.FORTH_LOAD:
                     out.write("    ;; -- forth load --\n")
                     out.write("    pop rax\n")
@@ -1378,7 +1329,7 @@ KEYWORD_NAMES = {
     'include': Keyword.INCLUDE,
 }
 
-assert len(Intrinsic) == 39, "Exhaustive INTRINSIC_BY_NAMES definition"
+assert len(Intrinsic) == 37, "Exhaustive INTRINSIC_BY_NAMES definition"
 INTRINSIC_BY_NAMES = {
     '+': Intrinsic.PLUS,
     '-': Intrinsic.MINUS,
@@ -1402,8 +1353,7 @@ INTRINSIC_BY_NAMES = {
     'over': Intrinsic.OVER,
     'rot': Intrinsic.ROT,
     'mem': Intrinsic.MEM,
-    '.': Intrinsic.STORE,
-    ',': Intrinsic.LOAD,
+    # TODO: rename ! and @ to !8 and @8
     '!': Intrinsic.FORTH_STORE,
     '@': Intrinsic.FORTH_LOAD,
     '!64': Intrinsic.STORE64,

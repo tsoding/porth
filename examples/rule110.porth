@@ -7,30 +7,30 @@ macro N 100 end
 macro row mem end
 macro display row N + end
 
-row N 2 - + 1 .
-display N + 10 .
+row N 2 - + 1 swap !
+display N + 10 swap !
 
 0 while dup N 2 - < do
    0 while dup N < do
-      if dup row + , 1 = do
-         dup display + '*' .
+      if dup row + @ 1 = do
+         dup display + '*' swap !
       else
-         dup display + ' ' .
+         dup display + ' ' swap !
       end
       1 +
    end drop
 
    N 1 + display puts
 
-   row     , 1 shl
-   row 1 + ,
+   row     @ 1 shl
+   row 1 + @
    or
 
    1 while dup N 2 - < do
       swap 1 shl 7 and
-      over row + 1 + , or
+      over row + 1 + @ or
       2dup 110 swap shr 1 and
-      swap row + swap .
+      swap row + !
       swap
 
       1 +
