@@ -949,8 +949,6 @@ def type_check_program(program: Program):
                     compiler_error_with_expansion_stack(op.token, 'Loops are not allowed to alter types and amount of elements on the stack.')
                     compiler_note(op.token.loc, 'Expected elements: %s' % expected_types)
                     compiler_note(op.token.loc, 'Actual elements: %s' % actual_types)
-                    for t, token in ctx.stack:
-                        compiler_note(token.loc, '...')
                     exit(1)
                 contexts.pop()
                 if len(contexts) > 0:
