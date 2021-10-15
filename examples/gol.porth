@@ -33,15 +33,15 @@ macro putd
 end
 
 macro board_current
-  board_base board_current_index ,64 BOARD_SIZE * +
+  board_base board_current_index @64 BOARD_SIZE * +
 end
 
 macro board_next
-  board_base 1 board_current_index ,64 - BOARD_SIZE * +
+  board_base 1 board_current_index @64 - BOARD_SIZE * +
 end
 
 macro swap_boards
-  board_current_index 1 board_current_index ,64 - .64
+  1 board_current_index @64 - board_current_index !64
 end
 
 macro display_row
@@ -75,9 +75,9 @@ macro get_current_cell
 end
 
 macro set_next_cell
-  value swap .64
+  value !64
   swap COLS * + board_next +
-  value ,64
+  value @64
   .
 end
 
@@ -89,7 +89,7 @@ macro in_bounds
 end
 
 macro count_current_nbors
-  nbors 0 .64
+  0 nbors !64
 
   if 2dup 1 - swap 1 - swap 2dup in_bounds
      rot rot swap COLS * + board_current + , 1 =
@@ -124,7 +124,7 @@ macro count_current_nbors
      and do nbors inc64 end
 
   2drop
-  nbors ,64
+  nbors @64
 end
 
 macro compute_next_board
@@ -164,7 +164,7 @@ macro put_glider
 end
 
 macro main
-  delta_time 8 + 100000000 .64
+  100000000 delta_time 8 + !64
 
   board_current put_glider
 

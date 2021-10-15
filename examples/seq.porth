@@ -17,15 +17,15 @@ while dup , 0 != do
     1 exit
   end
 
-  limit ,64 10 *
+  limit @64 10 *
   over , '0' -
   +
-  limit swap .64
+  limit !64
 
   1 +
 end drop
 
-0 while dup limit ,64 < do
+0 while dup limit @64 < do
   dup print
   1 +
 end drop

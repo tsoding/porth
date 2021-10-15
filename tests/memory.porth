@@ -18,5 +18,5 @@ mem 2 + dup , 1 + .
 4 mem stdout write print
 
 // print UINT64_MAX (Largest 64 bit word)
-mem 18446744073709551615 .64 
-mem ,64 print
+18446744073709551615 mem !64 
+mem @64 print

@@ -7,13 +7,13 @@ macro fd mem end
 macro buffer fd 8 + end
 
 macro cat_fd
-  while BUFFER_CAP buffer fd ,64 read dup 0 > do
+  while BUFFER_CAP buffer fd @64 read dup 0 > do
      buffer puts
   end drop
 end
 
 if argc 2 < do
-  fd stdin .64
+  stdin fd !64
   cat_fd
 else
   1 while dup argc < do
@@ -25,9 +25,9 @@ else
       "\n" eputs
       drop
     else
-      fd swap .64
+      fd !64
       cat_fd
-      fd ,64 close drop
+      fd @64 close drop
     end
   
     1 +
