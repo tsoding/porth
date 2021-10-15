@@ -336,12 +336,45 @@ macro O_RDONLY 0 end
 macro CLOCK_MONOTONIC 1 end
 macro TIMER_ABSTIME 1 end
 
+macro MAP_PRIVATE 2 end
+macro PROT_READ 1 end
+
+macro sizeof(stat) 144 end
+macro stat.st_dev 0 + end
+macro stat.st_ino 8 + end
+macro stat.st_mode 24 + end
+macro stat.st_nlink 16 + end
+macro stat.st_uid 28 + end
+macro stat.st_gid 32 + end
+macro stat.st_rdev 40 + end
+macro stat.st_size 48 + end
+macro stat.st_blksize 56 + end
+macro stat.st_blocks 64 + end
+macro stat.st_atim 72 + end
+macro stat.st_mtim 88 + end
+macro stat.st_ctim 104 + end
+macro sizeof(stat.st_dev) 8 end
+macro sizeof(stat.st_ino) 8 end
+macro sizeof(stat.st_mode) 4 end
+macro sizeof(stat.st_nlink) 8 end
+macro sizeof(stat.st_uid) 4 end
+macro sizeof(stat.st_gid) 4 end
+macro sizeof(stat.st_rdev) 8 end
+macro sizeof(stat.st_size) 8 end
+macro sizeof(stat.st_blksize) 8 end
+macro sizeof(stat.st_blocks) 8 end
+macro sizeof(stat.st_atim) 16 end
+macro sizeof(stat.st_mtim) 16 end
+macro sizeof(stat.st_ctim) 16 end
+
 // Wrappers for common syscalls
 macro write SYS_write syscall3 end
 macro read SYS_read syscall3 end
 macro openat SYS_openat syscall3 end
+macro fstat SYS_fstat syscall2 end
 macro close SYS_close syscall1 end
 macro exit SYS_exit syscall1 drop end
+macro mmap SYS_mmap syscall6 end
 macro clock_nanosleep SYS_clock_nanosleep syscall4 end
 
 macro 2dup over over end
@@ -407,4 +440,76 @@ end
 
 macro eputs
   stderr fputs
+end
+
+macro sizeof(Str) 16 end
+macro Str.count 0 + end
+macro Str.data  8 + end
+
+macro @Str
+  dup Str.count @64
+  swap Str.data @64
+end
+
+macro !Str // count data dst
+  dup Str.data rot swap !64
+  Str.count !64
+end
+
+macro str-chop-left
+   dup Str.count dec64
+   dup Str.data inc64
+   drop
+end
+
+macro str-trim-left // input --
+  while 
+    if dup Str.count @64 0 > do
+       dup Str.data @64 cast(ptr) @8 ' ' =
+    else
+       false
+    end
+  do
+    dup str-chop-left
+  end
+  drop
+end
+
+macro str-chop-line // line input --
+  2dup Str.data @64 swap Str.data !64
+  over Str.count 0 swap !64
+  while
+    if dup Str.count @64 0 > do
+       dup Str.data @64 cast(ptr) @8 '\n' !=
+    else
+       false
+    end
+  do
+    dup str-chop-left
+    swap dup Str.count inc64 swap
+  end
+  if dup Str.count @64 0 > do
+    dup str-chop-left
+  end
+  2drop
+end
+
+// TODO: merge str-chop-word and str-chop-line into a single macro
+macro str-chop-word // line input --
+  2dup Str.data @64 swap Str.data !64
+  over Str.count 0 swap !64
+  while
+    if dup Str.count @64 0 > do
+       dup Str.data @64 cast(ptr) @8 ' ' !=
+    else
+       false
+    end
+  do
+    dup str-chop-left
+    swap dup Str.count inc64 swap
+  end
+  if dup Str.count @64 0 > do
+    dup str-chop-left
+  end
+  2drop
 end

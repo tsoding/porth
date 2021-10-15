@@ -522,6 +522,7 @@ def type_check_program(program: Program):
     contexts: List[Context] = [Context(stack=[], ip=0)]
     while len(contexts) > 0:
         ctx = contexts[-1];
+        # TODO: type checking fails on empty programs
         op = program[ctx.ip]
         assert len(OpType) == 10, "Exhaustive ops handling in type_check_program()"
         if op.typ == OpType.PUSH_INT:
