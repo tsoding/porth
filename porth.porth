@@ -20,7 +20,19 @@ macro !Op.operand   Op.operand !64 end
 
 // Memory Layout
 macro putd-buffer mem end
-macro sim-stack-count putd-buffer PUTD_BUFFER_CAP + end
+
+macro file_path_cstr putd-buffer PUTD_BUFFER_CAP + end
+macro fd file_path_cstr 8 + end
+macro statbuf fd 8 + end
+
+macro content statbuf sizeof(stat) + end
+macro line content sizeof(Str) + end
+macro word line sizeof(Str) + end
+macro streq_a word sizeof(Str) + end
+macro streq_b streq_a sizeof(Str) + end
+macro parse_int_a streq_b sizeof(Str) + end
+
+macro sim-stack-count parse_int_a sizeof(Str) + end
 macro sim-stack sim-stack-count 8 + end
 macro ops-count sim-stack SIM_STACK_CAP 8 * + end
 macro ops ops-count 8 + end
@@ -56,6 +68,32 @@ macro putd // u64 --
     putd-buffer PUTD_BUFFER_CAP + swap - swap puts
   end
   drop
+end
+
+macro parse_int // n1 s1 - ret
+  parse_int_a !Str
+  0 0 while dup parse_int_a @Str.count < do
+    // TODO: parse_int does not check if the input is actually a number
+    dup parse_int_a @Str.data + @8 '0' -
+    rot 10 * +
+    swap
+    1 +
+  end drop
+end
+
+macro streq // n1 s1 n2 s2
+  streq_a !Str
+  streq_b !Str
+  if streq_a @Str.count streq_b @Str.count = do
+    0 while
+      if dup streq_a @Str.count < do
+        dup streq_a @Str.data + @8
+        over streq_b @Str.data + @8
+        =
+      else false end
+    do 1 + end
+    streq_a @Str.count >=
+  else false end
 end
 
 macro push-op // type operand -- 
@@ -177,27 +215,62 @@ macro simulate-ops // --
   drop
 end  
 
-macro program69 // -- 
-  OP_PUSH_INT 34 push-op
-  OP_PUSH_INT 35 push-op
-  OP_PLUS     0  push-op
-  OP_PRINT    0  push-op
-end
+macro parse_file_path
+  O_RDONLY   // flags
+  file_path_cstr @64 cast(ptr) // pathname
+  AT_FDCWD   // dirfd
+  openat
 
-macro program123 // --
-  OP_PUSH_INT 1 push-op
-  OP_PRINT    0 push-op
-  OP_PUSH_INT 2 push-op
-  OP_PRINT    0 push-op
-  OP_PUSH_INT 3 push-op
-  OP_PRINT    0 push-op
+  if dup 0 < do
+    "ERROR: could not open file " eputs file_path_cstr @64 cast(ptr) cstr-to-str eputs "\n" eputs
+    1 exit
+  end
+
+  fd !64
+
+  if statbuf fd @64 fstat 0 < do
+    "ERROR: could not determine the size of file " eputs file_path_cstr @64 cast(ptr) cstr-to-str eputs "\n" eputs
+    1 exit
+  end
+
+  statbuf @stat.st_size content !Str.count
+
+  0                        // offset
+  fd @64                   // fd
+  MAP_PRIVATE              // flags
+  PROT_READ                // prot
+  content @Str.count       // length
+  NULL                     // addr
+  mmap
+  content !Str.data
+
+  if content @Str.data cast(int) 0 < do
+    "ERROR: could not memory map file " eputs file_path_cstr @64 cast(ptr) cstr-to-str eputs "\n" eputs
+    1 exit
+  end
+
+  while content @Str.count 0 > do
+    line content str-chop-line
+    while line @Str.count 0 > do
+       line str-trim-left
+       word line str-chop-word
+       if word @Str "+" streq do
+         OP_PLUS 0 push-op
+       elif word @Str "print" streq do
+         OP_PRINT 0 push-op
+       else
+         OP_PUSH_INT word @Str parse_int push-op
+       end
+    end
+  end
+  // TODO: parse_file_path does not clean up resources after itself
 end
 
 macro usage // --
   dup "Usage: porth <SUBCOMMAND>\n" rot fputs
   dup "  SUBCOMMANDS:\n" rot fputs
-  dup "    sim              Simulate the program.\n" rot fputs
-  dup "    com              Compile the program\n" rot fputs
+  dup "    sim <file>       Simulate the program.\n" rot fputs
+  dup "    com <file>       Compile the program\n" rot fputs
   dup "    dump             Dump the ops of the program\n" rot fputs
   dup "    help             Print this help to stdout and exit with 0 code\n" rot fputs
   drop
@@ -210,14 +283,32 @@ macro main // --
     1 exit
   end
 
-  program123
-
   // TODO: parsing file is not implemented
 
   1 nth_argv
   if dup "sim"c cstreq do
+    if argc 3 < do
+      stderr usage
+      "ERROR: no input file is provided for the `sim` subcommand\n" eputs
+      1 exit
+    end
+
+    2 nth_argv file_path_cstr !64
+
+    parse_file_path
+
     simulate-ops
   elif dup "com"c cstreq do
+    if argc 3 < do
+      stderr usage
+      "ERROR: no input file is provided for the `com` subcommand\n" eputs
+      1 exit
+    end
+
+    2 nth_argv file_path_cstr !64
+
+    parse_file_path
+
     compile-ops
   elif dup "help"c cstreq do
     stdout usage
