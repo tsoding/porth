@@ -103,11 +103,24 @@ macro push-op // type operand --
   ops-count inc64
 end
 
+macro print-op-type
+  if dup OP_PUSH_INT = do
+    "OP_PUSH_INT" puts
+  elif dup OP_PLUS = do
+    "OP_PLUS" puts
+  elif dup OP_PRINT = do
+    "OP_PRINT" puts
+  else
+    here eputs ": Unknown op type\n" eputs 1 exit
+  end
+  drop
+end
+
 macro dump-ops // --
   0 while dup ops-count @64 < do
     // ptr ptr
     dup sizeof(Op) * ops +
-    "Type:    " puts dup @Op.type print
+    "Type:    " puts dup @Op.type print-op-type "\n" puts
     "Operand: " puts @Op.operand print
     "----------\n" puts
     1 +
@@ -271,7 +284,7 @@ macro usage // --
   dup "  SUBCOMMANDS:\n" rot fputs
   dup "    sim <file>       Simulate the program.\n" rot fputs
   dup "    com <file>       Compile the program\n" rot fputs
-  dup "    dump             Dump the ops of the program\n" rot fputs
+  dup "    dump <file>      Dump the ops of the program\n" rot fputs
   dup "    help             Print this help to stdout and exit with 0 code\n" rot fputs
   drop
 end
@@ -282,8 +295,6 @@ macro main // --
     "ERROR: subcommand is not provided\n" eputs
     1 exit
   end
-
-  // TODO: parsing file is not implemented
 
   1 nth_argv
   if dup "sim"c cstreq do
@@ -314,6 +325,16 @@ macro main // --
     stdout usage
     0 exit
   elif dup "dump"c cstreq do
+    if argc 3 < do
+      stderr usage
+      "ERROR: no input file is provided for the `dump` subcommand\n" eputs
+      1 exit
+    end
+
+    2 nth_argv file_path_cstr !64
+
+    parse_file_path
+
     dump-ops
   else
     stderr usage
