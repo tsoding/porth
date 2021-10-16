@@ -4,6 +4,6 @@
 :i returncode 1
 :b stdout 0
 
-:b stderr 93
-./tests/if-else-fail.porth:1:34: ERROR: unhandled data on the ctx.stack: [<DataType.INT: 1>]
+:b stderr 94
+./tests/if-else-fail.porth:1:34: ERROR: unhandled data on the data stack: [<DataType.INT: 1>]
 
