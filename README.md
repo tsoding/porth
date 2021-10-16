@@ -296,3 +296,23 @@ include "file.porth"
 TBD
 
 <!-- TODO: Document Type Checking process -->
+
+### Conventions
+
+#### Structures
+
+TBD
+
+<!-- TODO: Document Structure Conventions -->
+
+#### Arrays
+
+TBD
+
+<!-- TODO: Document Arrays Conventions -->
+
+#### Memory Layout
+
+TBD
+
+<!-- TODO: Document Memory Laytout Conventions -->
