@@ -533,7 +533,12 @@ def type_check_program(program: Program):
     contexts: List[Context] = [Context(stack=[], ip=0)]
     while len(contexts) > 0:
         ctx = contexts[-1];
-        # TODO: type checking fails on empty programs
+        if ctx.ip >= len(program):
+            if len(ctx.stack) != 0:
+                compiler_error_with_expansion_stack(ctx.stack[-1][1], "unhandled data on the data stack: %s" % list(map(lambda x: x[0], ctx.stack)))
+                exit(1)
+            contexts.pop()
+            continue
         op = program[ctx.ip]
         assert len(OpType) == 10, "Exhaustive ops handling in type_check_program()"
         if op.typ == OpType.PUSH_INT:
@@ -978,10 +983,6 @@ def type_check_program(program: Program):
                     compiler_note(op.token.loc, 'Actual elements: %s' % actual_types)
                     exit(1)
                 contexts.pop()
-                if len(contexts) > 0:
-                    ctx = contexts[-1]
-                else:
-                    continue
             else:
                 visited_dos[ctx.ip] = copy(ctx.stack)
                 ctx.ip += 1
@@ -989,12 +990,6 @@ def type_check_program(program: Program):
                 ctx = contexts[-1]
         else:
             assert False, "unreachable"
-
-        if ctx.ip >= len(program):
-            if len(ctx.stack) != 0:
-                compiler_error_with_expansion_stack(ctx.stack[-1][1], "unhandled data on the ctx.stack: %s" % list(map(lambda x: x[0], ctx.stack)))
-                exit(1)
-            contexts.pop()
 
 def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
     strs: List[bytes] = []
