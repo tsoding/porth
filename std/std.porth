@@ -2,8 +2,8 @@ macro NULL 0 end
 
 macro nop end
 
-macro true 0 0 = end
-macro false 0 0 != end
+macro true  1 cast(bool) end
+macro false 0 cast(bool) end
 
 /// Standard streams
 macro stdin  0 end
