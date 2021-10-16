@@ -2,8 +2,8 @@ macro NULL 0 end
 
 macro nop end
 
-macro true 0 0 = end
-macro false 0 0 != end
+macro true  1 cast(bool) end
+macro false 0 cast(bool) end
 
 /// Standard streams
 macro stdin  0 end
@@ -348,6 +348,7 @@ macro stat.st_uid 28 + end
 macro stat.st_gid 32 + end
 macro stat.st_rdev 40 + end
 macro stat.st_size 48 + end
+macro @stat.st_size stat.st_size @64 end
 macro stat.st_blksize 56 + end
 macro stat.st_blocks 64 + end
 macro stat.st_atim 72 + end
@@ -385,14 +386,6 @@ macro % divmod swap drop end
 macro mod % end
 macro div / end
 
-// Old Style Memory Access (Deprecated)
-macro .64 swap !64 end
-macro ,64 @64 end
-macro ! !8 end
-macro @ @8 end
-macro . swap ! end
-macro , @ end
-
 macro nth_argv
   8 * argv + @64 cast(ptr)
 end
@@ -426,7 +419,7 @@ macro cstreq
   and
 end
 
-macro cstr-to-pstr
+macro cstr-to-str
   dup cstrlen swap
 end
 
@@ -443,73 +436,80 @@ macro eputs
 end
 
 macro sizeof(Str) 16 end
-macro Str.count 0 + end
-macro Str.data  8 + end
+macro Str.count   0 + end
+macro Str.data    8 + end
+macro @Str.count  Str.count @64 end
+macro @Str.data   Str.data  @64 cast(ptr) end
+macro !Str.count  Str.count !64 end
+macro !Str.data   Str.data  !64 end
 
 macro @Str
-  dup Str.count @64
-  swap Str.data @64
+  dup @Str.count
+  swap @Str.data
 end
 
-macro !Str // count data dst
-  dup Str.data rot swap !64
-  Str.count !64
+macro !Str // count data dst -
+  dup rot swap
+  !Str.data
+  !Str.count
 end
 
-macro str-chop-left
+macro str-chop-one-left
    dup Str.count dec64
-   dup Str.data inc64
-   drop
+       Str.data inc64
 end
 
 macro str-trim-left // input --
   while 
-    if dup Str.count @64 0 > do
-       dup Str.data @64 cast(ptr) @8 ' ' =
-    else
-       false
-    end
+    if dup @Str.count 0 > do
+       dup @Str.data @8 ' ' =
+    else false end
   do
-    dup str-chop-left
+    dup str-chop-one-left
   end
   drop
 end
 
 macro str-chop-line // line input --
-  2dup Str.data @64 swap Str.data !64
-  over Str.count 0 swap !64
+  2dup @Str.data swap !Str.data
+  over 0 swap !Str.count
   while
-    if dup Str.count @64 0 > do
-       dup Str.data @64 cast(ptr) @8 '\n' !=
-    else
-       false
-    end
+    if dup @Str.count 0 > do
+       dup @Str.data @8 '\n' !=
+    else false end
   do
-    dup str-chop-left
+    dup str-chop-one-left
     swap dup Str.count inc64 swap
   end
-  if dup Str.count @64 0 > do
-    dup str-chop-left
+  if dup @Str.count 0 > do
+    dup str-chop-one-left
   end
   2drop
 end
 
 // TODO: merge str-chop-word and str-chop-line into a single macro
 macro str-chop-word // line input --
-  2dup Str.data @64 swap Str.data !64
-  over Str.count 0 swap !64
+  2dup @Str.data swap !Str.data
+  over 0 swap !Str.count
   while
-    if dup Str.count @64 0 > do
-       dup Str.data @64 cast(ptr) @8 ' ' !=
-    else
-       false
-    end
+    if dup @Str.count 0 > do
+       dup @Str.data @8 ' ' !=
+    else false end
   do
-    dup str-chop-left
+    dup str-chop-one-left
     swap dup Str.count inc64 swap
   end
-  if dup Str.count @64 0 > do
-    dup str-chop-left
+  if dup @Str.count 0 > do
+    dup str-chop-one-left
   end
   2drop
 end
+
+// Deprecated Words
+macro .64 swap !64 end
+macro ,64 @64 end
+macro ! !8 end
+macro @ @8 end
+macro . swap ! end
+macro , @ end
+macro cstr-to-pstr cstr-to-str end

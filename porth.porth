@@ -8,13 +8,13 @@ macro OP_PUSH_INT 0 end
 macro OP_PLUS     1 end
 macro OP_PRINT    2 end
 
-// struct Op {
-//   type: u64,
-//   operand: u64,
-// }
-macro Op.type    nop end
-macro Op.operand 8 + end
-macro sizeof(Op) 16 end
+macro sizeof(Op)    16 end
+macro Op.type       0 + end
+macro Op.operand    8 + end
+macro @Op.type      Op.type @64 end
+macro !Op.type      Op.type !64 end
+macro @Op.operand   Op.operand @64 end
+macro !Op.operand   Op.operand !64 end
 
 // Memory Layout
 macro putd-buffer mem end
@@ -58,8 +58,8 @@ end
 
 macro push-op // type operand -- 
   ops-count @64 sizeof(Op) * ops +
-  dup Op.operand rot swap !64
-  Op.type !64
+  dup rot swap !Op.operand
+  !Op.type
   ops-count inc64
 end
 
@@ -67,8 +67,8 @@ macro dump-ops // --
   0 while dup ops-count @64 < do
     // ptr ptr
     dup sizeof(Op) * ops +
-    "Type:    " puts dup Op.type @64 print
-    "Operand: " puts Op.operand @64 print
+    "Type:    " puts dup @Op.type print
+    "Operand: " puts @Op.operand print
     "----------\n" puts
     1 +
   end
@@ -119,17 +119,17 @@ macro compile-ops // --
   0 while dup ops-count @64 < do
     dup sizeof(Op) * ops +
 
-    if dup Op.type @64 OP_PUSH_INT = do
-       "    ;; -- push int " puts dup Op.operand @64 putd " --\n" puts
-       "    mov rax, "       puts dup Op.operand @64 putd "\n" puts
+    if dup @Op.type OP_PUSH_INT = do
+       "    ;; -- push int " puts dup @Op.operand putd " --\n" puts
+       "    mov rax, "       puts dup @Op.operand putd "\n" puts
        "    push rax\n"      puts
-    elif dup Op.type @64 OP_PLUS = do
+    elif dup @Op.type OP_PLUS = do
        "    ;; -- plus --\n" puts
        "    pop rax\n" puts
        "    pop rbx\n" puts
        "    add rax, rbx\n" puts
        "    push rax\n" puts
-    elif dup Op.type @64 OP_PRINT = do
+    elif dup @Op.type OP_PRINT = do
        "    ;; -- print --\n" puts
        "    pop rdi\n" puts
        "    call print\n" puts
@@ -155,14 +155,14 @@ macro simulate-ops // --
   0 while dup ops-count @64 < do
     dup sizeof(Op) * ops +
 
-    if dup Op.type @64 OP_PUSH_INT = do
-       dup Op.operand @64 sim-stack-push
-    elif dup Op.type @64 OP_PLUS = do
+    if dup @Op.type OP_PUSH_INT = do
+       dup @Op.operand sim-stack-push
+    elif dup @Op.type OP_PLUS = do
        sim-stack-pop
        sim-stack-pop
        +
        sim-stack-push
-    elif dup Op.type @64 OP_PRINT = do
+    elif dup @Op.type OP_PRINT = do
        sim-stack-pop print
     else
        here eputs ": unreachable\n" eputs 1 exit
