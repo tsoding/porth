@@ -11,6 +11,7 @@ Porth is planned to be
 - [x] [Turing-complete](./examples/rule110.porth)
 - [x] Statically typed (the type checking is similar to [WASM validation](https://binji.github.io/posts/webassembly-type-checking/))
 - [ ] Self-hosted (Python is used only as an initial bootstrap, once the language is mature enough we gonna rewrite it in itself)
+- [ ] Optimized
 
 (these are not the selling points, but rather milestones of the development)
 
