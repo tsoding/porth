@@ -1,3 +1,5 @@
+// In progress rewrite of ./porth.py in Porth
+
 include "std.porth"
 
 macro PUTD_BUFFER_CAP 32 end
