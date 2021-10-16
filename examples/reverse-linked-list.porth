@@ -1,12 +1,12 @@
 include "./std.porth"
 
-// TODO: get rid of .64 macro in examples/reverse-linked-list.porth
-
-macro ,node/value @64 end
-macro ,node/prev 8 + @64 end
-macro .node/value .64 end
-macro .node/prev swap 8 + swap .64 end
-macro sizeof(node) 16 end
+macro sizeof(Node) 16 end
+macro Node.value 0 + end
+macro Node.prev  8 + end
+macro @Node.value Node.value @64 end
+macro @Node.prev  Node.prev  @64 end
+macro !Node.value Node.value !64 end
+macro !Node.prev  Node.prev  !64 end
 
 macro list_a mem end
 macro list_b list_a 8 + end
@@ -15,18 +15,18 @@ macro nodes_count list_b 8 + end
 macro nodes nodes_count 8 + end
 
 macro alloc_node
-  nodes_count @64 sizeof(node) * nodes +
-  nodes_count dup @64 1 + .64
+  nodes_count @64 sizeof(Node) * nodes +
+  nodes_count dup @64 1 + swap !64
 end
 
 macro push_node
-  over alloc_node 2dup swap @64 .node/prev .64
-  swap @64 cast(ptr) swap .node/value
+  over alloc_node 2dup swap @64 swap !Node.prev swap !64
+  swap @64 cast(ptr) !Node.value
 end
 
 macro pop_node
-  dup @64 cast(ptr) ,node/value swap
-  dup @64 cast(ptr) ,node/prev .64
+  dup @64 cast(ptr) @Node.value swap
+  dup @64 cast(ptr) @Node.prev swap !64
 end
 
 // initialize list_a

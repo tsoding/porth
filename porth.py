@@ -526,6 +526,8 @@ class Context:
     stack: DataStack
     ip: OpAddr
 
+# TODO: better error reporting on type checking errors of intrinsics
+# Reported expected and actual types with the location that introduced the actual type
 def type_check_program(program: Program):
     visited_dos: Dict[OpAddr, DataStack] = {}
     contexts: List[Context] = [Context(stack=[], ip=0)]
