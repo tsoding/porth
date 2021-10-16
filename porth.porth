@@ -58,7 +58,7 @@ end
 
 macro push-op // type operand -- 
   ops-count @64 sizeof(Op) * ops +
-  dup Op.operand rot swap !64
+  dup rot swap !Op.operand
   !Op.type
   ops-count inc64
 end
