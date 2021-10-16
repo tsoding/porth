@@ -238,9 +238,9 @@ This program pushes integer `69` onto the stack (since the ASCII code of letter 
 | ---          | ---                            | ---                                                                                            |
 | `mem`        | `-- [mem: ptr]`                | pushes the address of the beginning of the memory where you can read and write onto the stack. |
 | `!8`         | `[byte: int] [place: ptr] -- ` | store a given byte at the address on the stack.                                                |
-| `@8`         | `[place: ptr] -- [byte: int]`  | load a byte from the address on the stack. Synonym to `,`.                                     |
+| `@8`         | `[place: ptr] -- [byte: int]`  | load a byte from the address on the stack.                                                     |
 | `!64`        | `[place: ptr] [byte: int] --`  | store an 8-byte word at the address on the stack.                                              |
-| `@64`        | `[place: ptr] -- [byte: int]`  | load an 8-byte word from the address on the stack. Synonym to `,64`.                           |
+| `@64`        | `[place: ptr] -- [byte: int]`  | load an 8-byte word from the address on the stack.                                             |
 | `cast(int)`  | `[a: any] -- [a: int]`         | cast the element on top of the stack to `int`                                                  |
 | `cast(bool)` | `[a: any] -- [a: bool]`        | cast the element on top of the stack to `bool`                                                 |
 | `cast(ptr)`  | `[a: any] -- [a: ptr]`         | cast the element on top of the stack to `ptr`                                                  |
