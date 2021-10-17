@@ -516,6 +516,12 @@ macro str-chop-word // line input --
   2drop
 end
 
+macro isdigit
+  dup  '0' >=
+  swap '9' <=
+  and
+end
+
 // Custom logical not, since the intrinsic `not` is the bitwise one and does not allow
 // to properly invert a boolean.
 macro lnot
