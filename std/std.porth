@@ -398,6 +398,17 @@ macro dec64
   dup @64 1 - swap !64
 end
 
+macro inc32
+  dup @32 1 + swap !32
+end
+
+macro dec32
+  dup @32 1 - swap !32
+end
+
+macro sizeof(u64) 8 end
+macro sizeof(u32) 4 end
+
 macro cstrlen
   dup
   while dup @8 0 != do 1 + end
