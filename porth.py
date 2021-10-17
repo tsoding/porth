@@ -66,6 +66,8 @@ class Intrinsic(Enum):
     MEM=auto()
     LOAD8=auto()
     STORE8=auto()
+    LOAD32=auto()
+    STORE32=auto()
     LOAD64=auto()
     STORE64=auto()
     CAST_PTR=auto()
@@ -220,7 +222,7 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                 else:
                     ip += 1
             elif op.typ == OpType.INTRINSIC:
-                assert len(Intrinsic) == 39, "Exhaustive handling of intrinsic in simulate_little_endian_linux()"
+                assert len(Intrinsic) == 41, "Exhaustive handling of intrinsic in simulate_little_endian_linux()"
                 if op.operand == Intrinsic.PLUS:
                     a = stack.pop()
                     b = stack.pop()
@@ -342,6 +344,22 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                     store_addr = stack.pop()
                     store_value = stack.pop()
                     mem[store_addr] = store_value & 0xFF
+                    ip += 1
+                # TODO: get rid of loops from memory access intrinsics in simulation mode
+                elif op.operand == Intrinsic.LOAD32:
+                    addr = stack.pop()
+                    _bytes = bytearray(4)
+                    for offset in range(0,4):
+                        _bytes[offset] = mem[addr + offset]
+                    stack.append(int.from_bytes(_bytes, byteorder="little"))
+                    ip += 1
+                elif op.operand == Intrinsic.STORE32:
+                    store_addr32 = stack.pop();
+                    store_value = stack.pop()
+                    store_value32 = store_value.to_bytes(length=4, byteorder="little", signed=(store_value < 0));
+                    for byte in store_value32:
+                        mem[store_addr32] = byte;
+                        store_addr32 += 1;
                     ip += 1
                 elif op.operand == Intrinsic.LOAD64:
                     addr = stack.pop()
@@ -553,7 +571,7 @@ def type_check_program(program: Program):
             ctx.stack.append((DataType.PTR, op.token))
             ctx.ip += 1
         elif op.typ == OpType.INTRINSIC:
-            assert len(Intrinsic) == 39, "Exhaustive intrinsic handling in type_check_program()"
+            assert len(Intrinsic) == 41, "Exhaustive intrinsic handling in type_check_program()"
             assert isinstance(op.operand, Intrinsic), "This could be a bug in compilation step"
             if op.operand == Intrinsic.PLUS:
                 assert len(DataType) == 3, "Exhaustive type handling in PLUS intrinsic"
@@ -818,7 +836,7 @@ def type_check_program(program: Program):
             elif op.operand == Intrinsic.MEM:
                 ctx.stack.append((DataType.PTR, op.token))
             elif op.operand == Intrinsic.LOAD8:
-                assert len(DataType) == 3, "Exhaustive type handling in LOAD intrinsic"
+                assert len(DataType) == 3, "Exhaustive type handling in LOAD8 intrinsic"
                 if len(ctx.stack) < 1:
                     not_enough_arguments(op)
                     exit(1)
@@ -827,10 +845,10 @@ def type_check_program(program: Program):
                 if a_type == DataType.PTR:
                     ctx.stack.append((DataType.INT, op.token))
                 else:
-                    compiler_error_with_expansion_stack(op.token, "invalid argument type for LOAD intrinsic: %s" % a_type)
+                    compiler_error_with_expansion_stack(op.token, "invalid argument type for LOAD8 intrinsic: %s" % a_type)
                     exit(1)
             elif op.operand == Intrinsic.STORE8:
-                assert len(DataType) == 3, "Exhaustive type handling in STORE intrinsic"
+                assert len(DataType) == 3, "Exhaustive type handling in STORE8 intrinsic"
                 if len(ctx.stack) < 2:
                     not_enough_arguments(op)
                     exit(1)
@@ -841,7 +859,33 @@ def type_check_program(program: Program):
                 if a_type == DataType.PTR and b_type == DataType.INT:
                     pass
                 else:
-                    compiler_error_with_expansion_stack(op.token, "invalid argument type for STORE intrinsic")
+                    compiler_error_with_expansion_stack(op.token, "invalid argument type for STORE8 intrinsic")
+                    exit(1)
+            elif op.operand == Intrinsic.LOAD32:
+                assert len(DataType) == 3, "Exhaustive type handling in LOAD32 intrinsic"
+                if len(ctx.stack) < 1:
+                    not_enough_arguments(op)
+                    exit(1)
+                a_type, a_loc = ctx.stack.pop()
+
+                if a_type == DataType.PTR:
+                    ctx.stack.append((DataType.INT, op.token))
+                else:
+                    compiler_error_with_expansion_stack(op.token, "invalid argument type for LOAD32 intrinsic: %s" % a_type)
+                    exit(1)
+            elif op.operand == Intrinsic.STORE32:
+                assert len(DataType) == 3, "Exhaustive type handling in STORE32 intrinsic"
+                if len(ctx.stack) < 2:
+                    not_enough_arguments(op)
+                    exit(1)
+
+                a_type, a_loc = ctx.stack.pop()
+                b_type, b_loc = ctx.stack.pop()
+
+                if a_type == DataType.PTR and b_type == DataType.INT:
+                    pass
+                else:
+                    compiler_error_with_expansion_stack(op.token, "invalid argument type for STORE32 intrinsic")
                     exit(1)
             elif op.operand == Intrinsic.LOAD64:
                 assert len(DataType) == 3, "Exhaustive type handling in LOAD64 intrinsic"
@@ -1081,7 +1125,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                 assert isinstance(op.operand, int), "This could be a bug in the parsing step"
                 out.write("    jz addr_%d\n" % op.operand)
             elif op.typ == OpType.INTRINSIC:
-                assert len(Intrinsic) == 39, "Exhaustive intrinsic handling in generate_nasm_linux_x86_64()"
+                assert len(Intrinsic) == 41, "Exhaustive intrinsic handling in generate_nasm_linux_x86_64()"
                 if op.operand == Intrinsic.PLUS:
                     out.write("    ;; -- plus --\n")
                     out.write("    pop rax\n")
@@ -1228,16 +1272,38 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                     out.write("    ;; -- mem --\n")
                     out.write("    push mem\n")
                 elif op.operand == Intrinsic.LOAD8:
-                    out.write("    ;; -- forth load --\n")
+                    out.write("    ;; -- @8 --\n")
                     out.write("    pop rax\n")
                     out.write("    xor rbx, rbx\n")
                     out.write("    mov bl, [rax]\n")
                     out.write("    push rbx\n")
                 elif op.operand == Intrinsic.STORE8:
-                    out.write("    ;; -- store --\n")
+                    out.write("    ;; -- !8 --\n")
                     out.write("    pop rax\n");
                     out.write("    pop rbx\n");
                     out.write("    mov [rax], bl\n");
+                elif op.operand == Intrinsic.LOAD32:
+                    out.write("    ;; -- @32 --\n")
+                    out.write("    pop rax\n")
+                    out.write("    xor rbx, rbx\n")
+                    out.write("    mov ebx, [rax]\n")
+                    out.write("    push rbx\n")
+                elif op.operand == Intrinsic.STORE32:
+                    out.write("    ;; -- !32 --\n")
+                    out.write("    pop rax\n");
+                    out.write("    pop rbx\n");
+                    out.write("    mov [rax], ebx\n");
+                elif op.operand == Intrinsic.LOAD64:
+                    out.write("    ;; -- @64 --\n")
+                    out.write("    pop rax\n")
+                    out.write("    xor rbx, rbx\n")
+                    out.write("    mov rbx, [rax]\n")
+                    out.write("    push rbx\n")
+                elif op.operand == Intrinsic.STORE64:
+                    out.write("    ;; -- !64 --\n")
+                    out.write("    pop rax\n");
+                    out.write("    pop rbx\n");
+                    out.write("    mov [rax], rbx\n");
                 elif op.operand == Intrinsic.ARGC:
                     out.write("    ;; -- argc --\n")
                     out.write("    mov rax, [args_ptr]\n")
@@ -1256,17 +1322,6 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                     out.write("    push rax\n")
                     out.write("    push str_%d\n" % len(strs))
                     strs.append(value)
-                elif op.operand == Intrinsic.LOAD64:
-                    out.write("    ;; -- forth load64 --\n")
-                    out.write("    pop rax\n")
-                    out.write("    xor rbx, rbx\n")
-                    out.write("    mov rbx, [rax]\n")
-                    out.write("    push rbx\n")
-                elif op.operand == Intrinsic.STORE64:
-                    out.write("    ;; -- forth store64 --\n")
-                    out.write("    pop rax\n");
-                    out.write("    pop rbx\n");
-                    out.write("    mov [rax], rbx\n");
                 elif op.operand == Intrinsic.CAST_PTR:
                     out.write("    ;; -- cast(ptr) --\n")
                 elif op.operand == Intrinsic.CAST_INT:
@@ -1357,7 +1412,7 @@ KEYWORD_NAMES = {
     'include': Keyword.INCLUDE,
 }
 
-assert len(Intrinsic) == 39, "Exhaustive INTRINSIC_BY_NAMES definition"
+assert len(Intrinsic) == 41, "Exhaustive INTRINSIC_BY_NAMES definition"
 INTRINSIC_BY_NAMES = {
     '+': Intrinsic.PLUS,
     '-': Intrinsic.MINUS,
@@ -1383,6 +1438,8 @@ INTRINSIC_BY_NAMES = {
     'mem': Intrinsic.MEM,
     '!8': Intrinsic.STORE8,
     '@8': Intrinsic.LOAD8,
+    '!32': Intrinsic.STORE32,
+    '@32': Intrinsic.LOAD32,
     '!64': Intrinsic.STORE64,
     '@64': Intrinsic.LOAD64,
     'cast(ptr)': Intrinsic.CAST_PTR,
