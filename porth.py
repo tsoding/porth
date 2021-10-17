@@ -345,36 +345,23 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                     store_value = stack.pop()
                     mem[store_addr] = store_value & 0xFF
                     ip += 1
-                # TODO: get rid of loops from memory access intrinsics in simulation mode
                 elif op.operand == Intrinsic.LOAD32:
-                    addr = stack.pop()
-                    _bytes = bytearray(4)
-                    for offset in range(0,4):
-                        _bytes[offset] = mem[addr + offset]
-                    stack.append(int.from_bytes(_bytes, byteorder="little"))
+                    load_addr = stack.pop()
+                    stack.append(int.from_bytes(mem[load_addr:load_addr+4], byteorder="little"))
                     ip += 1
                 elif op.operand == Intrinsic.STORE32:
-                    store_addr32 = stack.pop();
+                    store_addr = stack.pop();
                     store_value = stack.pop()
-                    store_value32 = store_value.to_bytes(length=4, byteorder="little", signed=(store_value < 0));
-                    for byte in store_value32:
-                        mem[store_addr32] = byte;
-                        store_addr32 += 1;
+                    mem[store_addr:store_addr+4] = store_value.to_bytes(length=4, byteorder="little", signed=(store_value < 0));
                     ip += 1
                 elif op.operand == Intrinsic.LOAD64:
-                    addr = stack.pop()
-                    _bytes = bytearray(8)
-                    for offset in range(0,8):
-                        _bytes[offset] = mem[addr + offset]
-                    stack.append(int.from_bytes(_bytes, byteorder="little"))
+                    load_addr = stack.pop()
+                    stack.append(int.from_bytes(mem[load_addr:load_addr+8], byteorder="little"))
                     ip += 1
                 elif op.operand == Intrinsic.STORE64:
-                    store_addr64 = stack.pop();
+                    store_addr = stack.pop();
                     store_value = stack.pop()
-                    store_value64 = store_value.to_bytes(length=8, byteorder="little", signed=(store_value < 0));
-                    for byte in store_value64:
-                        mem[store_addr64] = byte;
-                        store_addr64 += 1;
+                    mem[store_addr:store_addr+8] = store_value.to_bytes(length=8, byteorder="little", signed=(store_value < 0));
                     ip += 1
                 elif op.operand == Intrinsic.ARGC:
                     stack.append(argc)
