@@ -20,3 +20,7 @@ mem 2 + dup @8 1 + swap !8
 // print UINT64_MAX (Largest 64 bit word)
 18446744073709551615 mem !64 
 mem @64 print
+
+255 mem !8
+255 mem 1 + !8
+mem @16 print
