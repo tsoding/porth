@@ -516,6 +516,12 @@ macro str-chop-word // line input --
   2drop
 end
 
+// Custom logical not, since the intrinsic `not` is the bitwise one and does not allow
+// to properly invert a boolean.
+macro lnot
+  cast(int) 1 - cast(bool)
+end
+
 // Deprecated Words
 macro .64 swap !64 end
 macro ,64 @64 end
