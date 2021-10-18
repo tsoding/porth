@@ -1,26 +1,28 @@
 include "std.porth"
 
+memory abc 8 end
+
 // write "abc" into the memory
-97 mem 0 + !8
-98 mem 1 + !8
-99 mem 2 + !8
-10 mem 3 + !8
+97 abc 0 + !8
+98 abc 1 + !8
+99 abc 2 + !8
+10 abc 3 + !8
 
 // print "abc" to stdout
-4 mem stdout write print
+4 abc stdout write print
 
 // increament each character by 1 making it "bcd"
-mem 0 + dup @8 1 + swap !8
-mem 1 + dup @8 1 + swap !8
-mem 2 + dup @8 1 + swap !8
+abc 0 + dup @8 1 + swap !8
+abc 1 + dup @8 1 + swap !8
+abc 2 + dup @8 1 + swap !8
 
 // print "bcd" to stdout
-4 mem stdout write print
+4 abc stdout write print
 
 // print UINT64_MAX (Largest 64 bit word)
-18446744073709551615 mem !64 
-mem @64 print
+18446744073709551615 abc !64 
+abc @64 print
 
-255 mem !8
-255 mem 1 + !8
-mem @16 print
+255 abc !8
+255 abc 1 + !8
+abc @16 print
