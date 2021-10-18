@@ -4,33 +4,16 @@ include "std.porth"
 macro ROWS 10 end
 macro COLS 20 end
 macro BOARD_SIZE ROWS COLS * end
-macro PUTD_BUFFER_CAP 32 end
+
+macro sizeof(timespec) 16 end
 
 // memory layout
-macro putd_buffer mem end
-macro delta_time putd_buffer PUTD_BUFFER_CAP + end
-macro board_current_index delta_time 16 + end
-macro nbors board_current_index 8 + end
-macro value nbors 8 + end
-macro board_base value 8 + end
-macro display BOARD_SIZE 2 * board_base + end
-
-macro putd
-  if dup 0 = do
-    "0" puts
-  else
-    putd_buffer PUTD_BUFFER_CAP +
-    while over 0 > do
-      1 - dup rot
-      10 divmod
-      rot swap '0' + swap !8 swap
-    end
-
-    dup
-    putd_buffer PUTD_BUFFER_CAP + swap - swap puts
-  end
-  drop
-end
+memory delta_time sizeof(timespec) end
+memory board_current_index sizeof(u64) end
+memory nbors sizeof(u64) end
+memory value sizeof(u64) end
+memory board_base BOARD_SIZE 2 * end
+memory display COLS 1 + end
 
 macro board_current
   board_base board_current_index @64 BOARD_SIZE * +
