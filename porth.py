@@ -1724,8 +1724,13 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                             a = mem_size_stack.pop()
                             b = mem_size_stack.pop()
                             mem_size_stack.append(a * b)
+                        elif token.value in macros:
+                            if token.expanded_count >= expansion_limit:
+                                compiler_error_with_expansion_stack(token, "the macro exceeded the expansion limit (it expanded %d times)" % token.expanded_count)
+                                exit(1)
+                            rtokens += reversed(expand_macro(macros[token.value], token))
                         else:
-                            assert False, "TODO: unsupported word in memory definition"
+                            assert False, f"TODO: unsupported word in memory definition {token.value}"
                     else:
                         assert False, "TODO: unsupported token in memory definition"
                 if len(mem_size_stack) != 1:
