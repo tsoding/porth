@@ -1,8 +1,8 @@
 include "std.porth"
 
-macro a mem end
-macro b a 8 + end
-macro c b 8 + end
+memory a sizeof(u64) end
+memory b sizeof(u64) end
+memory c sizeof(u64) end
 
 1 while dup 1000 < do
   dup a !64

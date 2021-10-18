@@ -1,6 +1,6 @@
 include "std.porth"
 
-macro acc mem end
+memory acc sizeof(u64) end
 
 1 2 while over 4000000 < do
   if over 2 mod 0 = do

@@ -6,9 +6,9 @@ include "std.porth"
 // Maybe we could come up with a faster method of computer prime numbers?
 // We could precompute them and save the to a file I guess.
 
-macro ans mem end
-macro primes-count ans sizeof(u64) + end
-macro primes primes-count sizeof(u32) + end
+memory ans sizeof(u64) end
+memory primes-count sizeof(u64) end
+memory primes sizeof(u32) 1000000 * end
 
 macro push-prime // value --
   primes-count @32 sizeof(u32) * primes + !32
