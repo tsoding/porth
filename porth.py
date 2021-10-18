@@ -1716,6 +1716,7 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                         assert isinstance(token.value, int)
                         mem_size_stack.append(token.value)
                     elif token.typ == TokenType.WORD:
+                        assert isinstance(token.value, str)
                         # TODO: check of stack underflows in memory definition
                         if token.value == INTRINSIC_NAMES[Intrinsic.PLUS]:
                             a = mem_size_stack.pop()
