@@ -16,7 +16,6 @@ PORTH_EXT = '.porth'
 DEFAULT_EXPANSION_LIMIT=1000
 EXPANSION_DIAGNOSTIC_LIMIT=10
 # TODO: customize memory capacity via a flag
-MEM_CAPACITY  = 640_000 # should be enough for everyone
 SIM_NULL_POINTER_PADDING = 1 # just a little bit of a padding at the beginning of the memory to make 0 an invalid address
 SIM_STR_CAPACITY  = 640_000
 SIM_ARGV_CAPACITY = 640_000
@@ -34,6 +33,7 @@ class Keyword(Enum):
     DO=auto()
     MACRO=auto()
     INCLUDE=auto()
+    MEMORY=auto()
 
 class DataType(IntEnum):
     INT=auto()
@@ -63,7 +63,6 @@ class Intrinsic(Enum):
     DROP=auto()
     OVER=auto()
     ROT=auto()
-    MEM=auto()
     LOAD8=auto()
     STORE8=auto()
     LOAD16=auto()
@@ -90,6 +89,7 @@ class OpType(Enum):
     PUSH_INT=auto()
     PUSH_STR=auto()
     PUSH_CSTR=auto()
+    PUSH_MEM=auto()
     INTRINSIC=auto()
     IF=auto()
     ELIF=auto()
@@ -118,6 +118,7 @@ class Token:
     expanded_count: int = 0
 
 OpAddr=int
+MemAddr=int
 
 @dataclass
 class Op:
@@ -125,8 +126,10 @@ class Op:
     token: Token
     operand: Optional[Union[int, str, Intrinsic, OpAddr]] = None
 
-Program=List[Op]
-
+@dataclass
+class Program:
+    ops: List[Op]
+    memory_capacity: int
 
 def get_cstr_from_mem(mem: bytearray, ptr: int) -> bytes:
     end = ptr
@@ -141,7 +144,7 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
     CLOCK_MONOTONIC=1
 
     stack: List[int] = []
-    mem = bytearray(SIM_NULL_POINTER_PADDING + SIM_STR_CAPACITY + SIM_ARGV_CAPACITY + MEM_CAPACITY)
+    mem = bytearray(SIM_NULL_POINTER_PADDING + SIM_STR_CAPACITY + SIM_ARGV_CAPACITY + program.memory_capacity)
 
     str_buf_ptr  = SIM_NULL_POINTER_PADDING
     str_ptrs: Dict[int, int] = {}
@@ -170,9 +173,9 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
         assert argc*8 <= SIM_ARGV_CAPACITY, "Argv buffer, overflow"
 
     ip = 0
-    while ip < len(program):
-        assert len(OpType) == 10, "Exhaustive op handling in simulate_little_endian_linux"
-        op = program[ip]
+    while ip < len(program.ops):
+        assert len(OpType) == 11, "Exhaustive op handling in simulate_little_endian_linux"
+        op = program.ops[ip]
         try:
             if op.typ == OpType.PUSH_INT:
                 assert isinstance(op.operand, int), "This could be a bug in the parsing step"
@@ -203,6 +206,10 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                     assert str_size <= SIM_STR_CAPACITY, "String buffer overflow"
                 stack.append(str_ptrs[ip])
                 ip += 1
+            elif op.typ == OpType.PUSH_MEM:
+                assert isinstance(op.operand, MemAddr), "This could be a bug in the parsing step"
+                stack.append(mem_buf_ptr + op.operand)
+                ip += 1
             elif op.typ == OpType.IF:
                 ip += 1
             elif op.typ == OpType.WHILE:
@@ -224,7 +231,7 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                 else:
                     ip += 1
             elif op.typ == OpType.INTRINSIC:
-                assert len(Intrinsic) == 43, "Exhaustive handling of intrinsic in simulate_little_endian_linux()"
+                assert len(Intrinsic) == 42, "Exhaustive handling of intrinsic in simulate_little_endian_linux()"
                 if op.operand == Intrinsic.PLUS:
                     a = stack.pop()
                     b = stack.pop()
@@ -333,9 +340,6 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                     stack.append(b)
                     stack.append(a)
                     stack.append(c)
-                    ip += 1
-                elif op.operand == Intrinsic.MEM:
-                    stack.append(mem_buf_ptr)
                     ip += 1
                 elif op.operand == Intrinsic.LOAD8:
                     addr = stack.pop()
@@ -550,14 +554,14 @@ def type_check_program(program: Program):
     contexts: List[Context] = [Context(stack=[], ip=0)]
     while len(contexts) > 0:
         ctx = contexts[-1];
-        if ctx.ip >= len(program):
+        if ctx.ip >= len(program.ops):
             if len(ctx.stack) != 0:
                 compiler_error_with_expansion_stack(ctx.stack[-1][1], "unhandled data on the data stack: %s" % list(map(lambda x: x[0], ctx.stack)))
                 exit(1)
             contexts.pop()
             continue
-        op = program[ctx.ip]
-        assert len(OpType) == 10, "Exhaustive ops handling in type_check_program()"
+        op = program.ops[ctx.ip]
+        assert len(OpType) == 11, "Exhaustive ops handling in type_check_program()"
         if op.typ == OpType.PUSH_INT:
             ctx.stack.append((DataType.INT, op.token))
             ctx.ip += 1
@@ -568,8 +572,11 @@ def type_check_program(program: Program):
         elif op.typ == OpType.PUSH_CSTR:
             ctx.stack.append((DataType.PTR, op.token))
             ctx.ip += 1
+        elif op.typ == OpType.PUSH_MEM:
+            ctx.stack.append((DataType.PTR, op.token))
+            ctx.ip += 1
         elif op.typ == OpType.INTRINSIC:
-            assert len(Intrinsic) == 43, "Exhaustive intrinsic handling in type_check_program()"
+            assert len(Intrinsic) == 42, "Exhaustive intrinsic handling in type_check_program()"
             assert isinstance(op.operand, Intrinsic), "This could be a bug in compilation step"
             if op.operand == Intrinsic.PLUS:
                 assert len(DataType) == 3, "Exhaustive type handling in PLUS intrinsic"
@@ -831,8 +838,6 @@ def type_check_program(program: Program):
                 ctx.stack.append(b)
                 ctx.stack.append(a)
                 ctx.stack.append(c)
-            elif op.operand == Intrinsic.MEM:
-                ctx.stack.append((DataType.PTR, op.token))
             elif op.operand == Intrinsic.LOAD8:
                 assert len(DataType) == 3, "Exhaustive type handling in LOAD8 intrinsic"
                 if len(ctx.stack) < 1:
@@ -1101,9 +1106,9 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
         out.write("global _start\n")
         out.write("_start:\n")
         out.write("    mov [args_ptr], rsp\n")
-        for ip in range(len(program)):
-            op = program[ip]
-            assert len(OpType) == 10, "Exhaustive ops handling in generate_nasm_linux_x86_64"
+        for ip in range(len(program.ops)):
+            op = program.ops[ip]
+            assert len(OpType) == 11, "Exhaustive ops handling in generate_nasm_linux_x86_64"
             out.write("addr_%d:\n" % ip)
             if op.typ == OpType.PUSH_INT:
                 assert isinstance(op.operand, int), "This could be a bug in the parsing step"
@@ -1125,6 +1130,12 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                 out.write("    ;; -- push str --\n")
                 out.write("    push str_%d\n" % len(strs))
                 strs.append(value)
+            elif op.typ == OpType.PUSH_MEM:
+                assert isinstance(op.operand, MemAddr), "This could be a bug in the parsing step"
+                out.write("    ;; -- push mem --\n")
+                out.write("    mov rax, mem\n")
+                out.write("    add rax, %d\n" % op.operand)
+                out.write("    push rax\n")
             elif op.typ == OpType.IF:
                 out.write("    ;; -- if --\n")
             elif op.typ == OpType.WHILE:
@@ -1149,7 +1160,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                 assert isinstance(op.operand, int), "This could be a bug in the parsing step"
                 out.write("    jz addr_%d\n" % op.operand)
             elif op.typ == OpType.INTRINSIC:
-                assert len(Intrinsic) == 43, "Exhaustive intrinsic handling in generate_nasm_linux_x86_64()"
+                assert len(Intrinsic) == 42, "Exhaustive intrinsic handling in generate_nasm_linux_x86_64()"
                 if op.operand == Intrinsic.PLUS:
                     out.write("    ;; -- plus --\n")
                     out.write("    pop rax\n")
@@ -1292,9 +1303,6 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                     out.write("    push rbx\n")
                     out.write("    push rax\n")
                     out.write("    push rcx\n")
-                elif op.operand == Intrinsic.MEM:
-                    out.write("    ;; -- mem --\n")
-                    out.write("    push mem\n")
                 elif op.operand == Intrinsic.LOAD8:
                     out.write("    ;; -- @8 --\n")
                     out.write("    pop rax\n")
@@ -1424,7 +1432,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
             else:
                 assert False, "unreachable"
 
-        out.write("addr_%d:\n" % len(program))
+        out.write("addr_%d:\n" % len(program.ops))
         out.write("    mov rax, 60\n")
         out.write("    mov rdi, 0\n")
         out.write("    syscall\n")
@@ -1433,9 +1441,9 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
             out.write("str_%d: db %s\n" % (index, ','.join(map(hex, list(s)))))
         out.write("segment .bss\n")
         out.write("args_ptr: resq 1\n")
-        out.write("mem: resb %d\n" % MEM_CAPACITY)
+        out.write("mem: resb %d\n" % program.memory_capacity)
 
-assert len(Keyword) == 8, "Exhaustive KEYWORD_NAMES definition."
+assert len(Keyword) == 9, "Exhaustive KEYWORD_NAMES definition."
 KEYWORD_NAMES = {
     'if': Keyword.IF,
     'elif': Keyword.ELIF,
@@ -1445,9 +1453,10 @@ KEYWORD_NAMES = {
     'do': Keyword.DO,
     'macro': Keyword.MACRO,
     'include': Keyword.INCLUDE,
+    'memory': Keyword.MEMORY,
 }
 
-assert len(Intrinsic) == 43, "Exhaustive INTRINSIC_BY_NAMES definition"
+assert len(Intrinsic) == 42, "Exhaustive INTRINSIC_BY_NAMES definition"
 INTRINSIC_BY_NAMES = {
     '+': Intrinsic.PLUS,
     '-': Intrinsic.MINUS,
@@ -1470,7 +1479,6 @@ INTRINSIC_BY_NAMES = {
     'drop': Intrinsic.DROP,
     'over': Intrinsic.OVER,
     'rot': Intrinsic.ROT,
-    'mem': Intrinsic.MEM,
     '!8': Intrinsic.STORE8,
     '@8': Intrinsic.LOAD8,
     '!16': Intrinsic.STORE16,
@@ -1527,9 +1535,10 @@ def expand_macro(macro: Macro, expanded_from: Token) -> List[Token]:
 
 def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], expansion_limit: int) -> Program:
     stack: List[OpAddr] = []
-    program: List[Op] = []
+    program: Program = Program(ops=[], memory_capacity=0)
     rtokens: List[Token] = list(reversed(tokens))
     macros: Dict[str, Macro] = {}
+    memories: Dict[str, MemAddr] = {}
     ip: OpAddr = 0;
     while len(rtokens) > 0:
         token = rtokens.pop()
@@ -1537,120 +1546,123 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
         if token.typ == TokenType.WORD:
             assert isinstance(token.value, str), "This could be a bug in the lexer"
             if token.value in INTRINSIC_BY_NAMES:
-                program.append(Op(typ=OpType.INTRINSIC, token=token, operand=INTRINSIC_BY_NAMES[token.value]))
+                program.ops.append(Op(typ=OpType.INTRINSIC, token=token, operand=INTRINSIC_BY_NAMES[token.value]))
                 ip += 1
             elif token.value in macros:
                 if token.expanded_count >= expansion_limit:
                     compiler_error_with_expansion_stack(token, "the macro exceeded the expansion limit (it expanded %d times)" % token.expanded_count)
                     exit(1)
                 rtokens += reversed(expand_macro(macros[token.value], token))
+            elif token.value in memories:
+                program.ops.append(Op(typ=OpType.PUSH_MEM, token=token, operand=memories[token.value]))
+                ip += 1
             else:
                 compiler_error_with_expansion_stack(token, "unknown word `%s`" % token.value)
                 exit(1)
         elif token.typ == TokenType.INT:
             assert isinstance(token.value, int), "This could be a bug in the lexer"
-            program.append(Op(typ=OpType.PUSH_INT, operand=token.value, token=token))
+            program.ops.append(Op(typ=OpType.PUSH_INT, operand=token.value, token=token))
             ip += 1
         elif token.typ == TokenType.STR:
             assert isinstance(token.value, str), "This could be a bug in the lexer"
-            program.append(Op(typ=OpType.PUSH_STR, operand=token.value, token=token));
+            program.ops.append(Op(typ=OpType.PUSH_STR, operand=token.value, token=token));
             ip += 1
         elif token.typ == TokenType.CSTR:
             assert isinstance(token.value, str), "This could be a bug in the lexer"
-            program.append(Op(typ=OpType.PUSH_CSTR, operand=token.value, token=token));
+            program.ops.append(Op(typ=OpType.PUSH_CSTR, operand=token.value, token=token));
             ip += 1
         elif token.typ == TokenType.CHAR:
             assert isinstance(token.value, int)
-            program.append(Op(typ=OpType.PUSH_INT, operand=token.value, token=token));
+            program.ops.append(Op(typ=OpType.PUSH_INT, operand=token.value, token=token));
             ip += 1
         elif token.typ == TokenType.KEYWORD:
-            assert len(Keyword) == 8, "Exhaustive keywords handling in parse_program_from_tokens()"
+            assert len(Keyword) == 9, "Exhaustive keywords handling in parse_program_from_tokens()"
             if token.value == Keyword.IF:
-                program.append(Op(typ=OpType.IF, token=token))
+                program.ops.append(Op(typ=OpType.IF, token=token))
                 stack.append(ip)
                 ip += 1
             elif token.value == Keyword.ELIF:
-                program.append(Op(typ=OpType.ELIF, token=token))
+                program.ops.append(Op(typ=OpType.ELIF, token=token))
                 do_ip = stack.pop()
-                if program[do_ip].typ != OpType.DO:
-                    compiler_error_with_expansion_stack(program[do_ip].token, '`elif` can only close `do`-blocks')
+                if program.ops[do_ip].typ != OpType.DO:
+                    compiler_error_with_expansion_stack(program.ops[do_ip].token, '`elif` can only close `do`-blocks')
                     exit(1)
-                pre_do_ip = program[do_ip].operand
+                pre_do_ip = program.ops[do_ip].operand
                 assert isinstance(pre_do_ip, OpAddr)
-                if program[pre_do_ip].typ == OpType.IF:
-                    program[do_ip].operand = ip + 1
+                if program.ops[pre_do_ip].typ == OpType.IF:
+                    program.ops[do_ip].operand = ip + 1
                     stack.append(ip)
                     ip += 1
-                elif program[pre_do_ip].typ == OpType.ELIF:
-                    program[pre_do_ip].operand = ip
-                    program[do_ip].operand = ip + 1
+                elif program.ops[pre_do_ip].typ == OpType.ELIF:
+                    program.ops[pre_do_ip].operand = ip
+                    program.ops[do_ip].operand = ip + 1
                     stack.append(ip)
                     ip += 1
                 else:
-                    compiler_error_with_expansion_stack(program[pre_do_ip].token, '`elif` can only close `do`-blocks that are preceded by `if` or another `elif`')
+                    compiler_error_with_expansion_stack(program.ops[pre_do_ip].token, '`elif` can only close `do`-blocks that are preceded by `if` or another `elif`')
                     exit(1)
             elif token.value == Keyword.ELSE:
-                program.append(Op(typ=OpType.ELSE, token=token))
+                program.ops.append(Op(typ=OpType.ELSE, token=token))
                 do_ip = stack.pop()
-                if program[do_ip].typ != OpType.DO:
-                    compiler_error_with_expansion_stack(program[do_ip].token, '`else` can only be used in `do` blocks')
+                if program.ops[do_ip].typ != OpType.DO:
+                    compiler_error_with_expansion_stack(program.ops[do_ip].token, '`else` can only be used in `do` blocks')
                     exit(1)
-                pre_do_ip = program[do_ip].operand
+                pre_do_ip = program.ops[do_ip].operand
                 assert isinstance(pre_do_ip, OpAddr)
-                if program[pre_do_ip].typ == OpType.IF:
-                    program[do_ip].operand = ip + 1
+                if program.ops[pre_do_ip].typ == OpType.IF:
+                    program.ops[do_ip].operand = ip + 1
                     stack.append(ip)
                     ip += 1
-                elif program[pre_do_ip].typ == OpType.ELIF:
-                    program[pre_do_ip].operand = ip
-                    program[do_ip].operand = ip + 1
+                elif program.ops[pre_do_ip].typ == OpType.ELIF:
+                    program.ops[pre_do_ip].operand = ip
+                    program.ops[do_ip].operand = ip + 1
                     stack.append(ip)
                     ip += 1
                 else:
-                    compiler_error_with_expansion_stack(program[pre_do_ip].token, '`else` can only close `do`-blocks that are preceded by `if` or `elif`')
+                    compiler_error_with_expansion_stack(program.ops[pre_do_ip].token, '`else` can only close `do`-blocks that are preceded by `if` or `elif`')
                     exit(1)
             elif token.value == Keyword.END:
-                program.append(Op(typ=OpType.END, token=token))
+                program.ops.append(Op(typ=OpType.END, token=token))
                 block_ip = stack.pop()
-                if program[block_ip].typ == OpType.ELSE:
-                    program[block_ip].operand = ip
-                    program[ip].operand = ip + 1
-                elif program[block_ip].typ == OpType.DO:
-                    assert program[block_ip].operand is not None
-                    pre_do_ip = program[block_ip].operand
+                if program.ops[block_ip].typ == OpType.ELSE:
+                    program.ops[block_ip].operand = ip
+                    program.ops[ip].operand = ip + 1
+                elif program.ops[block_ip].typ == OpType.DO:
+                    assert program.ops[block_ip].operand is not None
+                    pre_do_ip = program.ops[block_ip].operand
 
                     assert isinstance(pre_do_ip, OpAddr)
-                    if program[pre_do_ip].typ == OpType.WHILE:
-                        program[ip].operand = pre_do_ip
-                        program[block_ip].operand = ip + 1
-                    elif program[pre_do_ip].typ == OpType.IF:
-                        program[ip].operand = ip + 1
-                        program[block_ip].operand = ip + 1
-                    elif program[pre_do_ip].typ == OpType.ELIF:
-                        program[pre_do_ip].operand = ip
-                        program[ip].operand = ip + 1
-                        program[block_ip].operand = ip + 1
+                    if program.ops[pre_do_ip].typ == OpType.WHILE:
+                        program.ops[ip].operand = pre_do_ip
+                        program.ops[block_ip].operand = ip + 1
+                    elif program.ops[pre_do_ip].typ == OpType.IF:
+                        program.ops[ip].operand = ip + 1
+                        program.ops[block_ip].operand = ip + 1
+                    elif program.ops[pre_do_ip].typ == OpType.ELIF:
+                        program.ops[pre_do_ip].operand = ip
+                        program.ops[ip].operand = ip + 1
+                        program.ops[block_ip].operand = ip + 1
                     else:
-                        compiler_error_with_expansion_stack(program[pre_do_ip].token, '`end` can only close `do` blocks that are preceded by `if`, `while` or `elif`')
+                        compiler_error_with_expansion_stack(program.ops[pre_do_ip].token, '`end` can only close `do` blocks that are preceded by `if`, `while` or `elif`')
                         exit(1)
                 else:
-                    compiler_error_with_expansion_stack(program[block_ip].token, '`end` can only close `else`, `do` or `macro` blocks for now')
+                    compiler_error_with_expansion_stack(program.ops[block_ip].token, '`end` can only close `else`, `do` or `macro` blocks for now')
                     exit(1)
                 ip += 1
             elif token.value == Keyword.WHILE:
-                program.append(Op(typ=OpType.WHILE, token=token))
+                program.ops.append(Op(typ=OpType.WHILE, token=token))
                 stack.append(ip)
                 ip += 1
             elif token.value == Keyword.DO:
-                program.append(Op(typ=OpType.DO, token=token))
+                program.ops.append(Op(typ=OpType.DO, token=token))
                 if len(stack) == 0:
                     compiler_error_with_expansion_stack(token, "`do` is not preceded by `if`, `while` or `elif`")
                     exit(1)
                 pre_do_ip = stack.pop()
-                if program[pre_do_ip].typ != OpType.WHILE and program[pre_do_ip].typ != OpType.IF and program[pre_do_ip].typ != OpType.ELIF:
+                if program.ops[pre_do_ip].typ != OpType.WHILE and program.ops[pre_do_ip].typ != OpType.IF and program.ops[pre_do_ip].typ != OpType.ELIF:
                     compiler_error_with_expansion_stack(token, "`do` is not preceded by `if`, `while` or `elif`")
                     exit(1)
-                program[ip].operand = pre_do_ip
+                program.ops[ip].operand = pre_do_ip
                 stack.append(ip)
                 ip += 1
             elif token.value == Keyword.INCLUDE:
@@ -1676,6 +1688,57 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                 if not file_included:
                     compiler_error_with_expansion_stack(token, "file `%s` not found" % token.value)
                     exit(1)
+            elif token.value == Keyword.MEMORY:
+                if len(rtokens) == 0:
+                    compiler_error_with_expansion_stack(token, "expected memory name but found nothing")
+                    exit(1)
+                token = rtokens.pop()
+                if token.typ != TokenType.WORD:
+                    compiler_error_with_expansion_stack(token, "expected memory name to be %s but found %s" % (human(TokenType.WORD), human(token.typ)))
+                    exit(1)
+                assert isinstance(token.value, str), "This is probably a bug in the lexer"
+                memory_name = token.value
+                if memory_name in memories:
+                    assert False, "TODO: redefinition of a memory region"
+                if memory_name in INTRINSIC_BY_NAMES:
+                    assert False, "TODO: redefinition of an intrinsic"
+                if memory_name in macros:
+                    assert False, "TODO: redefinition of a macro"
+                mem_size_stack: List[int] = []
+                while len(rtokens) > 0:
+                    token = rtokens.pop()
+                    if token.typ == TokenType.KEYWORD:
+                        if token.value == Keyword.END:
+                            break
+                        else:
+                            assert False, "TODO: unsupported keyword in memory definition"
+                    elif token.typ == TokenType.INT:
+                        assert isinstance(token.value, int)
+                        mem_size_stack.append(token.value)
+                    elif token.typ == TokenType.WORD:
+                        # TODO: check of stack underflows in memory definition
+                        if token.value == INTRINSIC_NAMES[Intrinsic.PLUS]:
+                            a = mem_size_stack.pop()
+                            b = mem_size_stack.pop()
+                            mem_size_stack.append(a + b)
+                        elif token.value == INTRINSIC_NAMES[Intrinsic.MUL]:
+                            a = mem_size_stack.pop()
+                            b = mem_size_stack.pop()
+                            mem_size_stack.append(a * b)
+                        elif token.value in macros:
+                            if token.expanded_count >= expansion_limit:
+                                compiler_error_with_expansion_stack(token, "the macro exceeded the expansion limit (it expanded %d times)" % token.expanded_count)
+                                exit(1)
+                            rtokens += reversed(expand_macro(macros[token.value], token))
+                        else:
+                            assert False, f"TODO: unsupported word in memory definition {token.value}"
+                    else:
+                        assert False, "TODO: unsupported token in memory definition"
+                if len(mem_size_stack) != 1:
+                    assert False, "TODO: memory definition expects only one integer"
+                memory_size = mem_size_stack.pop()
+                memories[memory_name] = program.memory_capacity
+                program.memory_capacity += memory_size
             elif token.value == Keyword.MACRO:
                 if len(rtokens) == 0:
                     compiler_error_with_expansion_stack(token, "expected macro name but found nothing")
@@ -1692,6 +1755,8 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                 if token.value in INTRINSIC_BY_NAMES:
                     compiler_error_with_expansion_stack(token, "redefinition of an intrinsic word `%s`. Please choose a different name for your macro." % (token.value, ))
                     exit(1)
+                if token.value in memories:
+                    assert False, "TODO: redefinition of a memory"
                 macro = Macro(token.loc, [])
                 macros[token.value] = macro
                 nesting_depth = 0
@@ -1702,7 +1767,8 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                     else:
                         macro.tokens.append(token)
                         if token.typ == TokenType.KEYWORD:
-                            if token.value in [Keyword.IF, Keyword.WHILE, Keyword.MACRO]:
+                            assert len(Keyword) == 9, "Exhaustive handling of keywords in parsing macro body"
+                            if token.value in [Keyword.IF, Keyword.WHILE, Keyword.MACRO, Keyword.MEMORY]:
                                 nesting_depth += 1
                             elif token.value == Keyword.END:
                                 nesting_depth -= 1
@@ -1715,7 +1781,7 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
             assert False, 'unreachable'
 
     if len(stack) > 0:
-        compiler_error_with_expansion_stack(program[stack.pop()].token, 'unclosed block')
+        compiler_error_with_expansion_stack(program.ops[stack.pop()].token, 'unclosed block')
         exit(1)
 
     return program
@@ -1827,8 +1893,8 @@ def generate_control_flow_graph_as_dot_file(program: Program, dot_path: str):
     with open(dot_path, "w") as f:
         f.write("digraph Program {\n")
         assert len(OpType) == 10, "Exhaustive handling of OpType in generate_control_flow_graph_as_dot_file()"
-        for ip in range(len(program)):
-            op = program[ip]
+        for ip in range(len(program.ops)):
+            op = program.ops[ip]
             if op.typ == OpType.INTRINSIC:
                 assert isinstance(op.operand, Intrinsic)
                 f.write(f"    Node_{ip} [label={repr(repr(INTRINSIC_NAMES[op.operand]))}];\n")
@@ -1870,7 +1936,7 @@ def generate_control_flow_graph_as_dot_file(program: Program, dot_path: str):
                 f.write(f"    Node_{ip} -> Node_{op.operand};\n")
             else:
                 assert False, f"unimplemented operation {op.typ}"
-        f.write(f"    Node_{len(program)} [label=halt];\n")
+        f.write(f"    Node_{len(program.ops)} [label=halt];\n")
         f.write("}\n")
 
 def usage(compiler_name: str):

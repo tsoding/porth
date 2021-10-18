@@ -408,6 +408,7 @@ end
 
 macro sizeof(u64) 8 end
 macro sizeof(u32) 4 end
+macro sizeof(ptr) sizeof(u64) end
 
 macro cstrlen
   dup
@@ -516,6 +517,23 @@ macro str-chop-word // line input --
   2drop
 end
 
+memory streq_a sizeof(Str) end
+memory streq_b sizeof(Str) end
+macro streq // n1 s1 n2 s2
+  streq_a !Str
+  streq_b !Str
+  if streq_a @Str.count streq_b @Str.count = do
+    0 while
+      if dup streq_a @Str.count < do
+        dup streq_a @Str.data + @8
+        over streq_b @Str.data + @8
+        =
+      else false end
+    do 1 + end
+    streq_a @Str.count >=
+  else false end
+end
+
 macro isdigit
   dup  '0' >=
   swap '9' <=
@@ -528,6 +546,25 @@ macro lnot
   cast(int) 1 - cast(bool)
 end
 
+macro PUTD_BUFFER_CAP 32 end
+memory putd-buffer PUTD_BUFFER_CAP end
+macro putd // u64 --
+  if dup 0 = do
+    "0" puts
+  else
+    putd-buffer PUTD_BUFFER_CAP +
+    while over 0 > do
+      1 - dup rot
+      10 divmod
+      rot swap '0' + . swap
+    end
+
+    dup
+    putd-buffer PUTD_BUFFER_CAP + swap - swap puts
+  end
+  drop
+end
+
 // Deprecated Words
 macro .64 swap !64 end
 macro ,64 @64 end
@@ -536,3 +573,4 @@ macro @ @8 end
 macro . swap ! end
 macro , @ end
 macro cstr-to-pstr cstr-to-str end
+memory mem 640000 end
