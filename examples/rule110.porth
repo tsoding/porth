@@ -4,8 +4,8 @@ include "std.porth"
 macro N 100 end
 
 // Memory layout
-macro row mem end
-macro display row N + end
+memory row N end
+memory display N 1 + end
 
 row N 2 - + 1 swap !8
 display N + 10 swap !8

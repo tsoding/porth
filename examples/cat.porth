@@ -2,9 +2,8 @@ include "std.porth"
 
 macro BUFFER_CAP 1024 end
 
-// memory layout
-macro fd mem end
-macro buffer fd 8 + end
+memory fd sizeof(u64) end
+memory buffer BUFFER_CAP end
 
 macro cat_fd
   while BUFFER_CAP buffer fd @64 read dup 0 > do

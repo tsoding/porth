@@ -1,7 +1,7 @@
 include "std.porth"
 
 macro NAME_CAPACITY 256 end
-macro name mem end
+memory name NAME_CAPACITY end
 
 "What is your name? " puts
 

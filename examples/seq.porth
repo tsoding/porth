@@ -1,6 +1,6 @@
 include "std.porth"
 
-macro limit mem end
+memory limit sizeof(u64) end
 
 if argc 2 < do
   "Usage: seq <limit>\n" eputs

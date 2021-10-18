@@ -1,7 +1,7 @@
 include "std.porth"
 
 macro BUFFER_CAP 1024 end
-macro buffer mem end
+memory buffer BUFFER_CAP end
 
 while BUFFER_CAP buffer stdin read dup 0 > do
   0 while 2dup > do

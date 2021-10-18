@@ -8,11 +8,12 @@ macro @Node.prev  Node.prev  @64 end
 macro !Node.value Node.value !64 end
 macro !Node.prev  Node.prev  !64 end
 
-macro list_a mem end
-macro list_b list_a 8 + end
+memory list_a sizeof(ptr) end
+memory list_b sizeof(ptr) end
 
-macro nodes_count list_b 8 + end
-macro nodes nodes_count 8 + end
+macro NODES_CAP 1024 end
+memory nodes_count sizeof(u64) end
+memory nodes sizeof(Node) NODES_CAP * end
 
 macro alloc_node
   nodes_count @64 sizeof(Node) * nodes +
