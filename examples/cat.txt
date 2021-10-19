@@ -8,30 +8,38 @@ foo
 :b stdin 0
 
 :i returncode 0
-:b stdout 582
+:b stdout 792
 include "std.porth"
 
-macro BUFFER_CAP 1024 end
-
 memory fd sizeof(u64) end
+macro @fd fd @64 end
+macro !fd fd !64 end
+
+macro BUFFER_CAP 1024 end
 memory buffer BUFFER_CAP end
 
+memory file_path_cstr sizeof(ptr) end
+macro @file_path_cstr file_path_cstr @64 cast(ptr) end
+macro !file_path_cstr file_path_cstr !64 end
+
 macro cat_fd
-  while BUFFER_CAP buffer fd @64 read dup 0 > do
+  while BUFFER_CAP buffer @fd read dup 0 > do
      buffer puts
   end drop
 end
 
 if argc 2 < do
-  stdin fd !64
+  stdin !fd
   cat_fd
 else
   1 while dup argc < do
-    O_RDONLY over nth_argv AT_FDCWD openat
+    dup nth_argv !file_path_cstr
+
+    0 O_RDONLY @file_path_cstr AT_FDCWD openat
     
     if dup 0 < do
       "ERROR: could not open file " eputs
-      over nth_argv dup cstrlen swap eputs
+      @file_path_cstr cstr-to-str eputs
       "\n" eputs
       drop
     else

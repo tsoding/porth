@@ -332,6 +332,9 @@ macro SYS_finit_module 313 end
 macro AT_FDCWD -100 end
 
 macro O_RDONLY 0 end
+macro O_WRONLY 1 end
+macro O_RDWR   2 end
+macro O_CREAT 64 end
 
 macro CLOCK_MONOTONIC 1 end
 macro TIMER_ABSTIME 1 end
@@ -371,7 +374,7 @@ macro sizeof(stat.st_ctim) 16 end
 // Wrappers for common syscalls
 macro write SYS_write syscall3 end
 macro read SYS_read syscall3 end
-macro openat SYS_openat syscall3 end
+macro openat SYS_openat syscall4 end
 macro fstat SYS_fstat syscall2 end
 macro close SYS_close syscall1 end
 macro exit SYS_exit syscall1 drop end
@@ -435,6 +438,7 @@ macro cstr-to-str
   dup cstrlen swap
 end
 
+// TODO: fputs should crash the app if write fails
 macro fputs
   write drop
 end
@@ -548,9 +552,13 @@ end
 
 macro PUTD_BUFFER_CAP 32 end
 memory putd-buffer PUTD_BUFFER_CAP end
-macro putd // u64 --
+memory putd-fd sizeof(u64) end
+// TODO: fputd should fail if write call fails
+macro fputd // value fd --
+  putd-fd !64
+
   if dup 0 = do
-    "0" puts
+    "0" putd-fd @64 fputs
   else
     putd-buffer PUTD_BUFFER_CAP +
     while over 0 > do
@@ -560,10 +568,12 @@ macro putd // u64 --
     end
 
     dup
-    putd-buffer PUTD_BUFFER_CAP + swap - swap puts
+    putd-buffer PUTD_BUFFER_CAP + swap - swap putd-fd @64 fputs
   end
   drop
 end
+
+macro putd stdout fputd end
 
 // Deprecated Words
 macro .64 swap !64 end

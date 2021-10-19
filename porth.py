@@ -448,21 +448,6 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                         fds[fd].write(mem[buf:buf+count])
                         fds[fd].flush()
                         stack.append(count)
-                    elif syscall_number == 257: # SYS_openat
-                        dirfd = arg1
-                        pathname_ptr = arg2
-                        flags = arg3
-                        if dirfd != AT_FDCWD:
-                            assert False, "openat: unsupported dirfd"
-                        if flags != O_RDONLY:
-                            assert False, "openat: unsupported flags"
-                        pathname = get_cstr_from_mem(mem, pathname_ptr).decode('utf-8')
-                        fd = len(fds)
-                        try:
-                            fds.append(open(pathname, 'rb'))
-                            stack.append(fd)
-                        except FileNotFoundError:
-                            stack.append(-ENOENT)
                     else:
                         assert False, "unknown syscall number %d" % syscall_number
                     ip += 1
@@ -486,6 +471,24 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                         nano_seconds = int.from_bytes(mem[request_ptr+8:request_ptr+8+8], byteorder='little')
                         sleep(float(seconds)+float(nano_seconds)*1e-09)
                         stack.append(0)
+                    elif syscall_number == 257: # SYS_openat
+                        dirfd = arg1
+                        pathname_ptr = arg2
+                        flags = arg3
+                        mode = arg4
+                        if dirfd != AT_FDCWD:
+                            assert False, f"openat: unsupported dirfd: {dirfd}"
+                        if flags != O_RDONLY:
+                            assert False, f"openat: unsupported flags: {flags}"
+                        if mode != 0:
+                            assert False, f"openat: unsupported mode: {mode}"
+                        pathname = get_cstr_from_mem(mem, pathname_ptr).decode('utf-8')
+                        fd = len(fds)
+                        try:
+                            fds.append(open(pathname, 'rb'))
+                            stack.append(fd)
+                        except FileNotFoundError:
+                            stack.append(-ENOENT)
                     else:
                         assert False, "unknown syscall number %d" % syscall_number
                     ip += 1
