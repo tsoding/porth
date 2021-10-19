@@ -158,10 +158,10 @@ It's like a regular string but it does not push its size on the stack and implic
 ```
 include "std.porth"
 
-O_RDONLY "input.txt"c AT_FDCWD openat
-//                  ^
-//                  |
-//                  postfix that indicates a C-style string
+0 O_RDONLY "input.txt"c AT_FDCWD openat
+//                    ^
+//                    |
+//                    postfix that indicates a C-style string
 
 if dup 0 < do
     "ERROR: could not open the file\n" eputs
