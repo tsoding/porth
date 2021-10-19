@@ -647,10 +647,10 @@ def type_check_program(program: Program):
                 a_type, a_loc = ctx.stack.pop()
                 b_type, b_loc = ctx.stack.pop()
 
-                if a_type == b_type and a_type == DataType.INT:
+                if a_type == b_type:
                     ctx.stack.append((DataType.BOOL, op.token))
                 else:
-                    compiler_error_with_expansion_stack(op.token, "invalid argument types fo EQ intrinsic. Expected INT.")
+                    compiler_error_with_expansion_stack(op.token, "invalid argument types fo EQ intrinsic.")
                     exit(1)
             elif op.operand == Intrinsic.GT:
                 assert len(DataType) == 3, "Exhaustive type handling in GT intrinsic"

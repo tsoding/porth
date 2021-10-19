@@ -37,6 +37,61 @@ memory sim-stack       sizeof(u64) SIM_STACK_CAP * end
 memory ops-count       sizeof(u64)                 end
 memory ops             sizeof(Op) OPS_CAP *        end
 
+memory out_fd sizeof(u64) end
+macro @out_fd out_fd @64 end
+macro !out_fd out_fd !64 end
+
+memory empty_envp sizeof(ptr) end
+memory nasm_argv sizeof(ptr) 4 * end
+// TODO: search for external utilities in $PATH
+"/usr/bin/nasm"c nasm_argv 0 8 * + !64
+"-felf64"c       nasm_argv 1 8 * + !64
+"output.asm"c    nasm_argv 2 8 * + !64
+
+memory ld_argv sizeof(ptr) 5 * end
+"/usr/bin/ld"c ld_argv 0 8 * + !64
+"-o"c          ld_argv 1 8 * + !64
+"output"c      ld_argv 2 8 * + !64
+"output.o"c    ld_argv 3 8 * + !64
+
+memory output_argv sizeof(ptr) 2 * end
+"./output"c output_argv 0 8 * + !64
+
+memory wstatus sizeof(u64) end
+macro cmd_echoed // argv
+  "[CMD]" puts
+  dup while dup @64 0 != do
+    " " puts
+    // TODO: properly escape the logged CMD
+    dup @64 cast(ptr) cstr-to-str puts
+    8 +
+  end drop
+  "\n" puts
+
+  fork
+  
+  if dup 0 = do
+    drop
+    dup @64 cast(ptr) empty_envp
+    rot rot
+    execve
+    if dup 0 < do
+      "[ERROR] could not exec external program\n" eputs
+      1 exit
+    end
+  elif dup 0 > do
+    drop
+    // TODO: handle the result of wait4
+    NULL 0 wstatus -1 wait4 drop
+  else
+    drop
+    "[ERROR] could not fork a child\n" eputs
+    1 exit
+  end
+  
+  drop
+end
+
 macro sim-stack-push // u64 --
   if sim-stack-count @64 SIM_STACK_CAP >= do
     here eputs ": ERROR: data stack overflow in simulation mode\n" eputs 1 exit
@@ -119,46 +174,60 @@ macro dump-ops // --
   drop
 end
 
-// TODO: porth.porth does not run nasm and ld as external commands to finish off the process of compilation
 macro compile-ops // --
-  "BITS 64\n" puts
-  "segment .text\n" puts
-  "print:\n" puts
-  "    mov     r9, -3689348814741910323\n" puts
-  "    sub     rsp, 40\n" puts
-  "    mov     BYTE [rsp+31], 10\n" puts
-  "    lea     rcx, [rsp+30]\n" puts
-  ".L2:\n" puts
-  "    mov     rax, rdi\n" puts
-  "    lea     r8, [rsp+32]\n" puts
-  "    mul     r9\n" puts
-  "    mov     rax, rdi\n" puts
-  "    sub     r8, rcx\n" puts
-  "    shr     rdx, 3\n" puts
-  "    lea     rsi, [rdx+rdx*4]\n" puts
-  "    add     rsi, rsi\n" puts
-  "    sub     rax, rsi\n" puts
-  "    add     eax, 48\n" puts
-  "    mov     BYTE [rcx], al\n" puts
-  "    mov     rax, rdi\n" puts
-  "    mov     rdi, rdx\n" puts
-  "    mov     rdx, rcx\n" puts
-  "    sub     rcx, 1\n" puts
-  "    cmp     rax, 9\n" puts
-  "    ja      .L2\n" puts
-  "    lea     rax, [rsp+32]\n" puts
-  "    mov     edi, 1\n" puts
-  "    sub     rdx, rax\n" puts
-  "    xor     eax, eax\n" puts
-  "    lea     rsi, [rsp+32+rdx]\n" puts
-  "    mov     rdx, r8\n" puts
-  "    mov     rax, 1\n" puts
-  "    syscall\n" puts
-  "    add     rsp, 40\n" puts
-  "    ret\n" puts
-  "global _start\n" puts
-  "_start:\n" puts
-  "    mov [args_ptr], rsp\n" puts
+  "[INFO] Generating output.asm\n" puts
+
+  420                  // mode
+  O_CREAT O_WRONLY or  // flags
+  // TODO: the output file path should be based on the input file path
+  "output.asm"c        // pathname
+  AT_FDCWD
+  openat
+  !out_fd
+
+  if @out_fd 0 < do
+    "[ERROR] could not open `output.asm`\n" eputs
+    1 exit
+  end
+
+  "BITS 64\n"                              @out_fd fputs
+  "segment .text\n"                        @out_fd fputs
+  "print:\n"                               @out_fd fputs
+  "    mov     r9, -3689348814741910323\n" @out_fd fputs
+  "    sub     rsp, 40\n"                  @out_fd fputs
+  "    mov     BYTE [rsp+31], 10\n"        @out_fd fputs
+  "    lea     rcx, [rsp+30]\n"            @out_fd fputs
+  ".L2:\n"                                 @out_fd fputs
+  "    mov     rax, rdi\n"                 @out_fd fputs
+  "    lea     r8, [rsp+32]\n"             @out_fd fputs
+  "    mul     r9\n"                       @out_fd fputs
+  "    mov     rax, rdi\n"                 @out_fd fputs
+  "    sub     r8, rcx\n"                  @out_fd fputs
+  "    shr     rdx, 3\n"                   @out_fd fputs
+  "    lea     rsi, [rdx+rdx*4]\n"         @out_fd fputs
+  "    add     rsi, rsi\n"                 @out_fd fputs
+  "    sub     rax, rsi\n"                 @out_fd fputs
+  "    add     eax, 48\n"                  @out_fd fputs
+  "    mov     BYTE [rcx], al\n"           @out_fd fputs
+  "    mov     rax, rdi\n"                 @out_fd fputs
+  "    mov     rdi, rdx\n"                 @out_fd fputs
+  "    mov     rdx, rcx\n"                 @out_fd fputs
+  "    sub     rcx, 1\n"                   @out_fd fputs
+  "    cmp     rax, 9\n"                   @out_fd fputs
+  "    ja      .L2\n"                      @out_fd fputs
+  "    lea     rax, [rsp+32]\n"            @out_fd fputs
+  "    mov     edi, 1\n"                   @out_fd fputs
+  "    sub     rdx, rax\n"                 @out_fd fputs
+  "    xor     eax, eax\n"                 @out_fd fputs
+  "    lea     rsi, [rsp+32+rdx]\n"        @out_fd fputs
+  "    mov     rdx, r8\n"                  @out_fd fputs
+  "    mov     rax, 1\n"                   @out_fd fputs
+  "    syscall\n"                          @out_fd fputs
+  "    add     rsp, 40\n"                  @out_fd fputs
+  "    ret\n"                              @out_fd fputs
+  "global _start\n"                        @out_fd fputs
+  "_start:\n"                              @out_fd fputs
+  "    mov [args_ptr], rsp\n"              @out_fd fputs
 
   0 while dup ops-count @64 < do
     dup sizeof(Op) * ops +
@@ -170,39 +239,39 @@ macro compile-ops // --
     end
 
     if dup @Op.type OP_PUSH_INT = do
-       "    ;; -- push int " puts dup @Op.operand putd " --\n" puts
-       "    mov rax, "       puts dup @Op.operand putd "\n" puts
-       "    push rax\n"      puts
+       "    ;; -- push int "  @out_fd fputs dup @Op.operand @out_fd fputd " --\n" @out_fd fputs
+       "    mov rax, "        @out_fd fputs dup @Op.operand @out_fd fputd "\n"    @out_fd fputs
+       "    push rax\n"       @out_fd fputs
     elif dup @Op.type OP_PLUS = do
-       "    ;; -- plus --\n" puts
-       "    pop rax\n" puts
-       "    pop rbx\n" puts
-       "    add rax, rbx\n" puts
-       "    push rax\n" puts
+       "    ;; -- plus --\n"  @out_fd fputs
+       "    pop rax\n"        @out_fd fputs
+       "    pop rbx\n"        @out_fd fputs
+       "    add rax, rbx\n"   @out_fd fputs
+       "    push rax\n"       @out_fd fputs
     elif dup @Op.type OP_MINUS = do
-       "    ;; -- minus --\n" puts
-       "    pop rax\n" puts
-       "    pop rbx\n" puts
-       "    sub rbx, rax\n" puts
-       "    push rbx\n" puts
+       "    ;; -- minus --\n" @out_fd fputs
+       "    pop rax\n"        @out_fd fputs
+       "    pop rbx\n"        @out_fd fputs
+       "    sub rbx, rax\n"   @out_fd fputs
+       "    push rbx\n"       @out_fd fputs
     elif dup @Op.type OP_MUL = do
-       "    ;; -- mul --\n" puts
-       "    pop rax\n" puts
-       "    pop rbx\n" puts
-       "    mul rbx\n" puts
-       "    push rax\n" puts
+       "    ;; -- mul --\n"   @out_fd fputs
+       "    pop rax\n"        @out_fd fputs
+       "    pop rbx\n"        @out_fd fputs
+       "    mul rbx\n"        @out_fd fputs
+       "    push rax\n"       @out_fd fputs
     elif dup @Op.type OP_PRINT = do
-       "    ;; -- print --\n" puts
-       "    pop rdi\n" puts
-       "    call print\n" puts
+       "    ;; -- print --\n" @out_fd fputs
+       "    pop rdi\n"        @out_fd fputs
+       "    call print\n"     @out_fd fputs
     elif dup @Op.type OP_DUP = do
-       "    ;; -- dup --\n" puts
-       "    pop rax\n" puts
-       "    push rax\n" puts
-       "    push rax\n" puts
+       "    ;; -- dup --\n"   @out_fd fputs
+       "    pop rax\n"        @out_fd fputs
+       "    push rax\n"       @out_fd fputs
+       "    push rax\n"       @out_fd fputs
     elif dup @Op.type OP_DROP = do
-       "    ;; -- drop --\n" puts
-       "    pop rax\n" puts
+       "    ;; -- drop --\n"  @out_fd fputs
+       "    pop rax\n"        @out_fd fputs
     else
        here eputs ": unreachable\n" eputs 1 exit
     end
@@ -213,12 +282,18 @@ macro compile-ops // --
   end
   drop
 
-  "    mov rax, 60\n" puts
-  "    mov rdi, 0\n" puts
-  "    syscall\n" puts
-  "segment .bss\n" puts
-  "args_ptr: resq 1\n" puts
-  "mem: resb " puts MEM_CAPACITY putd "\n" puts
+  "    mov rax, 60\n"  @out_fd fputs
+  "    mov rdi, 0\n"   @out_fd fputs
+  "    syscall\n"      @out_fd fputs
+  "segment .bss\n"     @out_fd fputs
+  "args_ptr: resq 1\n" @out_fd fputs
+  "mem: resb "         @out_fd fputs MEM_CAPACITY @out_fd fputd "\n" @out_fd fputs
+
+  @out_fd close drop
+
+  nasm_argv cmd_echoed
+  ld_argv cmd_echoed
+  output_argv cmd_echoed
 end  
 
 macro simulate-ops // --
@@ -342,6 +417,7 @@ macro usage // --
   dup "Usage: porth <SUBCOMMAND>\n" rot fputs
   dup "  SUBCOMMANDS:\n" rot fputs
   dup "    sim <file>       Simulate the program.\n" rot fputs
+  // TODO: -r flag for com subcommand
   dup "    com <file>       Compile the program\n" rot fputs
   dup "    dump <file>      Dump the ops of the program\n" rot fputs
   dup "    help             Print this help to stdout and exit with 0 code\n" rot fputs
