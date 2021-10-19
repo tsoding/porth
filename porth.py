@@ -436,7 +436,6 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                         # NOTE: trying to behave like a POSIX tty in canonical mode by making the data available
                         # on each newline
                         # https://en.wikipedia.org/wiki/POSIX_terminal_interface#Canonical_mode_processing
-                        # TODO: maybe this behavior should be customizable
                         data = fds[fd].readline(count)
                         mem[buf:buf+len(data)] = data
                         stack.append(len(data))
