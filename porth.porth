@@ -8,10 +8,11 @@ macro SIM_STACK_CAP 1024 end
 macro OP_PUSH_INT 0 end
 macro OP_PLUS     1 end
 macro OP_MINUS    2 end
-macro OP_PRINT    3 end
-macro OP_DUP      4 end
-macro OP_DROP     5 end
-macro COUNT_OPS   6 end
+macro OP_MUL      3 end
+macro OP_PRINT    4 end
+macro OP_DUP      5 end
+macro OP_DROP     6 end
+macro COUNT_OPS   7 end
 
 macro OPS_CAP       1024 end
 macro sizeof(Op)    16 end
@@ -81,7 +82,7 @@ macro push-op // type operand --
 end
 
 macro print-op-type
-  if COUNT_OPS 6 != do
+  if COUNT_OPS 7 != do
     here eputs ": Assertion Failed: Exhaustive handling of Op types in print-op-type\n" eputs
     1 exit
   end
@@ -92,6 +93,8 @@ macro print-op-type
     "OP_PLUS" puts
   elif dup OP_MINUS = do
     "OP_MINUS" puts
+  elif dup OP_MUL = do
+    "OP_MUL" puts
   elif dup OP_DUP = do
     "OP_DUP" puts
   elif dup OP_DROP = do
@@ -161,7 +164,7 @@ macro compile-ops // --
     dup sizeof(Op) * ops +
 
     // TODO: compile time assertion
-    if COUNT_OPS 6 != do
+    if COUNT_OPS 7 != do
       here eputs ": Assertion Failed: Exhaustive handling of Op types in compile-ops\n" eputs
       1 exit
     end
@@ -182,6 +185,12 @@ macro compile-ops // --
        "    pop rbx\n" puts
        "    sub rbx, rax\n" puts
        "    push rbx\n" puts
+    elif dup @Op.type OP_MUL = do
+       "    ;; -- mul --\n" puts
+       "    pop rax\n" puts
+       "    pop rbx\n" puts
+       "    mul rbx\n" puts
+       "    push rax\n" puts
     elif dup @Op.type OP_PRINT = do
        "    ;; -- print --\n" puts
        "    pop rdi\n" puts
@@ -216,7 +225,7 @@ macro simulate-ops // --
   0 while dup ops-count @64 < do
     dup sizeof(Op) * ops +
 
-    if COUNT_OPS 6 != do
+    if COUNT_OPS 7 != do
       here eputs ": Assertion Failed: Exhaustive handling of Op types in simulate-ops\n" eputs
       1 exit
     end
@@ -233,6 +242,11 @@ macro simulate-ops // --
        sim-stack-pop
        swap
        -
+       sim-stack-push
+    elif dup @Op.type OP_MUL = do
+       sim-stack-pop
+       sim-stack-pop
+       *
        sim-stack-push
     elif dup @Op.type OP_PRINT = do
        sim-stack-pop print
@@ -298,7 +312,7 @@ macro parse_file_path_cstr_into_ops
        line str-trim-left
        word line str-chop-word
 
-       if COUNT_OPS 6 != do
+       if COUNT_OPS 7 != do
          here eputs ": Assertion Failed: Exhaustive handling of Op types in parse-file-path\n" eputs
          1 exit
        end
@@ -307,6 +321,8 @@ macro parse_file_path_cstr_into_ops
          OP_PLUS 0 push-op
        elif word @Str "-" streq do
          OP_MINUS 0 push-op
+       elif word @Str "*" streq do
+         OP_MUL 0 push-op
        elif word @Str "print" streq do
          OP_PRINT 0 push-op
        elif word @Str "dup" streq do
