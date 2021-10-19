@@ -380,11 +380,11 @@ macro parse_file_path_cstr_into_ops
 
   1 line_number !64
   while content @Str.count 0 > do
-    line content str-chop-line
+    '\n' line content str-chop-by-delim
     line @Str.data line_start !64
     while line @Str.count 0 > do
        line str-trim-left
-       word line str-chop-word
+       ' ' word line str-chop-by-delim
 
        if COUNT_OPS 7 != do
          here eputs ": Assertion Failed: Exhaustive handling of Op types in parse-file-path\n" eputs
