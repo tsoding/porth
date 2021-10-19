@@ -1,0 +1,7 @@
+memory hello
+  if true do
+    69
+  else
+    420
+  end
+end
