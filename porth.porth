@@ -23,7 +23,6 @@ macro !Op.type      Op.type !64 end
 macro @Op.operand   Op.operand @64 end
 macro !Op.operand   Op.operand !64 end
 
-
 memory file_path_cstr  sizeof(ptr)                 end
 memory fd              sizeof(u64)                 end
 memory statbuf         sizeof(stat)                end
