@@ -2,7 +2,6 @@
 
 include "std.porth"
 
-
 macro MEM_CAPACITY 640000 end
 macro SIM_STACK_CAP 1024 end
 
@@ -110,7 +109,7 @@ macro dump-ops // --
     // ptr ptr
     dup sizeof(Op) * ops +
     "Type:    " puts dup @Op.type print-op-type "\n" puts
-    "Operand: " puts @Op.operand print
+    "Operand: " puts @Op.operand putd           "\n" puts
     "----------\n" puts
     1 +
   end
@@ -257,6 +256,7 @@ macro simulate-ops // --
 end
 
 macro parse_file_path_cstr_into_ops
+  0                            // mode
   O_RDONLY                     // flags
   file_path_cstr @64 cast(ptr) // pathname
   AT_FDCWD                     // dirfd
