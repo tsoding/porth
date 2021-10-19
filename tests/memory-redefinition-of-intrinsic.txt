@@ -4,6 +4,6 @@
 :i returncode 1
 :b stdout 0
 
-:b stderr 155
-./tests/memory-redefinition-of-intrinsic.porth:1:8: ERROR: redefinition of an intrinsic word `dup`. Please choose a different name for your memory region.
+:b stderr 99
+./tests/memory-redefinition-of-intrinsic.porth:1:8: ERROR: redefinition of an intrinsic word `dup`
 

@@ -1540,6 +1540,22 @@ class Memory:
     offset: MemAddr
     loc: Loc
 
+def check_word_redefinition(token: Token, memories: Dict[str, Memory], macros: Dict[str, Macro]):
+    assert token.typ == TokenType.WORD
+    assert isinstance(token.value, str)
+    name: str = token.value
+    if name in memories:
+        compiler_error_with_expansion_stack(token, "redefinition of a memory region `%s`" % name)
+        compiler_note(memories[name].loc, "the original definition is located here")
+        exit(1)
+    if name in INTRINSIC_BY_NAMES:
+        compiler_error_with_expansion_stack(token, "redefinition of an intrinsic word `%s`" % (name, ))
+        exit(1)
+    if name in macros:
+        compiler_error_with_expansion_stack(token, "redefinition of a macro `%s`" % (name, ))
+        compiler_note(macros[name].loc, "the original definition is located here")
+        exit(1)
+
 def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], expansion_limit: int) -> Program:
     stack: List[OpAddr] = []
     program: Program = Program(ops=[], memory_capacity=0)
@@ -1706,17 +1722,7 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                 assert isinstance(token.value, str), "This is probably a bug in the lexer"
                 memory_name = token.value
                 memory_loc = token.loc
-                if memory_name in memories:
-                    compiler_error_with_expansion_stack(token, "redefinition of already existing memory `%s`" % memory_name)
-                    compiler_note(memories[memory_name].loc, "the first definition is located here")
-                    exit(1)
-                if memory_name in INTRINSIC_BY_NAMES:
-                    compiler_error_with_expansion_stack(token, "redefinition of an intrinsic word `%s`. Please choose a different name for your memory region." % (memory_name, ))
-                    exit(1)
-                if memory_name in macros:
-                    compiler_error_with_expansion_stack(token, "redefinition of a macro `%s`" % (memory_name, ))
-                    compiler_note(macros[memory_name].loc, "the original definition is located here")
-                    exit(1)
+                check_word_redefinition(token, memories, macros)
                 mem_size_stack: List[int] = []
                 while len(rtokens) > 0:
                     token = rtokens.pop()
@@ -1762,15 +1768,7 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                     compiler_error_with_expansion_stack(token, "expected macro name to be %s but found %s" % (human(TokenType.WORD), human(token.typ)))
                     exit(1)
                 assert isinstance(token.value, str), "This is probably a bug in the lexer"
-                if token.value in macros:
-                    compiler_error_with_expansion_stack(token, "redefinition of already existing macro `%s`" % token.value)
-                    compiler_note(macros[token.value].loc, "the first definition is located here")
-                    exit(1)
-                if token.value in INTRINSIC_BY_NAMES:
-                    compiler_error_with_expansion_stack(token, "redefinition of an intrinsic word `%s`. Please choose a different name for your macro." % (token.value, ))
-                    exit(1)
-                if token.value in memories:
-                    assert False, "TODO: redefinition of a memory"
+                check_word_redefinition(token, memories, macros)
                 macro = Macro(token.loc, [])
                 macros[token.value] = macro
                 nesting_depth = 0
