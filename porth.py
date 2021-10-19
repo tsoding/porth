@@ -1535,12 +1535,17 @@ def expand_macro(macro: Macro, expanded_from: Token) -> List[Token]:
         token.expanded_count = expanded_from.expanded_count + 1
     return result
 
+@dataclass
+class Memory:
+    offset: MemAddr
+    loc: Loc
+
 def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], expansion_limit: int) -> Program:
     stack: List[OpAddr] = []
     program: Program = Program(ops=[], memory_capacity=0)
     rtokens: List[Token] = list(reversed(tokens))
     macros: Dict[str, Macro] = {}
-    memories: Dict[str, MemAddr] = {}
+    memories: Dict[str, Memory] = {}
     ip: OpAddr = 0;
     while len(rtokens) > 0:
         token = rtokens.pop()
@@ -1556,7 +1561,7 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                     exit(1)
                 rtokens += reversed(expand_macro(macros[token.value], token))
             elif token.value in memories:
-                program.ops.append(Op(typ=OpType.PUSH_MEM, token=token, operand=memories[token.value]))
+                program.ops.append(Op(typ=OpType.PUSH_MEM, token=token, operand=memories[token.value].offset))
                 ip += 1
             else:
                 compiler_error_with_expansion_stack(token, "unknown word `%s`" % token.value)
@@ -1700,8 +1705,11 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                     exit(1)
                 assert isinstance(token.value, str), "This is probably a bug in the lexer"
                 memory_name = token.value
+                memory_loc = token.loc
                 if memory_name in memories:
-                    assert False, "TODO: redefinition of a memory region"
+                    compiler_error_with_expansion_stack(token, "redefinition of already existing memory `%s`" % memory_name)
+                    compiler_note(memories[memory_name].loc, "the first definition is located here")
+                    exit(1)
                 if memory_name in INTRINSIC_BY_NAMES:
                     assert False, "TODO: redefinition of an intrinsic"
                 if memory_name in macros:
@@ -1740,7 +1748,7 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                 if len(mem_size_stack) != 1:
                     assert False, "TODO: memory definition expects only one integer"
                 memory_size = mem_size_stack.pop()
-                memories[memory_name] = program.memory_capacity
+                memories[memory_name] = Memory(offset=program.memory_capacity, loc=memory_loc)
                 program.memory_capacity += memory_size
             elif token.value == Keyword.MACRO:
                 if len(rtokens) == 0:
