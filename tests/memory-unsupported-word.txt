@@ -1,0 +1,9 @@
+:i argc 0
+:b stdin 0
+
+:i returncode 1
+:b stdout 0
+
+:b stderr 94
+./tests/memory-unsupported-word.porth:1:14: ERROR: unsupported word in memory definition word
+

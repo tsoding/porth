@@ -1511,21 +1511,45 @@ class Macro:
     loc: Loc
     tokens: List[Token]
 
-def human(obj: Union[TokenType, Op, Intrinsic]) -> str:
+class HumanNumber(Enum):
+    Singular=auto()
+    Plural=auto()
+
+def human(obj: TokenType, number: HumanNumber = HumanNumber.Singular) -> str:
     '''Human readable representation of an object that can be used in error messages'''
-    assert len(TokenType) == 6, "Exhaustive handling of token types in human()"
-    if obj == TokenType.WORD:
-        return "a word"
-    elif obj == TokenType.INT:
-        return "an integer"
-    elif obj == TokenType.STR:
-        return "a string"
-    elif obj == TokenType.CSTR:
-        return "a C-style string"
-    elif obj == TokenType.CHAR:
-        return "a character"
-    elif obj == TokenType.KEYWORD:
-        return "a keyword"
+    assert len(HumanNumber) == 2, "Exhaustive handling of number category in human()"
+    if number == HumanNumber.Singular:
+        assert len(TokenType) == 6, "Exhaustive handling of token types in human()"
+        if obj == TokenType.WORD:
+            return "a word"
+        elif obj == TokenType.INT:
+            return "an integer"
+        elif obj == TokenType.STR:
+            return "a string"
+        elif obj == TokenType.CSTR:
+            return "a C-style string"
+        elif obj == TokenType.CHAR:
+            return "a character"
+        elif obj == TokenType.KEYWORD:
+            return "a keyword"
+        else:
+            assert False, "unreachable"
+    elif number == HumanNumber.Plural:
+        assert len(TokenType) == 6, "Exhaustive handling of token types in human()"
+        if obj == TokenType.WORD:
+            return "words"
+        elif obj == TokenType.INT:
+            return "integers"
+        elif obj == TokenType.STR:
+            return "strings"
+        elif obj == TokenType.CSTR:
+            return "C-style strings"
+        elif obj == TokenType.CHAR:
+            return "characters"
+        elif obj == TokenType.KEYWORD:
+            return "keywords"
+        else:
+            assert False, "unreachable"
     else:
         assert False, "unreachable"
 
@@ -1560,6 +1584,7 @@ def check_word_redefinition(token: Token, memories: Dict[str, Memory], macros: D
 def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], expansion_limit: int) -> Program:
     stack: List[OpAddr] = []
     program: Program = Program(ops=[], memory_capacity=0)
+    # TODO: use deque for rtokens
     rtokens: List[Token] = list(reversed(tokens))
     macros: Dict[str, Macro] = {}
     memories: Dict[str, Memory] = {}
@@ -1759,11 +1784,14 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                                 exit(1)
                             rtokens += reversed(expand_macro(macros[token.value], token))
                         else:
-                            assert False, f"TODO: unsupported word in memory definition {token.value}"
+                            compiler_error_with_expansion_stack(token, f"unsupported word in memory definition {token.value}")
+                            exit(1)
                     else:
-                        assert False, "TODO: unsupported token in memory definition"
+                        compiler_error_with_expansion_stack(token, f"{human(token.typ, HumanNumber.Plural)} are not supported in memory definition")
+                        exit(1)
                 if len(mem_size_stack) != 1:
-                    assert False, "TODO: memory definition expects only one integer"
+                    compiler_error_with_expansion_stack(token, "The result of expression in the memory definition must be a single number")
+                    exit(1)
                 memory_size = mem_size_stack.pop()
                 memories[memory_name] = Memory(offset=program.memory_capacity, loc=memory_loc)
                 program.memory_capacity += memory_size
