@@ -5,8 +5,6 @@ macro ROWS 10 end
 macro COLS 20 end
 macro BOARD_SIZE ROWS COLS * end
 
-macro sizeof(timespec) 16 end
-
 // memory layout
 memory delta_time sizeof(timespec) end
 memory board_current_index sizeof(u64) end

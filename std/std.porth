@@ -342,6 +342,8 @@ macro TIMER_ABSTIME 1 end
 macro MAP_PRIVATE 2 end
 macro PROT_READ 1 end
 
+macro sizeof(timespec) 16 end
+
 macro sizeof(stat) 144 end
 macro stat.st_dev 0 + end
 macro stat.st_ino 8 + end
@@ -357,19 +359,19 @@ macro stat.st_blocks 64 + end
 macro stat.st_atim 72 + end
 macro stat.st_mtim 88 + end
 macro stat.st_ctim 104 + end
-macro sizeof(stat.st_dev) 8 end
-macro sizeof(stat.st_ino) 8 end
-macro sizeof(stat.st_mode) 4 end
-macro sizeof(stat.st_nlink) 8 end
-macro sizeof(stat.st_uid) 4 end
-macro sizeof(stat.st_gid) 4 end
-macro sizeof(stat.st_rdev) 8 end
-macro sizeof(stat.st_size) 8 end
-macro sizeof(stat.st_blksize) 8 end
-macro sizeof(stat.st_blocks) 8 end
-macro sizeof(stat.st_atim) 16 end
-macro sizeof(stat.st_mtim) 16 end
-macro sizeof(stat.st_ctim) 16 end
+macro sizeof(stat.st_dev) sizeof(u64) end
+macro sizeof(stat.st_ino) sizeof(u64) end
+macro sizeof(stat.st_mode) sizeof(u32) end
+macro sizeof(stat.st_nlink) sizeof(u64) end
+macro sizeof(stat.st_uid) sizeof(u32) end
+macro sizeof(stat.st_gid) sizeof(u32) end
+macro sizeof(stat.st_rdev) sizeof(u64) end
+macro sizeof(stat.st_size) sizeof(u64) end
+macro sizeof(stat.st_blksize) sizeof(u64) end
+macro sizeof(stat.st_blocks) sizeof(u64) end
+macro sizeof(stat.st_atim) sizeof(timespec) end
+macro sizeof(stat.st_mtim) sizeof(timespec) end
+macro sizeof(stat.st_ctim) sizeof(timespec) end
 
 // Wrappers for common syscalls
 macro write SYS_write syscall3 end
@@ -380,6 +382,9 @@ macro close SYS_close syscall1 end
 macro exit SYS_exit syscall1 drop end
 macro mmap SYS_mmap syscall6 end
 macro clock_nanosleep SYS_clock_nanosleep syscall4 end
+macro fork SYS_fork syscall0 end
+macro getpid SYS_getpid syscall0 end
+macro execve SYS_execve syscall3 end
 
 macro 2dup over over end
 macro 2drop drop drop end
