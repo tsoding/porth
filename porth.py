@@ -1583,7 +1583,6 @@ def check_word_redefinition(token: Token, memories: Dict[str, Memory], macros: D
 def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], expansion_limit: int) -> Program:
     stack: List[OpAddr] = []
     program: Program = Program(ops=[], memory_capacity=0)
-    # TODO: use deque for rtokens
     rtokens: List[Token] = list(reversed(tokens))
     macros: Dict[str, Macro] = {}
     memories: Dict[str, Memory] = {}
