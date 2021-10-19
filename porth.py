@@ -1714,7 +1714,9 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                     compiler_error_with_expansion_stack(token, "redefinition of an intrinsic word `%s`. Please choose a different name for your memory region." % (memory_name, ))
                     exit(1)
                 if memory_name in macros:
-                    assert False, "TODO: redefinition of a macro"
+                    compiler_error_with_expansion_stack(token, "redefinition of a macro `%s`" % (memory_name, ))
+                    compiler_note(macros[memory_name].loc, "the original definition is located here")
+                    exit(1)
                 mem_size_stack: List[int] = []
                 while len(rtokens) > 0:
                     token = rtokens.pop()
