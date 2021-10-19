@@ -242,8 +242,7 @@ if __name__ == '__main__':
             # TODO: `./test.py run non-existing-file` fails with 'unreachable'
             assert False, 'unreachable'
     elif subcommand == 'full':
-        cmd_run_echoed(['mypy', './porth.py'])
-        cmd_run_echoed(['mypy', './test.py'])
+        cmd_run_echoed(['mypy', './porth.py', './test.py'])
         run_test_for_folder('./tests/')
         run_test_for_folder('./examples/')
         run_test_for_folder('./euler/')
