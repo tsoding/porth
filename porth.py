@@ -564,13 +564,14 @@ DataStack=List[Tuple[DataType, Token]]
 @dataclass
 class Context:
     stack: DataStack
+    ret_stack: List[OpAddr]
     ip: OpAddr
 
 # TODO: better error reporting on type checking errors of intrinsics
 # Reported expected and actual types with the location that introduced the actual type
 def type_check_program(program: Program):
     visited_dos: Dict[OpAddr, DataStack] = {}
-    contexts: List[Context] = [Context(stack=[], ip=0)]
+    contexts: List[Context] = [Context(stack=[], ip=0, ret_stack=[])]
     while len(contexts) > 0:
         ctx = contexts[-1];
         if ctx.ip >= len(program.ops):
@@ -580,7 +581,7 @@ def type_check_program(program: Program):
             contexts.pop()
             continue
         op = program.ops[ctx.ip]
-        assert len(OpType) == 11, "Exhaustive ops handling in type_check_program()"
+        assert len(OpType) == 15, "Exhaustive ops handling in type_check_program()"
         if op.typ == OpType.PUSH_INT:
             ctx.stack.append((DataType.INT, op.token))
             ctx.ip += 1
@@ -594,6 +595,17 @@ def type_check_program(program: Program):
         elif op.typ == OpType.PUSH_MEM:
             ctx.stack.append((DataType.PTR, op.token))
             ctx.ip += 1
+        elif op.typ == OpType.SKIP_PROC:
+            assert isinstance(op.operand, OpAddr)
+            ctx.ip = op.operand
+        elif op.typ == OpType.PREP_PROC:
+            ctx.ip += 1
+        elif op.typ == OpType.CALL:
+            ctx.ret_stack.append(ctx.ip + 1)
+            assert isinstance(op.operand, OpAddr)
+            ctx.ip = op.operand
+        elif op.typ == OpType.RET:
+            ctx.ip = ctx.ret_stack.pop()
         elif op.typ == OpType.INTRINSIC:
             assert len(Intrinsic) == 42, "Exhaustive intrinsic handling in type_check_program()"
             assert isinstance(op.operand, Intrinsic), "This could be a bug in compilation step"
@@ -1079,7 +1091,7 @@ def type_check_program(program: Program):
             else:
                 visited_dos[ctx.ip] = copy(ctx.stack)
                 ctx.ip += 1
-                contexts.append(Context(stack=copy(ctx.stack), ip=op.operand))
+                contexts.append(Context(stack=copy(ctx.stack), ip=op.operand, ret_stack=copy(ctx.ret_stack)))
                 ctx = contexts[-1]
         else:
             assert False, "unreachable"
