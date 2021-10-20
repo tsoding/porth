@@ -180,7 +180,7 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
 
     ip = 0
     while ip < len(program.ops):
-        assert len(OpType) == 14, "Exhaustive op handling in simulate_little_endian_linux"
+        assert len(OpType) == 15, "Exhaustive op handling in simulate_little_endian_linux"
         op = program.ops[ip]
         try:
             if op.typ == OpType.PUSH_INT:
@@ -239,6 +239,8 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
             elif op.typ == OpType.SKIP_PROC:
                 assert isinstance(op.operand, OpAddr), "This could be a bug in the parsing step"
                 ip = op.operand
+            elif op.typ == OpType.PREP_PROC:
+                ip += 1
             elif op.typ == OpType.RET:
                 ip = ret_stack.pop()
             elif op.typ == OpType.CALL:
