@@ -550,7 +550,7 @@ def compiler_note(loc: Loc, message: str):
     compiler_diagnostic(loc, 'NOTE', message)
 
 def not_enough_arguments(op: Op):
-    assert len(OpType) == 11, f"Exhaustive handling of Op types in not_enough_arguments() (expected {len(OpType)}). Keep in mind that not all of the ops should be handled in here. Only those that consume elements from the stack."
+    assert len(OpType) == 15, f"Exhaustive handling of Op types in not_enough_arguments() (expected {len(OpType)}). Keep in mind that not all of the ops should be handled in here. Only those that consume elements from the stack."
     if op.typ == OpType.INTRINSIC:
         assert isinstance(op.operand, Intrinsic)
         compiler_error_with_expansion_stack(op.token, "not enough arguments for the `%s` intrinsic" % INTRINSIC_NAMES[op.operand])

@@ -13,19 +13,19 @@ memory value sizeof(u64) end
 memory board_base BOARD_SIZE 2 * end
 memory display COLS 1 + end
 
-macro board_current
+proc board_current
   board_base board_current_index @64 BOARD_SIZE * +
 end
 
-macro board_next
+proc board_next
   board_base 1 board_current_index @64 - BOARD_SIZE * +
 end
 
-macro swap_boards
+proc swap_boards
   1 board_current_index @64 - board_current_index !64
 end
 
-macro display_row
+proc display_row
   0 while dup COLS < do
     if 2dup + @8 0 = do
       display over + '.' swap !8
@@ -39,7 +39,7 @@ macro display_row
   drop
 end
 
-macro display_board
+proc display_board
   0 while dup ROWS < do
     2dup COLS * + display_row
     1 +
@@ -47,29 +47,29 @@ macro display_board
   drop
 end
 
-macro display_current_board
+proc display_current_board
   board_current display_board
 end
 
-macro get_current_cell
+proc get_current_cell
   swap COLS * + board_current + @8
 end
 
-macro set_next_cell
+proc set_next_cell
   value !64
   swap COLS * + board_next +
   value @64
   swap !8
 end
 
-macro in_bounds
+proc in_bounds
   dup 0 >= swap COLS < and
   swap
   dup 0 >= swap ROWS < and
   and
 end
 
-macro count_current_nbors
+proc count_current_nbors
   0 nbors !64
 
   if 2dup 1 - swap 1 - swap 2dup in_bounds
@@ -108,7 +108,7 @@ macro count_current_nbors
   nbors @64
 end
 
-macro compute_next_board
+proc compute_next_board
   0 while dup ROWS < do
     0 while dup COLS < do
       if 2dup get_current_cell 1 = do
@@ -135,7 +135,7 @@ end
 // .*.
 // ..*
 // ***
-macro put_glider
+proc put_glider
    dup 0 COLS * 1 + + 1 swap !8
    dup 1 COLS * 2 + + 1 swap !8
    dup 2 COLS * 0 + + 1 swap !8
@@ -144,7 +144,7 @@ macro put_glider
    drop
 end
 
-macro main
+proc main
   100000000 delta_time 8 + !64
 
   board_current put_glider
