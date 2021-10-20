@@ -236,7 +236,7 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                     ip = op.operand
                 else:
                     ip += 1
-            elif op.typ == OpType.PROC:
+            elif op.typ == OpType.SKIP_PROC:
                 assert isinstance(op.operand, OpAddr), "This could be a bug in the parsing step"
                 ip = op.operand
             elif op.typ == OpType.RET:
@@ -1187,6 +1187,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                 out.write("    mov [ret_stack_rsp], rsp\n")
                 out.write("    mov rsp, rax\n")
             elif op.typ == OpType.CALL:
+                assert isinstance(op.operand, OpAddr), f"This could be a bug in the parsing step: {op.operand}"
                 out.write("    mov rax, rsp\n")
                 out.write("    mov rsp, [ret_stack_rsp]\n")
                 out.write("    call addr_%d\n" % op.operand)
@@ -1480,7 +1481,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
         out.write("args_ptr: resq 1\n")
         out.write("ret_stack_rsp: resq 1\n")
         out.write("ret_stack: resb %d\n" % X86_64_RET_STACK_CAP)
-        out.write("ret_stack_end: resq 1\n")
+        out.write("ret_stack_end:\n")
         out.write("mem: resb %d\n" % program.memory_capacity)
 
 assert len(Keyword) == 10, "Exhaustive KEYWORD_NAMES definition."
@@ -1604,7 +1605,7 @@ class Memory:
     offset: MemAddr
     loc: Loc
 
-def check_word_redefinition(token: Token, memories: Dict[str, Memory], macros: Dict[str, Macro]):
+def check_word_redefinition(token: Token, memories: Dict[str, Memory], macros: Dict[str, Macro], procs: Dict[str, OpAddr]):
     assert token.typ == TokenType.WORD
     assert isinstance(token.value, str)
     name: str = token.value
@@ -1619,6 +1620,11 @@ def check_word_redefinition(token: Token, memories: Dict[str, Memory], macros: D
         compiler_error_with_expansion_stack(token, "redefinition of a macro `%s`" % (name, ))
         compiler_note(macros[name].loc, "the original definition is located here")
         exit(1)
+    if name in procs:
+        compiler_error_with_expansion_stack(token, "redefinition of a proc `%s`" % (name, ))
+        # TODO: report the location of the original proc definition
+        # compiler_note(procs[name].loc, "the original definition is located here")
+        exit(1)
 
 def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], expansion_limit: int) -> Program:
     stack: List[OpAddr] = []
@@ -1627,7 +1633,7 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
     macros: Dict[str, Macro] = {}
     memories: Dict[str, Memory] = {}
     procs: Dict[str, OpAddr] = {}
-    current_proc: Option[OpAddr] = None
+    current_proc: Optional[OpAddr] = None
     ip: OpAddr = 0;
     while len(rtokens) > 0:
         token = rtokens.pop()
@@ -1798,7 +1804,7 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                 assert isinstance(token.value, str), "This is probably a bug in the lexer"
                 memory_name = token.value
                 memory_loc = token.loc
-                check_word_redefinition(token, memories, macros)
+                check_word_redefinition(token, memories, macros, procs)
                 mem_size_stack: List[int] = []
                 while len(rtokens) > 0:
                     token = rtokens.pop()
@@ -1854,7 +1860,7 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                     compiler_error_with_expansion_stack(token, "expected macro name to be %s but found %s" % (human(TokenType.WORD), human(token.typ)))
                     exit(1)
                 assert isinstance(token.value, str), "This is probably a bug in the lexer"
-                check_word_redefinition(token, memories, macros)
+                check_word_redefinition(token, memories, macros, procs)
                 macro = Macro(token.loc, [])
                 macros[token.value] = macro
                 nesting_depth = 0
@@ -1892,6 +1898,7 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                         exit(1)
                     assert isinstance(token.value, str), "This is probably a bug in the lexer"
                     proc_name = token.value
+                    check_word_redefinition(token, memories, macros, procs)
                     procs[proc_name] = current_proc + 1
                 else:
                     compiler_error_with_expansion_stack(token, "defining procedures inside of procedures is not allowed")
@@ -2055,7 +2062,7 @@ def generate_control_flow_graph_as_dot_file(program: Program, dot_path: str):
                 assert isinstance(op.operand, OpAddr)
                 f.write(f"    Node_{ip} [shape=record label=end];\n")
                 f.write(f"    Node_{ip} -> Node_{op.operand};\n")
-            elif op.typ == OpType.PROC:
+            elif op.typ == OpType.SKIP_PROC:
                 assert isinstance(op.operand, OpAddr)
                 f.write(f"    Node_{ip} [shape=record label=proc];\n")
                 f.write(f"    Node_{ip} -> Node_{op.operand};\n")
