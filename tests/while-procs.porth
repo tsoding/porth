@@ -1,0 +1,14 @@
+include "std.porth"
+
+proc fibs
+  0 1 while over 100 < do
+    over print
+    2dup + rot drop
+  end 2drop
+end
+
+fibs
+1
+"------------------------------\n" puts
+fibs
+drop
