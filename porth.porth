@@ -5,14 +5,17 @@ include "std.porth"
 macro MEM_CAPACITY 640000 end
 macro SIM_STACK_CAP 1024 end
 
-macro OP_PUSH_INT 0 end
-macro OP_PLUS     1 end
-macro OP_MINUS    2 end
-macro OP_MUL      3 end
-macro OP_PRINT    4 end
-macro OP_DUP      5 end
-macro OP_DROP     6 end
-macro COUNT_OPS   7 end
+macro OP_PUSH_INT  0 end
+macro OP_INTRINSIC 1 end
+macro COUNT_OPS    2 end
+
+macro INTRINSIC_PLUS     0 end
+macro INTRINSIC_MINUS    1 end
+macro INTRINSIC_MUL      2 end
+macro INTRINSIC_PRINT    3 end
+macro INTRINSIC_DUP      4 end
+macro INTRINSIC_DROP     5 end
+macro COUNT_INTRINSICS   6 end
 
 macro OPS_CAP       1024 end
 macro sizeof(Op)    16 end
@@ -136,25 +139,15 @@ proc push-op // type operand --
 end
 
 proc print-op-type
-  COUNT_OPS 7 != if
+  COUNT_OPS 2 != if
     here eputs ": Assertion Failed: Exhaustive handling of Op types in print-op-type\n" eputs
     1 exit
   end
 
   dup OP_PUSH_INT = if
     "OP_PUSH_INT" puts
-  orelse dup OP_PLUS = if
-    "OP_PLUS" puts
-  orelse dup OP_MINUS = if
-    "OP_MINUS" puts
-  orelse dup OP_MUL = if
-    "OP_MUL" puts
-  orelse dup OP_DUP = if
-    "OP_DUP" puts
-  orelse dup OP_DROP = if
-    "OP_DROP" puts
-  orelse dup OP_PRINT = if
-    "OP_PRINT" puts
+  orelse dup OP_INTRINSIC = if
+    "OP_INTRINSIC" puts
   else
     here eputs ": Unknown op type\n" eputs 1 exit
   end
@@ -232,7 +225,7 @@ proc compile-ops // --
     dup sizeof(Op) * ops +
 
     // TODO: compile time assertion
-    COUNT_OPS 7 != if
+    COUNT_OPS 2 != if
       here eputs ": Assertion Failed: Exhaustive handling of Op types in compile-ops\n" eputs
       1 exit
     end
@@ -241,38 +234,49 @@ proc compile-ops // --
        "    ;; -- push int "  @out_fd fputs dup @Op.operand @out_fd fputd " --\n" @out_fd fputs
        "    mov rax, "        @out_fd fputs dup @Op.operand @out_fd fputd "\n"    @out_fd fputs
        "    push rax\n"       @out_fd fputs
-    orelse dup @Op.type OP_PLUS = if
-       "    ;; -- plus --\n"  @out_fd fputs
-       "    pop rax\n"        @out_fd fputs
-       "    pop rbx\n"        @out_fd fputs
-       "    add rax, rbx\n"   @out_fd fputs
-       "    push rax\n"       @out_fd fputs
-    orelse dup @Op.type OP_MINUS = if
-       "    ;; -- minus --\n" @out_fd fputs
-       "    pop rax\n"        @out_fd fputs
-       "    pop rbx\n"        @out_fd fputs
-       "    sub rbx, rax\n"   @out_fd fputs
-       "    push rbx\n"       @out_fd fputs
-    orelse dup @Op.type OP_MUL = if
-       "    ;; -- mul --\n"   @out_fd fputs
-       "    pop rax\n"        @out_fd fputs
-       "    pop rbx\n"        @out_fd fputs
-       "    mul rbx\n"        @out_fd fputs
-       "    push rax\n"       @out_fd fputs
-    orelse dup @Op.type OP_PRINT = if
-       "    ;; -- print --\n" @out_fd fputs
-       "    pop rdi\n"        @out_fd fputs
-       "    call print\n"     @out_fd fputs
-    orelse dup @Op.type OP_DUP = if
-       "    ;; -- dup --\n"   @out_fd fputs
-       "    pop rax\n"        @out_fd fputs
-       "    push rax\n"       @out_fd fputs
-       "    push rax\n"       @out_fd fputs
-    orelse dup @Op.type OP_DROP = if
-       "    ;; -- drop --\n"  @out_fd fputs
-       "    pop rax\n"        @out_fd fputs
+    orelse dup @Op.type OP_INTRINSIC = if
+        COUNT_INTRINSICS 6 != if
+          here eputs ": Assertion Failed: Exhaustive handling of Intrinsics in compile-ops\n" eputs
+          1 exit
+        end
+
+        dup @Op.operand INTRINSIC_PLUS = if
+           "    ;; -- plus --\n"  @out_fd fputs
+           "    pop rax\n"        @out_fd fputs
+           "    pop rbx\n"        @out_fd fputs
+           "    add rax, rbx\n"   @out_fd fputs
+           "    push rax\n"       @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_MINUS = if
+           "    ;; -- minus --\n" @out_fd fputs
+           "    pop rax\n"        @out_fd fputs
+           "    pop rbx\n"        @out_fd fputs
+           "    sub rbx, rax\n"   @out_fd fputs
+           "    push rbx\n"       @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_MUL = if
+           "    ;; -- mul --\n"   @out_fd fputs
+           "    pop rax\n"        @out_fd fputs
+           "    pop rbx\n"        @out_fd fputs
+           "    mul rbx\n"        @out_fd fputs
+           "    push rax\n"       @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_PRINT = if
+           "    ;; -- print --\n" @out_fd fputs
+           "    pop rdi\n"        @out_fd fputs
+           "    call print\n"     @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_DUP = if
+           "    ;; -- dup --\n"   @out_fd fputs
+           "    pop rax\n"        @out_fd fputs
+           "    push rax\n"       @out_fd fputs
+           "    push rax\n"       @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_DROP = if
+           "    ;; -- drop --\n"  @out_fd fputs
+           "    pop rax\n"        @out_fd fputs
+        else
+           here eputs ": unreachable.\n" eputs
+           1 exit
+        end
     else
-       here eputs ": unreachable\n" eputs 1 exit
+       here eputs ": unreachable.\n" eputs
+       1 exit
     end
 
     drop
@@ -306,32 +310,36 @@ proc simulate-ops // --
 
     dup @Op.type OP_PUSH_INT = if
        dup @Op.operand sim-stack-push
-    orelse dup @Op.type OP_PLUS = if
-       sim-stack-pop
-       sim-stack-pop
-       +
-       sim-stack-push
-    orelse dup @Op.type OP_MINUS = if
-       sim-stack-pop
-       sim-stack-pop
-       swap
-       -
-       sim-stack-push
-    orelse dup @Op.type OP_MUL = if
-       sim-stack-pop
-       sim-stack-pop
-       *
-       sim-stack-push
-    orelse dup @Op.type OP_PRINT = if
-       sim-stack-pop print
-    orelse dup @Op.type OP_DUP = if
-       sim-stack-pop
-       dup
-       sim-stack-push
-       sim-stack-push
-    orelse dup @Op.type OP_DROP = if
-       sim-stack-pop
-       drop
+    orelse dup @Op.type OP_INTRINSIC = if
+        dup @Op.operand INTRINSIC_PLUS = if
+           sim-stack-pop
+           sim-stack-pop
+           +
+           sim-stack-push
+        orelse dup @Op.operand INTRINSIC_MINUS = if
+           sim-stack-pop
+           sim-stack-pop
+           swap
+           -
+           sim-stack-push
+        orelse dup @Op.operand INTRINSIC_MUL = if
+           sim-stack-pop
+           sim-stack-pop
+           *
+           sim-stack-push
+        orelse dup @Op.operand INTRINSIC_PRINT = if
+           sim-stack-pop print
+        orelse dup @Op.operand INTRINSIC_DUP = if
+           sim-stack-pop
+           dup
+           sim-stack-push
+           sim-stack-push
+        orelse dup @Op.operand INTRINSIC_DROP = if
+           sim-stack-pop
+           drop
+        else
+           here eputs ": unreachable\n" eputs 1 exit
+        end
     else
        here eputs ": unreachable\n" eputs 1 exit
     end
@@ -386,23 +394,28 @@ proc parse_file_path_cstr_into_ops
        line str-trim-left
        ' ' word line str-chop-by-delim
 
-       COUNT_OPS 7 != if
+       COUNT_OPS 2 != if
          here eputs ": Assertion Failed: Exhaustive handling of Op types in parse-file-path\n" eputs
          1 exit
        end
 
+       COUNT_INTRINSICS 6 != if
+         here eputs ": Assertion Failed: Exhaustive handling of Intrinsics in parse-file-path\n" eputs
+         1 exit
+       end
+
        word @Str "+" streq if
-         OP_PLUS 0 push-op
+         OP_INTRINSIC INTRINSIC_PLUS push-op
        orelse word @Str "-" streq if
-         OP_MINUS 0 push-op
+         OP_INTRINSIC INTRINSIC_MINUS push-op
        orelse word @Str "*" streq if
-         OP_MUL 0 push-op
+         OP_INTRINSIC INTRINSIC_MUL push-op
        orelse word @Str "print" streq if
-         OP_PRINT 0 push-op
+         OP_INTRINSIC INTRINSIC_PRINT push-op
        orelse word @Str "dup" streq if
-         OP_DUP 0 push-op
+         OP_INTRINSIC INTRINSIC_DUP push-op
        orelse word @Str "drop" streq if
-         OP_DROP 0 push-op
+         OP_INTRINSIC INTRINSIC_DROP push-op
        else
          OP_PUSH_INT try_to_parse_word_as_int_or_fail_as_unknown_word push-op
        end
