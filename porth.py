@@ -20,7 +20,7 @@ SIM_NULL_POINTER_PADDING = 1 # just a little bit of a padding at the beginning o
 SIM_STR_CAPACITY  = 640_000
 SIM_ARGV_CAPACITY = 640_000
 
-debug=False
+debug=True
 
 Loc=Tuple[str, int, int]
 
