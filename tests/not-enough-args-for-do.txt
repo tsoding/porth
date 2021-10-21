@@ -4,6 +4,6 @@
 :i returncode 1
 :b stdout 0
 
-:b stderr 87
-./tests/not-enough-args-for-do.porth:3:4: ERROR: not enough arguments for the do-block
+:b stderr 81
+./tests/not-enough-args-for-do.porth:3:4: ERROR: `do` is not preceded by `while`
 

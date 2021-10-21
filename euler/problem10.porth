@@ -17,7 +17,7 @@ end
 
 macro is-prime // [value: int] -> [ret: bool]
   0 while
-    if 2dup sizeof(u32) * primes + @32 dup * >= do
+    2dup sizeof(u32) * primes + @32 dup * >= if
       2dup sizeof(u32) * primes + @32 mod 0 !=
     else false end
   do 1 + end
@@ -28,7 +28,7 @@ end
 2 ans !64
 
 3 while dup 2000000 < do
-  if dup is-prime do
+  dup is-prime if
     dup push-prime
     dup ans @64 + ans !64
   end

@@ -437,7 +437,7 @@ end
 
 proc cstreq
   while
-    if over @8 0 != over @8 0 != and do
+    over @8 0 != over @8 0 != and if
        over @8 over @8 =
     else
        false
@@ -493,8 +493,8 @@ end
 
 proc str-trim-left // input --
   while 
-    if dup @Str.count 0 > do
-       dup @Str.data @8 ' ' =
+    dup @Str.count 0 > if
+      dup @Str.data @8 ' ' =
     else false end
   do
     dup str-chop-one-left
@@ -508,14 +508,15 @@ proc str-chop-by-delim // delim line input
   2dup @Str.data swap !Str.data
   over 0 swap !Str.count
   while
-    if dup @Str.count 0 > do
+    dup @Str.count 0 > if
        dup @Str.data @8 str-chop-by-delim-tmp @64 !=
     else false end
   do
     dup str-chop-one-left
     swap dup Str.count inc64 swap
   end
-  if dup @Str.count 0 > do
+  // TODO: sus
+  dup @Str.count 0 > if
     dup str-chop-one-left
   end
   2drop
@@ -526,9 +527,9 @@ memory streq_b sizeof(Str) end
 proc streq // n1 s1 n2 s2
   streq_a !Str
   streq_b !Str
-  if streq_a @Str.count streq_b @Str.count = do
+  streq_a @Str.count streq_b @Str.count = if
     0 while
-      if dup streq_a @Str.count < do
+      dup streq_a @Str.count < if
         dup streq_a @Str.data + @8
         over streq_b @Str.data + @8
         =
@@ -557,7 +558,7 @@ memory putd-fd sizeof(u64) end
 proc fputd // value fd --
   putd-fd !64
 
-  if dup 0 = do
+  dup 0 = if
     "0" putd-fd @64 fputs
   else
     putd-buffer PUTD_BUFFER_CAP +

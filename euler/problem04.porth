@@ -16,8 +16,8 @@ memory ans sizeof(u64) end
     swap drop
 
     // a b
-    if 2dup = do
-      if dup ans @64 > do
+    2dup = if
+      dup ans @64 > if
         ans over swap !64
       end
     end

@@ -26,7 +26,7 @@ Loc=Tuple[str, int, int]
 
 class Keyword(Enum):
     IF=auto()
-    ELIF=auto()
+    ORELSE=auto()
     ELSE=auto()
     END=auto()
     WHILE=auto()
@@ -93,7 +93,7 @@ class OpType(Enum):
     PUSH_MEM=auto()
     INTRINSIC=auto()
     IF=auto()
-    ELIF=auto()
+    ORELSE=auto()
     ELSE=auto()
     END=auto()
     WHILE=auto()
@@ -217,13 +217,18 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                 stack.append(mem_buf_ptr + op.operand)
                 ip += 1
             elif op.typ == OpType.IF:
-                ip += 1
+                a = stack.pop()
+                if a == 0:
+                    assert isinstance(op.operand, OpAddr), "This could be a bug in the parsing step"
+                    ip = op.operand
+                else:
+                    ip += 1
             elif op.typ == OpType.WHILE:
                 ip += 1
             elif op.typ == OpType.ELSE:
                 assert isinstance(op.operand, OpAddr), "This could be a bug in the parsing step"
                 ip = op.operand
-            elif op.typ == OpType.ELIF:
+            elif op.typ == OpType.ORELSE:
                 assert isinstance(op.operand, OpAddr), "This could be a bug in the parsing step"
                 ip = op.operand
             elif op.typ == OpType.END:
@@ -520,9 +525,6 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
             compiler_error_with_expansion_stack(op.token, "Python Exception during simulation")
             traceback.print_exception(type(e), e, e.__traceback__)
             exit(1)
-    if debug:
-        print("[INFO] Memory dump")
-        print(mem[:20])
 
 def compiler_diagnostic(loc: Loc, tag: str, message: str):
     print("%s:%d:%d: %s: %s" % (loc + (tag, message)), file=sys.stderr)
@@ -567,12 +569,12 @@ class Context:
     ret_stack: List[OpAddr]
     ip: OpAddr
 
+CallPath=Tuple[OpAddr, ...]
+
 # TODO: better error reporting on type checking errors of intrinsics
 # Reported expected and actual types with the location that introduced the actual type
 def type_check_program(program: Program):
-    if not debug:
-        assert False, "TODO: the type checking is broken at the moment. Run with `-unsafe` flag before subcommand. See `./porth.py help` for more info."
-    visited_dos: Dict[OpAddr, DataStack] = {}
+    visited_dos: Dict[CallPath, DataStack] = {}
     contexts: List[Context] = [Context(stack=[], ip=0, ret_stack=[])]
     while len(contexts) > 0:
         ctx = contexts[-1];
@@ -1060,7 +1062,17 @@ def type_check_program(program: Program):
                 assert False, "unreachable"
             ctx.ip += 1
         elif op.typ == OpType.IF:
+            if len(ctx.stack) < 1:
+                not_enough_arguments(op)
+                exit(1)
+            a_type, a_token = ctx.stack.pop()
+            if a_type != DataType.BOOL:
+                compiler_error_with_expansion_stack(op.token, "Invalid argument for the if condition. Expected BOOL.")
+                exit(1)
             ctx.ip += 1
+            assert isinstance(op.operand, OpAddr)
+            contexts.append(Context(stack=copy(ctx.stack), ip=op.operand, ret_stack=copy(ctx.ret_stack)))
+            ctx = contexts[-1]
         elif op.typ == OpType.WHILE:
             ctx.ip += 1
         elif op.typ == OpType.END:
@@ -1069,7 +1081,7 @@ def type_check_program(program: Program):
         elif op.typ == OpType.ELSE:
             assert isinstance(op.operand, OpAddr)
             ctx.ip = op.operand
-        elif op.typ == OpType.ELIF:
+        elif op.typ == OpType.ORELSE:
             assert isinstance(op.operand, OpAddr)
             ctx.ip = op.operand
         elif op.typ == OpType.DO:
@@ -1081,8 +1093,9 @@ def type_check_program(program: Program):
             if a_type != DataType.BOOL:
                 compiler_error_with_expansion_stack(op.token, "Invalid argument for the while-do condition. Expected BOOL.")
                 exit(1)
-            if ctx.ip in visited_dos:
-                expected_types = list(map(lambda x: x[0], visited_dos[ctx.ip]))
+            call_path = tuple(ctx.ret_stack + [ctx.ip])
+            if call_path in visited_dos:
+                expected_types = list(map(lambda x: x[0], visited_dos[call_path]))
                 actual_types = list(map(lambda x: x[0], ctx.stack))
                 if expected_types != actual_types:
                     compiler_error_with_expansion_stack(op.token, 'Loops are not allowed to alter types and amount of elements on the stack.')
@@ -1091,7 +1104,7 @@ def type_check_program(program: Program):
                     exit(1)
                 contexts.pop()
             else:
-                visited_dos[ctx.ip] = copy(ctx.stack)
+                visited_dos[call_path] = copy(ctx.stack)
                 ctx.ip += 1
                 contexts.append(Context(stack=copy(ctx.stack), ip=op.operand, ret_stack=copy(ctx.ret_stack)))
                 ctx = contexts[-1]
@@ -1173,13 +1186,17 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
                 out.write("    push rax\n")
             elif op.typ == OpType.IF:
                 out.write("    ;; -- if --\n")
+                out.write("    pop rax\n")
+                out.write("    test rax, rax\n")
+                assert isinstance(op.operand, OpAddr), f"This could be a bug in the parsing step {op.operand}"
+                out.write("    jz addr_%d\n" % op.operand)
             elif op.typ == OpType.WHILE:
                 out.write("    ;; -- while --\n")
             elif op.typ == OpType.ELSE:
                 out.write("    ;; -- else --\n")
                 assert isinstance(op.operand, OpAddr), "This could be a bug in the parsing step"
                 out.write("    jmp addr_%d\n" % op.operand)
-            elif op.typ == OpType.ELIF:
+            elif op.typ == OpType.ORELSE:
                 out.write("    ;; -- elif --\n")
                 assert isinstance(op.operand, OpAddr), f"This could be a bug in the parsing step: {op.operand}"
                 out.write("    jmp addr_%d\n" % op.operand)
@@ -1503,15 +1520,15 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
 assert len(Keyword) == 10, "Exhaustive KEYWORD_NAMES definition."
 KEYWORD_BY_NAMES: Dict[str, Keyword] = {
     'if': Keyword.IF,
-    'elif': Keyword.ELIF,
+    'orelse': Keyword.ORELSE,
     'else': Keyword.ELSE,
-    'end': Keyword.END,
     'while': Keyword.WHILE,
     'do': Keyword.DO,
     'macro': Keyword.MACRO,
     'include': Keyword.INCLUDE,
     'memory': Keyword.MEMORY,
     'proc': Keyword.PROC,
+    'end': Keyword.END,
 }
 KEYWORD_NAMES: Dict[Keyword, str] = {v: k for k, v in KEYWORD_BY_NAMES.items()}
 
@@ -1695,46 +1712,34 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                 program.ops.append(Op(typ=OpType.IF, token=token))
                 stack.append(ip)
                 ip += 1
-            elif token.value == Keyword.ELIF:
-                program.ops.append(Op(typ=OpType.ELIF, token=token))
-                do_ip = stack.pop()
-                if program.ops[do_ip].typ != OpType.DO:
-                    compiler_error_with_expansion_stack(program.ops[do_ip].token, '`elif` can only close `do`-blocks')
+            elif token.value == Keyword.ORELSE:
+                program.ops.append(Op(typ=OpType.ORELSE, token=token))
+                if_ip = stack.pop()
+                if program.ops[if_ip].typ != OpType.IF:
+                    compiler_error_with_expansion_stack(program.ops[if_ip].token, '`orelse` can come after `if`')
                     exit(1)
-                pre_do_ip = program.ops[do_ip].operand
-                assert isinstance(pre_do_ip, OpAddr)
-                if program.ops[pre_do_ip].typ == OpType.IF:
-                    program.ops[do_ip].operand = ip + 1
-                    stack.append(ip)
-                    ip += 1
-                elif program.ops[pre_do_ip].typ == OpType.ELIF:
-                    program.ops[pre_do_ip].operand = ip
-                    program.ops[do_ip].operand = ip + 1
-                    stack.append(ip)
-                    ip += 1
-                else:
-                    compiler_error_with_expansion_stack(program.ops[pre_do_ip].token, '`elif` can only close `do`-blocks that are preceded by `if` or another `elif`')
-                    exit(1)
+
+                if len(stack) > 0 and program.ops[stack[-1]].typ == OpType.ORELSE:
+                    prev_orelse_ip = stack.pop()
+                    program.ops[prev_orelse_ip].operand = ip
+
+                program.ops[if_ip].operand = ip + 1
+                stack.append(ip)
+                ip += 1
             elif token.value == Keyword.ELSE:
                 program.ops.append(Op(typ=OpType.ELSE, token=token))
-                do_ip = stack.pop()
-                if program.ops[do_ip].typ != OpType.DO:
-                    compiler_error_with_expansion_stack(program.ops[do_ip].token, '`else` can only be used in `do` blocks')
+                if_ip = stack.pop()
+                if program.ops[if_ip].typ != OpType.IF:
+                    compiler_error_with_expansion_stack(program.ops[if_ip].token, '`else` can only come after `if`')
                     exit(1)
-                pre_do_ip = program.ops[do_ip].operand
-                assert isinstance(pre_do_ip, OpAddr)
-                if program.ops[pre_do_ip].typ == OpType.IF:
-                    program.ops[do_ip].operand = ip + 1
-                    stack.append(ip)
-                    ip += 1
-                elif program.ops[pre_do_ip].typ == OpType.ELIF:
-                    program.ops[pre_do_ip].operand = ip
-                    program.ops[do_ip].operand = ip + 1
-                    stack.append(ip)
-                    ip += 1
-                else:
-                    compiler_error_with_expansion_stack(program.ops[pre_do_ip].token, '`else` can only close `do`-blocks that are preceded by `if` or `elif`')
-                    exit(1)
+
+                if len(stack) > 0 and program.ops[stack[-1]].typ == OpType.ORELSE:
+                    orelse_ip = stack.pop()
+                    program.ops[orelse_ip].operand = ip
+
+                program.ops[if_ip].operand = ip + 1
+                stack.append(ip)
+                ip += 1
             elif token.value == Keyword.END:
                 block_ip = stack.pop()
 
@@ -1745,29 +1750,26 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                 elif program.ops[block_ip].typ == OpType.DO:
                     program.ops.append(Op(typ=OpType.END, token=token))
                     assert program.ops[block_ip].operand is not None
-                    pre_do_ip = program.ops[block_ip].operand
+                    while_ip = program.ops[block_ip].operand
+                    assert isinstance(while_ip, OpAddr)
 
-                    assert isinstance(pre_do_ip, OpAddr)
-                    if program.ops[pre_do_ip].typ == OpType.WHILE:
-                        program.ops[ip].operand = pre_do_ip
-                        program.ops[block_ip].operand = ip + 1
-                    elif program.ops[pre_do_ip].typ == OpType.IF:
-                        program.ops[ip].operand = ip + 1
-                        program.ops[block_ip].operand = ip + 1
-                    elif program.ops[pre_do_ip].typ == OpType.ELIF:
-                        program.ops[pre_do_ip].operand = ip
-                        program.ops[ip].operand = ip + 1
-                        program.ops[block_ip].operand = ip + 1
-                    else:
-                        compiler_error_with_expansion_stack(program.ops[pre_do_ip].token, '`end` can only close `do` blocks that are preceded by `if`, `while` or `elif`')
+                    if program.ops[while_ip].typ != OpType.WHILE:
+                        compiler_error_with_expansion_stack(program.ops[while_ip].token, '`end` can only close `do` blocks that are preceded by `while`')
                         exit(1)
+
+                    program.ops[ip].operand = while_ip
+                    program.ops[block_ip].operand = ip + 1
                 elif program.ops[block_ip].typ == OpType.SKIP_PROC:
                     program.ops.append(Op(typ=OpType.RET, token=token))
                     program.ops[block_ip].operand = ip + 1
                     current_proc = None
+                elif program.ops[block_ip].typ == OpType.IF:
+                    program.ops.append(Op(typ=OpType.END, token=token))
+                    program.ops[block_ip].operand = ip
+                    program.ops[ip].operand = ip + 1
                 else:
                     # NOTE: the closing of `macro` blocks is handled in its own separate place, not here
-                    compiler_error_with_expansion_stack(program.ops[block_ip].token, '`end` can only close `else`, `do`, `macro` or `proc` blocks for now')
+                    compiler_error_with_expansion_stack(program.ops[block_ip].token, '`end` can only close `if`, `else`, `do`, `macro` or `proc` blocks for now')
                     exit(1)
                 ip += 1
             elif token.value == Keyword.WHILE:
@@ -1777,13 +1779,13 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
             elif token.value == Keyword.DO:
                 program.ops.append(Op(typ=OpType.DO, token=token))
                 if len(stack) == 0:
-                    compiler_error_with_expansion_stack(token, "`do` is not preceded by `if`, `while` or `elif`")
+                    compiler_error_with_expansion_stack(token, "`do` is not preceded by `while`")
                     exit(1)
-                pre_do_ip = stack.pop()
-                if program.ops[pre_do_ip].typ != OpType.WHILE and program.ops[pre_do_ip].typ != OpType.IF and program.ops[pre_do_ip].typ != OpType.ELIF:
-                    compiler_error_with_expansion_stack(token, "`do` is not preceded by `if`, `while` or `elif`")
+                while_ip = stack.pop()
+                if program.ops[while_ip].typ != OpType.WHILE:
+                    compiler_error_with_expansion_stack(token, "`do` is not preceded by `while`")
                     exit(1)
-                program.ops[ip].operand = pre_do_ip
+                program.ops[ip].operand = while_ip
                 stack.append(ip)
                 ip += 1
             elif token.value == Keyword.INCLUDE:
@@ -2036,7 +2038,7 @@ def cmd_call_echoed(cmd: List[str], silent: bool) -> int:
 def generate_control_flow_graph_as_dot_file(program: Program, dot_path: str):
     with open(dot_path, "w") as f:
         f.write("digraph Program {\n")
-        assert len(OpType) == 14, f"Exhaustive handling of OpType in generate_control_flow_graph_as_dot_file(), {len(OpType)}"
+        assert len(OpType) == 15, f"Exhaustive handling of OpType in generate_control_flow_graph_as_dot_file(), {len(OpType)}"
         for ip in range(len(program.ops)):
             op = program.ops[ip]
             if op.typ == OpType.INTRINSIC:
@@ -2055,9 +2057,18 @@ def generate_control_flow_graph_as_dot_file(program: Program, dot_path: str):
                 assert isinstance(op.operand, int)
                 f.write(f"    Node_{ip} [label={op.operand}]\n")
                 f.write(f"    Node_{ip} -> Node_{ip + 1};\n")
-            elif op.typ == OpType.IF:
-                f.write(f"    Node_{ip} [shape=record label=if];\n")
+            elif op.typ == OpType.PUSH_MEM:
+                assert isinstance(op.operand, int)
+                f.write(f"    Node_{ip} [label=\"mem({op.operand})\"]\n")
                 f.write(f"    Node_{ip} -> Node_{ip + 1};\n")
+            elif op.typ == OpType.IF:
+                if op.operand is None:
+                    compiler_note(op.token.loc, "sus")
+                    exit(1)
+                assert isinstance(op.operand, OpAddr), f"{op.operand}"
+                f.write(f"    Node_{ip} [shape=record label=if];\n")
+                f.write(f"    Node_{ip} -> Node_{ip + 1} [label=true];\n")
+                f.write(f"    Node_{ip} -> Node_{op.operand} [label=false style=dashed];\n")
             elif op.typ == OpType.WHILE:
                 f.write(f"    Node_{ip} [shape=record label=while];\n")
                 f.write(f"    Node_{ip} -> Node_{ip + 1};\n")
@@ -2070,9 +2081,9 @@ def generate_control_flow_graph_as_dot_file(program: Program, dot_path: str):
                 assert isinstance(op.operand, OpAddr)
                 f.write(f"    Node_{ip} [shape=record label=else];\n")
                 f.write(f"    Node_{ip} -> Node_{op.operand};\n")
-            elif op.typ == OpType.ELIF:
+            elif op.typ == OpType.ORELSE:
                 assert isinstance(op.operand, OpAddr)
-                f.write(f"    Node_{ip} [shape=record label=elif];\n")
+                f.write(f"    Node_{ip} [shape=record label=orelse];\n")
                 f.write(f"    Node_{ip} -> Node_{op.operand};\n")
             elif op.typ == OpType.END:
                 assert isinstance(op.operand, OpAddr)
@@ -2080,8 +2091,11 @@ def generate_control_flow_graph_as_dot_file(program: Program, dot_path: str):
                 f.write(f"    Node_{ip} -> Node_{op.operand};\n")
             elif op.typ == OpType.SKIP_PROC:
                 assert isinstance(op.operand, OpAddr)
-                f.write(f"    Node_{ip} [shape=record label=proc];\n")
+                f.write(f"    Node_{ip} [shape=record label=skip_proc];\n")
                 f.write(f"    Node_{ip} -> Node_{op.operand};\n")
+            elif op.typ == OpType.PREP_PROC:
+                f.write(f"    Node_{ip} [shape=record label=prep_proc];\n")
+                f.write(f"    Node_{ip} -> Node_{ip + 1};\n")
             elif op.typ == OpType.RET:
                 f.write(f"    Node_{ip} [shape=record label=ret];\n")
             elif op.typ == OpType.CALL:
@@ -2145,9 +2159,6 @@ if __name__ == '__main__' and '__file__' in globals():
             unsafe = True
         else:
             break
-
-    if debug:
-        print("[INFO] Debug mode is enabled")
 
     if len(argv) < 1:
         usage(compiler_name)

@@ -4,7 +4,7 @@
 
 include "std.porth"
 
-if argc 2 < do
+argc 2 < if
   "Usage: ./checker <output.ppm>\n" eputs
   "[ERROR] no output file path is provided\n" eputs
   1 exit
@@ -23,7 +23,8 @@ memory canvas sizeof(pixel) WIDTH * HEIGHT * end
     2dup CELL_WIDTH /
     swap CELL_HEIGHT /
     + 
-    if 2 % 0 = do
+    2 %
+    0 = if
       2dup swap WIDTH * + sizeof(pixel) * canvas +
       dup 255 swap !8 1 +
       dup 0   swap !8 1 +
@@ -57,7 +58,7 @@ AT_FDCWD
 openat
 !fd
 
-if @fd 0 < do
+@fd 0 < if
   "[ERROR] could not open file `" eputs
   @file_path eputs
   "`\n" eputs
