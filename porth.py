@@ -570,7 +570,7 @@ class Context:
 # TODO: better error reporting on type checking errors of intrinsics
 # Reported expected and actual types with the location that introduced the actual type
 def type_check_program(program: Program):
-    assert False, "TODO: the type checking is broken at the moment. Run with `-unsafe` flag."
+    assert False, "TODO: the type checking is broken at the moment. Run with `-unsafe` flag before subcommand. See `./porth.py help` for more info."
     visited_dos: Dict[OpAddr, DataStack] = {}
     contexts: List[Context] = [Context(stack=[], ip=0, ret_stack=[])]
     while len(contexts) > 0:
