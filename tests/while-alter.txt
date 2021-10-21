@@ -1,0 +1,11 @@
+:i argc 0
+:b stdin 0
+
+:i returncode 1
+:b stdout 0
+
+:b stderr 248
+./tests/while-alter.porth:1:20: ERROR: Loops are not allowed to alter types and amount of elements on the stack.
+./tests/while-alter.porth:1:20: NOTE: Expected elements: []
+./tests/while-alter.porth:1:20: NOTE: Actual elements: [<DataType.INT: 1>]
+
