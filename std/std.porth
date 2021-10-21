@@ -1,3 +1,13 @@
+// Deprecated Words
+macro .64 swap !64 end
+macro ,64 @64 end
+macro ! !8 end
+macro @ @8 end
+macro . swap ! end
+macro , @ end
+macro cstr-to-pstr cstr-to-str end
+memory mem 640000 end
+
 macro NULL 0 end
 
 macro nop end
@@ -419,13 +429,13 @@ macro sizeof(u64) 8 end
 macro sizeof(u32) 4 end
 macro sizeof(ptr) sizeof(u64) end
 
-macro cstrlen
+proc cstrlen
   dup
   while dup @8 0 != do 1 + end
   swap -
 end
 
-macro cstreq
+proc cstreq
   while
     if over @8 0 != over @8 0 != and do
        over @8 over @8 =
@@ -470,18 +480,18 @@ macro @Str
   swap @Str.data
 end
 
-macro !Str // count data dst -
+proc !Str // count data dst -
   dup rot swap
   !Str.data
   !Str.count
 end
 
-macro str-chop-one-left
+proc str-chop-one-left
    dup Str.count dec64
        Str.data inc64
 end
 
-macro str-trim-left // input --
+proc str-trim-left // input --
   while 
     if dup @Str.count 0 > do
        dup @Str.data @8 ' ' =
@@ -493,7 +503,7 @@ macro str-trim-left // input --
 end
 
 memory str-chop-by-delim-tmp sizeof(u64) end
-macro str-chop-by-delim // delim line input
+proc str-chop-by-delim // delim line input
   rot str-chop-by-delim-tmp !64
   2dup @Str.data swap !Str.data
   over 0 swap !Str.count
@@ -513,7 +523,7 @@ end
 
 memory streq_a sizeof(Str) end
 memory streq_b sizeof(Str) end
-macro streq // n1 s1 n2 s2
+proc streq // n1 s1 n2 s2
   streq_a !Str
   streq_b !Str
   if streq_a @Str.count streq_b @Str.count = do
@@ -528,7 +538,7 @@ macro streq // n1 s1 n2 s2
   else false end
 end
 
-macro isdigit
+proc isdigit
   dup  '0' >=
   swap '9' <=
   and
@@ -544,7 +554,7 @@ macro PUTD_BUFFER_CAP 32 end
 memory putd-buffer PUTD_BUFFER_CAP end
 memory putd-fd sizeof(u64) end
 // TODO: fputd should fail if write call fails
-macro fputd // value fd --
+proc fputd // value fd --
   putd-fd !64
 
   if dup 0 = do
@@ -564,13 +574,3 @@ macro fputd // value fd --
 end
 
 macro putd stdout fputd end
-
-// Deprecated Words
-macro .64 swap !64 end
-macro ,64 @64 end
-macro ! !8 end
-macro @ @8 end
-macro . swap ! end
-macro , @ end
-macro cstr-to-pstr cstr-to-str end
-memory mem 640000 end

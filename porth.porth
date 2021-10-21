@@ -57,7 +57,7 @@ memory output_argv sizeof(ptr) 2 * end
 "./output"c output_argv 0 8 * + !64
 
 memory wstatus sizeof(u64) end
-macro cmd_echoed // argv
+proc cmd_echoed // argv
   "[CMD]" puts
   dup while dup @64 0 != do
     " " puts
@@ -91,7 +91,7 @@ macro cmd_echoed // argv
   drop
 end
 
-macro sim-stack-push // u64 --
+proc sim-stack-push // u64 --
   if sim-stack-count @64 SIM_STACK_CAP >= do
     here eputs ": ERROR: data stack overflow in simulation mode\n" eputs 1 exit
   end
@@ -99,7 +99,7 @@ macro sim-stack-push // u64 --
   sim-stack-count inc64
 end
 
-macro sim-stack-pop // -- u64
+proc sim-stack-pop // -- u64
   if sim-stack-count @64 0 = do
     here eputs ": ERROR: data stack underflow in simulation mode\n" eputs 1 exit
   end
@@ -107,7 +107,7 @@ macro sim-stack-pop // -- u64
   sim-stack sim-stack-count @64 8 * + @64
 end
 
-macro try_to_parse_word_as_int_or_fail_as_unknown_word // n1 s1 - ret
+proc try_to_parse_word_as_int_or_fail_as_unknown_word // n1 s1 - ret
   0 0 while dup word @Str.count < do
     dup word @Str.data + @8
 
@@ -127,7 +127,7 @@ macro try_to_parse_word_as_int_or_fail_as_unknown_word // n1 s1 - ret
 end
 
 
-macro push-op // type operand -- 
+proc push-op // type operand -- 
   // TODO: assert OPS_CAP
   ops-count @64 sizeof(Op) * ops +
   dup rot swap !Op.operand
@@ -135,7 +135,7 @@ macro push-op // type operand --
   ops-count inc64
 end
 
-macro print-op-type
+proc print-op-type
   if COUNT_OPS 7 != do
     here eputs ": Assertion Failed: Exhaustive handling of Op types in print-op-type\n" eputs
     1 exit
@@ -161,7 +161,7 @@ macro print-op-type
   drop
 end
 
-macro dump-ops // --
+proc dump-ops // --
   0 while dup ops-count @64 < do
     // ptr ptr
     dup sizeof(Op) * ops +
@@ -173,7 +173,7 @@ macro dump-ops // --
   drop
 end
 
-macro compile-ops // --
+proc compile-ops // --
   "[INFO] Generating output.asm\n" puts
 
   420                  // mode
@@ -295,7 +295,7 @@ macro compile-ops // --
   output_argv cmd_echoed
 end  
 
-macro simulate-ops // --
+proc simulate-ops // --
   0 while dup ops-count @64 < do
     dup sizeof(Op) * ops +
 
@@ -343,7 +343,7 @@ macro simulate-ops // --
   drop
 end
 
-macro parse_file_path_cstr_into_ops
+proc parse_file_path_cstr_into_ops
   0                            // mode
   O_RDONLY                     // flags
   file_path_cstr @64 cast(ptr) // pathname
@@ -412,7 +412,7 @@ macro parse_file_path_cstr_into_ops
   // TODO: parse_file_path does not clean up resources after itself
 end
 
-macro usage // --
+proc usage // --
   dup "Usage: porth <SUBCOMMAND>\n" rot fputs
   dup "  SUBCOMMANDS:\n" rot fputs
   dup "    sim <file>       Simulate the program.\n" rot fputs
@@ -423,7 +423,7 @@ macro usage // --
   drop
 end
 
-macro main // --
+proc main // --
   if argc 2 < do
     stderr usage
     "ERROR: subcommand is not provided\n" eputs
