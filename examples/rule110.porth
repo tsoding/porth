@@ -12,7 +12,7 @@ display N + 10 swap !8
 
 0 while dup N 2 - < do
    0 while dup N < do
-      if dup row + @8 1 = do
+      dup row + @8 1 = if
          dup display + '*' swap !8
       else
          dup display + ' ' swap !8

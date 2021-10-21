@@ -3,7 +3,7 @@ include "std.porth"
 memory acc sizeof(u64) end
 
 1 2 while over 4000000 < do
-  if over 2 mod 0 = do
+  over 2 mod 0 = if
     over acc @64 + acc !64
   end
 

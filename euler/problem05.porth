@@ -16,7 +16,7 @@ memory ans sizeof(u64) end
   
   // factorize
   dup 2 while over 1 > do
-    if 2dup mod 0 = do
+    2dup mod 0 = if
       dup 8 * tmp + inc64
       swap over / swap
     else
@@ -25,10 +25,9 @@ memory ans sizeof(u64) end
   end 2drop
 
   0 while dup N < do
-    if dup 8 * acc + @64
-       over 8 * tmp + @64
-       <
-    do
+    dup 8 * acc + @64
+    over 8 * tmp + @64
+    < if
       dup 8 * acc +
       over 8 * tmp + @64
       swap !64

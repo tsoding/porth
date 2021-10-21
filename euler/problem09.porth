@@ -10,7 +10,7 @@ memory c sizeof(u64) end
     dup b !64
     1000 a @64 - b @64 - c !64
         
-    if a @64 dup * b @64 dup * + c @64 dup * = do
+    a @64 dup * b @64 dup * + c @64 dup * = if
       a @64 b @64 * c @64 * print
       0 exit
     end

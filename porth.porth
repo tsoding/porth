@@ -69,16 +69,16 @@ proc cmd_echoed // argv
 
   fork
   
-  if dup 0 = do
+  dup 0 = if
     drop
     dup @64 cast(ptr) empty_envp
     rot rot
     execve
-    if dup 0 < do
+    dup 0 < if
       "[ERROR] could not exec external program\n" eputs
       1 exit
     end
-  elif dup 0 > do
+  orelse dup 0 > if
     drop
     // TODO: handle the result of wait4
     NULL 0 wstatus -1 wait4 drop
@@ -92,7 +92,7 @@ proc cmd_echoed // argv
 end
 
 proc sim-stack-push // u64 --
-  if sim-stack-count @64 SIM_STACK_CAP >= do
+  sim-stack-count @64 SIM_STACK_CAP >= if
     here eputs ": ERROR: data stack overflow in simulation mode\n" eputs 1 exit
   end
   sim-stack sim-stack-count @64 8 * + !64
@@ -100,7 +100,7 @@ proc sim-stack-push // u64 --
 end
 
 proc sim-stack-pop // -- u64
-  if sim-stack-count @64 0 = do
+  sim-stack-count @64 0 = if
     here eputs ": ERROR: data stack underflow in simulation mode\n" eputs 1 exit
   end
   sim-stack-count dec64
@@ -111,7 +111,7 @@ proc try_to_parse_word_as_int_or_fail_as_unknown_word // n1 s1 - ret
   0 0 while dup word @Str.count < do
     dup word @Str.data + @8
 
-    if dup isdigit lnot do
+    dup isdigit lnot if
       file_path_cstr @64 cast(ptr) cstr-to-str eputs
       ":" puts line_number @64 putd
       ":" puts word @Str.data cast(int) line_start @64 - 1 + putd
@@ -136,24 +136,24 @@ proc push-op // type operand --
 end
 
 proc print-op-type
-  if COUNT_OPS 7 != do
+  COUNT_OPS 7 != if
     here eputs ": Assertion Failed: Exhaustive handling of Op types in print-op-type\n" eputs
     1 exit
   end
 
-  if dup OP_PUSH_INT = do
+  dup OP_PUSH_INT = if
     "OP_PUSH_INT" puts
-  elif dup OP_PLUS = do
+  orelse dup OP_PLUS = if
     "OP_PLUS" puts
-  elif dup OP_MINUS = do
+  orelse dup OP_MINUS = if
     "OP_MINUS" puts
-  elif dup OP_MUL = do
+  orelse dup OP_MUL = if
     "OP_MUL" puts
-  elif dup OP_DUP = do
+  orelse dup OP_DUP = if
     "OP_DUP" puts
-  elif dup OP_DROP = do
+  orelse dup OP_DROP = if
     "OP_DROP" puts
-  elif dup OP_PRINT = do
+  orelse dup OP_PRINT = if
     "OP_PRINT" puts
   else
     here eputs ": Unknown op type\n" eputs 1 exit
@@ -184,7 +184,7 @@ proc compile-ops // --
   openat
   !out_fd
 
-  if @out_fd 0 < do
+  @out_fd 0 < if
     "[ERROR] could not open `output.asm`\n" eputs
     1 exit
   end
@@ -232,43 +232,43 @@ proc compile-ops // --
     dup sizeof(Op) * ops +
 
     // TODO: compile time assertion
-    if COUNT_OPS 7 != do
+    COUNT_OPS 7 != if
       here eputs ": Assertion Failed: Exhaustive handling of Op types in compile-ops\n" eputs
       1 exit
     end
 
-    if dup @Op.type OP_PUSH_INT = do
+    dup @Op.type OP_PUSH_INT = if
        "    ;; -- push int "  @out_fd fputs dup @Op.operand @out_fd fputd " --\n" @out_fd fputs
        "    mov rax, "        @out_fd fputs dup @Op.operand @out_fd fputd "\n"    @out_fd fputs
        "    push rax\n"       @out_fd fputs
-    elif dup @Op.type OP_PLUS = do
+    orelse dup @Op.type OP_PLUS = if
        "    ;; -- plus --\n"  @out_fd fputs
        "    pop rax\n"        @out_fd fputs
        "    pop rbx\n"        @out_fd fputs
        "    add rax, rbx\n"   @out_fd fputs
        "    push rax\n"       @out_fd fputs
-    elif dup @Op.type OP_MINUS = do
+    orelse dup @Op.type OP_MINUS = if
        "    ;; -- minus --\n" @out_fd fputs
        "    pop rax\n"        @out_fd fputs
        "    pop rbx\n"        @out_fd fputs
        "    sub rbx, rax\n"   @out_fd fputs
        "    push rbx\n"       @out_fd fputs
-    elif dup @Op.type OP_MUL = do
+    orelse dup @Op.type OP_MUL = if
        "    ;; -- mul --\n"   @out_fd fputs
        "    pop rax\n"        @out_fd fputs
        "    pop rbx\n"        @out_fd fputs
        "    mul rbx\n"        @out_fd fputs
        "    push rax\n"       @out_fd fputs
-    elif dup @Op.type OP_PRINT = do
+    orelse dup @Op.type OP_PRINT = if
        "    ;; -- print --\n" @out_fd fputs
        "    pop rdi\n"        @out_fd fputs
        "    call print\n"     @out_fd fputs
-    elif dup @Op.type OP_DUP = do
+    orelse dup @Op.type OP_DUP = if
        "    ;; -- dup --\n"   @out_fd fputs
        "    pop rax\n"        @out_fd fputs
        "    push rax\n"       @out_fd fputs
        "    push rax\n"       @out_fd fputs
-    elif dup @Op.type OP_DROP = do
+    orelse dup @Op.type OP_DROP = if
        "    ;; -- drop --\n"  @out_fd fputs
        "    pop rax\n"        @out_fd fputs
     else
@@ -299,37 +299,37 @@ proc simulate-ops // --
   0 while dup ops-count @64 < do
     dup sizeof(Op) * ops +
 
-    if COUNT_OPS 7 != do
+    COUNT_OPS 7 != if
       here eputs ": Assertion Failed: Exhaustive handling of Op types in simulate-ops\n" eputs
       1 exit
     end
 
-    if dup @Op.type OP_PUSH_INT = do
+    dup @Op.type OP_PUSH_INT = if
        dup @Op.operand sim-stack-push
-    elif dup @Op.type OP_PLUS = do
+    orelse dup @Op.type OP_PLUS = if
        sim-stack-pop
        sim-stack-pop
        +
        sim-stack-push
-    elif dup @Op.type OP_MINUS = do
+    orelse dup @Op.type OP_MINUS = if
        sim-stack-pop
        sim-stack-pop
        swap
        -
        sim-stack-push
-    elif dup @Op.type OP_MUL = do
+    orelse dup @Op.type OP_MUL = if
        sim-stack-pop
        sim-stack-pop
        *
        sim-stack-push
-    elif dup @Op.type OP_PRINT = do
+    orelse dup @Op.type OP_PRINT = if
        sim-stack-pop print
-    elif dup @Op.type OP_DUP = do
+    orelse dup @Op.type OP_DUP = if
        sim-stack-pop
        dup
        sim-stack-push
        sim-stack-push
-    elif dup @Op.type OP_DROP = do
+    orelse dup @Op.type OP_DROP = if
        sim-stack-pop
        drop
     else
@@ -350,14 +350,14 @@ proc parse_file_path_cstr_into_ops
   AT_FDCWD                     // dirfd
   openat
 
-  if dup 0 < do
+  dup 0 < if
     "ERROR: could not open file " eputs file_path_cstr @64 cast(ptr) cstr-to-str eputs "\n" eputs
     1 exit
   end
 
   fd !64
 
-  if statbuf fd @64 fstat 0 < do
+  statbuf fd @64 fstat 0 < if
     "ERROR: could not determine the size of file " eputs file_path_cstr @64 cast(ptr) cstr-to-str eputs "\n" eputs
     1 exit
   end
@@ -373,7 +373,7 @@ proc parse_file_path_cstr_into_ops
   mmap
   content !Str.data
 
-  if content @Str.data cast(int) 0 < do
+  content @Str.data cast(int) 0 < if
     "ERROR: could not memory map file " eputs file_path_cstr @64 cast(ptr) cstr-to-str eputs "\n" eputs
     1 exit
   end
@@ -386,22 +386,22 @@ proc parse_file_path_cstr_into_ops
        line str-trim-left
        ' ' word line str-chop-by-delim
 
-       if COUNT_OPS 7 != do
+       COUNT_OPS 7 != if
          here eputs ": Assertion Failed: Exhaustive handling of Op types in parse-file-path\n" eputs
          1 exit
        end
 
-       if word @Str "+" streq do
+       word @Str "+" streq if
          OP_PLUS 0 push-op
-       elif word @Str "-" streq do
+       orelse word @Str "-" streq if
          OP_MINUS 0 push-op
-       elif word @Str "*" streq do
+       orelse word @Str "*" streq if
          OP_MUL 0 push-op
-       elif word @Str "print" streq do
+       orelse word @Str "print" streq if
          OP_PRINT 0 push-op
-       elif word @Str "dup" streq do
+       orelse word @Str "dup" streq if
          OP_DUP 0 push-op
-       elif word @Str "drop" streq do
+       orelse word @Str "drop" streq if
          OP_DROP 0 push-op
        else
          OP_PUSH_INT try_to_parse_word_as_int_or_fail_as_unknown_word push-op
@@ -424,15 +424,15 @@ proc usage // --
 end
 
 proc main // --
-  if argc 2 < do
+  argc 2 < if
     stderr usage
     "ERROR: subcommand is not provided\n" eputs
     1 exit
   end
 
   1 nth_argv
-  if dup "sim"c cstreq do
-    if argc 3 < do
+  dup "sim"c cstreq if
+    argc 3 < if
       stderr usage
       "ERROR: no input file is provided for the `sim` subcommand\n" eputs
       1 exit
@@ -443,8 +443,8 @@ proc main // --
     parse_file_path_cstr_into_ops
 
     simulate-ops
-  elif dup "com"c cstreq do
-    if argc 3 < do
+  orelse dup "com"c cstreq if
+    argc 3 < if
       stderr usage
       "ERROR: no input file is provided for the `com` subcommand\n" eputs
       1 exit
@@ -455,11 +455,11 @@ proc main // --
     parse_file_path_cstr_into_ops
 
     compile-ops
-  elif dup "help"c cstreq do
+  orelse dup "help"c cstreq if
     stdout usage
     0 exit
-  elif dup "dump"c cstreq do
-    if argc 3 < do
+  orelse dup "dump"c cstreq if
+    argc 3 < if
       stderr usage
       "ERROR: no input file is provided for the `dump` subcommand\n" eputs
       1 exit

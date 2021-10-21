@@ -19,7 +19,7 @@ memory ans sizeof(u64) end
     1 +
   end drop
 
-  if acc @64 ans @64 > do
+  acc @64 ans @64 > if
      acc @64 ans !64
   end
 

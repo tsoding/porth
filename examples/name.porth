@@ -6,12 +6,12 @@ memory name NAME_CAPACITY end
 "What is your name? " puts
 
 NAME_CAPACITY name stdin read
-if dup 0 <= do
+dup 0 <= if
   "ERROR: could not read your name, sorry ( ._.)\n" eputs
   1 exit
 end
 
-if name over + 1 - @8 '\n' = do
+name over + 1 - @8 '\n' = if
   1 -
 end
 

@@ -2,7 +2,7 @@ include "std.porth"
 
 memory limit sizeof(u64) end
 
-if argc 2 < do
+argc 2 < if
   "Usage: seq <limit>\n" eputs
   "ERROR: no limit is provided\n" eputs
   1 exit
@@ -10,7 +10,7 @@ end
 
 1 nth_argv
 while dup @8 0 != do
-  if dup @8 '0' < over @8 '9' > or do
+  dup @8 '0' < over @8 '9' > or if
     "ERROR: `" eputs
     1 nth_argv cstrlen 1 nth_argv eputs
     "` is not a correct integer\n" eputs

@@ -8,7 +8,7 @@ foo
 :b stdin 0
 
 :i returncode 0
-:b stdout 792
+:b stdout 786
 include "std.porth"
 
 memory fd sizeof(u64) end
@@ -28,7 +28,7 @@ macro cat_fd
   end drop
 end
 
-if argc 2 < do
+argc 2 < if
   stdin !fd
   cat_fd
 else
@@ -37,7 +37,7 @@ else
 
     0 O_RDONLY @file_path_cstr AT_FDCWD openat
     
-    if dup 0 < do
+    dup 0 < if
       "ERROR: could not open file " eputs
       @file_path_cstr cstr-to-str eputs
       "\n" eputs

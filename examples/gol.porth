@@ -27,7 +27,7 @@ end
 
 proc display_row
   0 while dup COLS < do
-    if 2dup + @8 0 = do
+    2dup + @8 0 = if
       display over + '.' swap !8
     else
       display over + '#' swap !8
@@ -72,37 +72,37 @@ end
 proc count_current_nbors
   0 nbors !64
 
-  if 2dup 1 - swap 1 - swap 2dup in_bounds
-     rot rot swap COLS * + board_current + @8 1 =
-     and do nbors inc64 end
+  2dup 1 - swap 1 - swap 2dup in_bounds
+  rot rot swap COLS * + board_current + @8 1 =
+  and if nbors inc64 end
 
-  if 2dup 1 - 2dup in_bounds
-     rot rot swap COLS * + board_current + @8 1 =
-     and do nbors inc64 end
+  2dup 1 - 2dup in_bounds
+  rot rot swap COLS * + board_current + @8 1 =
+  and if nbors inc64 end
 
-  if 2dup 1 - swap 1 + swap 2dup in_bounds
-     rot rot swap COLS * + board_current + @8 1 =
-     and do nbors inc64 end
+  2dup 1 - swap 1 + swap 2dup in_bounds
+  rot rot swap COLS * + board_current + @8 1 =
+  and if nbors inc64 end
 
-  if 2dup swap 1 - swap 2dup in_bounds
-     rot rot swap COLS * + board_current + @8 1 =
-     and do nbors inc64 end
+  2dup swap 1 - swap 2dup in_bounds
+  rot rot swap COLS * + board_current + @8 1 =
+  and if nbors inc64 end
 
-  if 2dup swap 1 + swap 2dup in_bounds
-     rot rot swap COLS * + board_current + @8 1 =
-     and do nbors inc64 end
+  2dup swap 1 + swap 2dup in_bounds
+  rot rot swap COLS * + board_current + @8 1 =
+  and if nbors inc64 end
 
-  if 2dup 1 + swap 1 - swap 2dup in_bounds
-     rot rot swap COLS * + board_current + @8 1 =
-     and do nbors inc64 end
+  2dup 1 + swap 1 - swap 2dup in_bounds
+  rot rot swap COLS * + board_current + @8 1 =
+  and if nbors inc64 end
 
-  if 2dup 1 + 2dup in_bounds
-     rot rot swap COLS * + board_current + @8 1 =
-     and do nbors inc64 end
+  2dup 1 + 2dup in_bounds
+  rot rot swap COLS * + board_current + @8 1 =
+  and if nbors inc64 end
 
-  if 2dup 1 + swap 1 + swap 2dup in_bounds
-     rot rot swap COLS * + board_current + @8 1 =
-     and do nbors inc64 end
+  2dup 1 + swap 1 + swap 2dup in_bounds
+  rot rot swap COLS * + board_current + @8 1 =
+  and if nbors inc64 end
 
   2drop
   nbors @64
@@ -111,15 +111,15 @@ end
 proc compute_next_board
   0 while dup ROWS < do
     0 while dup COLS < do
-      if 2dup get_current_cell 1 = do
+      2dup get_current_cell 1 = if
         2dup count_current_nbors
-        if dup 2 = swap 3 = or do
+        dup 2 = swap 3 = or if
           2dup 1 set_next_cell
         else
           2dup 0 set_next_cell
         end
       else
-        if 2dup count_current_nbors 3 = do
+        2dup count_current_nbors 3 = if
           2dup 1 set_next_cell
         else
           2dup 0 set_next_cell
