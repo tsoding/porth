@@ -24,7 +24,7 @@ syntax region porthString start=/\v'/ skip=/\v\\./ end=/\v'/
 
 " Set highlights
 highlight default link porthTodos Todo
-highlight default link porthKeywords Identifier
+highlight default link porthKeywords Keyword
 highlight default link porthCommentLine Comment
 highlight default link porthString String
 
