@@ -575,3 +575,4 @@ proc fputd // value fd --
 end
 
 macro putd stdout fputd end
+macro eputd stderr fputd end

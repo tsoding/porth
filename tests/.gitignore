@@ -15,4 +15,5 @@ memory-forth-style
 cstr
 empty
 while-procs
+intrinsics
 if-orelse

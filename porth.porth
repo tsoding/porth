@@ -5,14 +5,53 @@ include "std.porth"
 macro MEM_CAPACITY 640000 end
 macro SIM_STACK_CAP 1024 end
 
-macro OP_PUSH_INT 0 end
-macro OP_PLUS     1 end
-macro OP_MINUS    2 end
-macro OP_MUL      3 end
-macro OP_PRINT    4 end
-macro OP_DUP      5 end
-macro OP_DROP     6 end
-macro COUNT_OPS   7 end
+macro OP_PUSH_INT  0 end
+macro OP_INTRINSIC 1 end
+macro COUNT_OPS    2 end
+
+macro INTRINSIC_PLUS       0 end
+macro INTRINSIC_MINUS      1 end
+macro INTRINSIC_MUL        2 end
+macro INTRINSIC_DIVMOD     3 end
+macro INTRINSIC_EQ         4 end
+macro INTRINSIC_GT         5 end
+macro INTRINSIC_LT         6 end
+macro INTRINSIC_GE         7 end
+macro INTRINSIC_LE         8 end
+macro INTRINSIC_NE         9 end
+macro INTRINSIC_SHR       10 end
+macro INTRINSIC_SHL       11 end
+macro INTRINSIC_OR        12 end
+macro INTRINSIC_AND       13 end
+macro INTRINSIC_NOT       14 end
+macro INTRINSIC_PRINT     15 end
+macro INTRINSIC_DUP       16 end
+macro INTRINSIC_SWAP      17 end
+macro INTRINSIC_DROP      18 end
+macro INTRINSIC_OVER      19 end
+macro INTRINSIC_ROT       20 end
+macro INTRINSIC_LOAD8     21 end
+macro INTRINSIC_STORE8    22 end
+macro INTRINSIC_LOAD16    23 end
+macro INTRINSIC_STORE16   24 end
+macro INTRINSIC_LOAD32    25 end
+macro INTRINSIC_STORE32   26 end
+macro INTRINSIC_LOAD64    27 end
+macro INTRINSIC_STORE64   28 end
+macro INTRINSIC_CAST_PTR  29 end
+macro INTRINSIC_CAST_INT  30 end
+macro INTRINSIC_CAST_BOOL 31 end
+macro INTRINSIC_ARGC      32 end
+macro INTRINSIC_ARGV      33 end
+macro INTRINSIC_HERE      34 end
+macro INTRINSIC_SYSCALL0  35 end
+macro INTRINSIC_SYSCALL1  36 end
+macro INTRINSIC_SYSCALL2  37 end
+macro INTRINSIC_SYSCALL3  38 end
+macro INTRINSIC_SYSCALL4  39 end
+macro INTRINSIC_SYSCALL5  40 end
+macro INTRINSIC_SYSCALL6  41 end
+macro COUNT_INTRINSICS    42 end
 
 macro OPS_CAP       1024 end
 macro sizeof(Op)    16 end
@@ -68,7 +107,7 @@ proc cmd_echoed // argv
   "\n" puts
 
   fork
-  
+
   dup 0 = if
     drop
     dup @64 cast(ptr) empty_envp
@@ -87,11 +126,12 @@ proc cmd_echoed // argv
     "[ERROR] could not fork a child\n" eputs
     1 exit
   end
-  
+
   drop
 end
 
 proc sim-stack-push // u64 --
+  cast(int)
   sim-stack-count @64 SIM_STACK_CAP >= if
     here eputs ": ERROR: data stack overflow in simulation mode\n" eputs 1 exit
   end
@@ -127,7 +167,7 @@ proc try_to_parse_word_as_int_or_fail_as_unknown_word // n1 s1 - ret
 end
 
 
-proc push-op // type operand -- 
+proc push-op // type operand --
   // TODO: assert OPS_CAP
   ops-count @64 sizeof(Op) * ops +
   dup rot swap !Op.operand
@@ -136,25 +176,15 @@ proc push-op // type operand --
 end
 
 proc print-op-type
-  COUNT_OPS 7 != if
+  COUNT_OPS 2 != if
     here eputs ": Assertion Failed: Exhaustive handling of Op types in print-op-type\n" eputs
     1 exit
   end
 
   dup OP_PUSH_INT = if
     "OP_PUSH_INT" puts
-  orelse dup OP_PLUS = if
-    "OP_PLUS" puts
-  orelse dup OP_MINUS = if
-    "OP_MINUS" puts
-  orelse dup OP_MUL = if
-    "OP_MUL" puts
-  orelse dup OP_DUP = if
-    "OP_DUP" puts
-  orelse dup OP_DROP = if
-    "OP_DROP" puts
-  orelse dup OP_PRINT = if
-    "OP_PRINT" puts
+  orelse dup OP_INTRINSIC = if
+    "OP_INTRINSIC" puts
   else
     here eputs ": Unknown op type\n" eputs 1 exit
   end
@@ -232,7 +262,7 @@ proc compile-ops // --
     dup sizeof(Op) * ops +
 
     // TODO: compile time assertion
-    COUNT_OPS 7 != if
+    COUNT_OPS 2 != if
       here eputs ": Assertion Failed: Exhaustive handling of Op types in compile-ops\n" eputs
       1 exit
     end
@@ -241,38 +271,279 @@ proc compile-ops // --
        "    ;; -- push int "  @out_fd fputs dup @Op.operand @out_fd fputd " --\n" @out_fd fputs
        "    mov rax, "        @out_fd fputs dup @Op.operand @out_fd fputd "\n"    @out_fd fputs
        "    push rax\n"       @out_fd fputs
-    orelse dup @Op.type OP_PLUS = if
-       "    ;; -- plus --\n"  @out_fd fputs
-       "    pop rax\n"        @out_fd fputs
-       "    pop rbx\n"        @out_fd fputs
-       "    add rax, rbx\n"   @out_fd fputs
-       "    push rax\n"       @out_fd fputs
-    orelse dup @Op.type OP_MINUS = if
-       "    ;; -- minus --\n" @out_fd fputs
-       "    pop rax\n"        @out_fd fputs
-       "    pop rbx\n"        @out_fd fputs
-       "    sub rbx, rax\n"   @out_fd fputs
-       "    push rbx\n"       @out_fd fputs
-    orelse dup @Op.type OP_MUL = if
-       "    ;; -- mul --\n"   @out_fd fputs
-       "    pop rax\n"        @out_fd fputs
-       "    pop rbx\n"        @out_fd fputs
-       "    mul rbx\n"        @out_fd fputs
-       "    push rax\n"       @out_fd fputs
-    orelse dup @Op.type OP_PRINT = if
-       "    ;; -- print --\n" @out_fd fputs
-       "    pop rdi\n"        @out_fd fputs
-       "    call print\n"     @out_fd fputs
-    orelse dup @Op.type OP_DUP = if
-       "    ;; -- dup --\n"   @out_fd fputs
-       "    pop rax\n"        @out_fd fputs
-       "    push rax\n"       @out_fd fputs
-       "    push rax\n"       @out_fd fputs
-    orelse dup @Op.type OP_DROP = if
-       "    ;; -- drop --\n"  @out_fd fputs
-       "    pop rax\n"        @out_fd fputs
+    orelse dup @Op.type OP_INTRINSIC = if
+        COUNT_INTRINSICS 42 != if
+          here eputs ": Assertion Failed: Exhaustive handling of Intrinsics in compile-ops\n" eputs
+          1 exit
+        end
+
+        dup @Op.operand INTRINSIC_PLUS = if
+            "    ;; -- plus --\n"       @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    pop rbx\n"             @out_fd fputs
+            "    add rax, rbx\n"        @out_fd fputs
+            "    push rax\n"            @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_MINUS = if
+            "    ;; -- minus --\n"      @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    pop rbx\n"             @out_fd fputs
+            "    sub rbx, rax\n"        @out_fd fputs
+            "    push rbx\n"            @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_MUL = if
+            "    ;; -- mul --\n"        @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    pop rbx\n"             @out_fd fputs
+            "    mul rbx\n"             @out_fd fputs
+            "    push rax\n"            @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_DIVMOD = if
+            "    ;; -- mod --\n"        @out_fd fputs
+            "    xor rdx, rdx\n"        @out_fd fputs
+            "    pop rbx\n"             @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    div rbx\n"             @out_fd fputs
+            "    push rax\n"            @out_fd fputs
+            "    push rdx\n"            @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_SHR = if
+            "    ;; -- shr --\n"        @out_fd fputs
+            "    pop rcx\n"             @out_fd fputs
+            "    pop rbx\n"             @out_fd fputs
+            "    shr rbx, cl\n"         @out_fd fputs
+            "    push rbx\n"            @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_SHL = if
+            "    ;; -- shl --\n"        @out_fd fputs
+            "    pop rcx\n"             @out_fd fputs
+            "    pop rbx\n"             @out_fd fputs
+            "    shl rbx, cl\n"         @out_fd fputs
+            "    push rbx\n"            @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_OR = if
+            "    ;; -- bor --\n"        @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    pop rbx\n"             @out_fd fputs
+            "    or rbx, rax\n"         @out_fd fputs
+            "    push rbx\n"            @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_AND = if
+            "    ;; -- band --\n"       @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    pop rbx\n"             @out_fd fputs
+            "    and rbx, rax\n"        @out_fd fputs
+            "    push rbx\n"            @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_NOT = if
+            "    ;; -- not --\n"        @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    not rax\n"             @out_fd fputs
+            "    push rax\n"            @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_PRINT = if
+            "    ;; -- print --\n"      @out_fd fputs
+            "    pop rdi\n"             @out_fd fputs
+            "    call print\n"          @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_EQ = if
+            "    ;; -- equal --\n"      @out_fd fputs
+            "    mov rcx, 0\n"          @out_fd fputs
+            "    mov rdx, 1\n"          @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    pop rbx\n"             @out_fd fputs
+            "    cmp rax, rbx\n"        @out_fd fputs
+            "    cmove rcx, rdx\n"      @out_fd fputs
+            "    push rcx\n"            @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_GT = if
+            "    ;; -- gt --\n"         @out_fd fputs
+            "    mov rcx, 0\n"          @out_fd fputs
+            "    mov rdx, 1\n"          @out_fd fputs
+            "    pop rbx\n"             @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    cmp rax, rbx\n"        @out_fd fputs
+            "    cmovg rcx, rdx\n"      @out_fd fputs
+            "    push rcx\n"            @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_LT = if
+            "    ;; -- gt --\n"         @out_fd fputs
+            "    mov rcx, 0\n"          @out_fd fputs
+            "    mov rdx, 1\n"          @out_fd fputs
+            "    pop rbx\n"             @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    cmp rax, rbx\n"        @out_fd fputs
+            "    cmovl rcx, rdx\n"      @out_fd fputs
+            "    push rcx\n"            @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_GE = if
+            "    ;; -- gt --\n"         @out_fd fputs
+            "    mov rcx, 0\n"          @out_fd fputs
+            "    mov rdx, 1\n"          @out_fd fputs
+            "    pop rbx\n"             @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    cmp rax, rbx\n"        @out_fd fputs
+            "    cmovge rcx, rdx\n"     @out_fd fputs
+            "    push rcx\n"            @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_LE = if
+            "    ;; -- gt --\n"         @out_fd fputs
+            "    mov rcx, 0\n"          @out_fd fputs
+            "    mov rdx, 1\n"          @out_fd fputs
+            "    pop rbx\n"             @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    cmp rax, rbx\n"        @out_fd fputs
+            "    cmovle rcx, rdx\n"     @out_fd fputs
+            "    push rcx\n"            @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_NE = if
+            "    ;; -- ne --\n"         @out_fd fputs
+            "    mov rcx, 0\n"          @out_fd fputs
+            "    mov rdx, 1\n"          @out_fd fputs
+            "    pop rbx\n"             @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    cmp rax, rbx\n"        @out_fd fputs
+            "    cmovne rcx, rdx\n"     @out_fd fputs
+            "    push rcx\n"            @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_DUP = if
+            "    ;; -- dup --\n"        @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    push rax\n"            @out_fd fputs
+            "    push rax\n"            @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_SWAP = if
+            "    ;; -- swap --\n"       @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    pop rbx\n"             @out_fd fputs
+            "    push rax\n"            @out_fd fputs
+            "    push rbx\n"            @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_DROP = if
+            "    ;; -- drop --\n"       @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_OVER = if
+            "    ;; -- over --\n"       @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    pop rbx\n"             @out_fd fputs
+            "    push rbx\n"            @out_fd fputs
+            "    push rax\n"            @out_fd fputs
+            "    push rbx\n"            @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_ROT = if
+            "    ;; -- rot --\n"        @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    pop rbx\n"             @out_fd fputs
+            "    pop rcx\n"             @out_fd fputs
+            "    push rbx\n"            @out_fd fputs
+            "    push rax\n"            @out_fd fputs
+            "    push rcx\n"            @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_LOAD8 = if
+            "    ;; -- @8 --\n"         @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    xor rbx, rbx\n"        @out_fd fputs
+            "    mov bl, [rax]\n"       @out_fd fputs
+            "    push rbx\n"            @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_STORE8 = if
+            "    ;; -- !8 --\n"         @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    pop rbx\n"             @out_fd fputs
+            "    mov [rax], bl\n"       @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_LOAD16 = if
+            "    ;; -- @16 --\n"        @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    xor rbx, rbx\n"        @out_fd fputs
+            "    mov bx, [rax]\n"       @out_fd fputs
+            "    push rbx\n"            @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_STORE16 = if
+            "    ;; -- !16 --\n"        @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    pop rbx\n"             @out_fd fputs
+            "    mov [rax], bx\n"       @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_LOAD32 = if
+            "    ;; -- @32 --\n"        @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    xor rbx, rbx\n"        @out_fd fputs
+            "    mov ebx, [rax]\n"      @out_fd fputs
+            "    push rbx\n"            @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_STORE32 = if
+            "    ;; -- !32 --\n"        @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    pop rbx\n"             @out_fd fputs
+            "    mov [rax], ebx\n"      @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_LOAD64 = if
+            "    ;; -- @64 --\n"        @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    xor rbx, rbx\n"        @out_fd fputs
+            "    mov rbx, [rax]\n"      @out_fd fputs
+            "    push rbx\n"            @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_STORE64 = if
+            "    ;; -- !64 --\n"        @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    pop rbx\n"             @out_fd fputs
+            "    mov [rax], rbx\n"      @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_ARGC = if
+            "    ;; -- argc --\n"       @out_fd fputs
+            "    mov rax, [args_ptr]\n" @out_fd fputs
+            "    mov rax, [rax]\n"      @out_fd fputs
+            "    push rax\n"            @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_ARGV = if
+            "    ;; -- argv --\n"       @out_fd fputs
+            "    mov rax, [args_ptr]\n" @out_fd fputs
+            "    add rax, 8\n"          @out_fd fputs
+            "    push rax\n"            @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_HERE = if
+            here eputs ": TODO: intrinsic `here` is not implemented yet" eputs
+        orelse dup @Op.operand INTRINSIC_CAST_PTR = if
+            "    ;; -- cast(ptr) --\n"  @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_CAST_INT = if
+            "    ;; -- cast(int) --\n"  @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_CAST_BOOL = if
+            "    ;; -- cast(bool) --\n" @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_SYSCALL0 = if
+            "    ;; -- syscall0 --\n"   @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    syscall\n"             @out_fd fputs
+            "    push rax\n"            @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_SYSCALL1 = if
+            "    ;; -- syscall1 --\n"   @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    pop rdi\n"             @out_fd fputs
+            "    syscall\n"             @out_fd fputs
+            "    push rax\n"            @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_SYSCALL2 = if
+            "    ;; -- syscall2 --\n"   @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    pop rdi\n"             @out_fd fputs
+            "    pop rsi\n"             @out_fd fputs
+            "    syscall\n"             @out_fd fputs
+            "    push rax\n"            @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_SYSCALL3 = if
+            "    ;; -- syscall3 --\n"   @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    pop rdi\n"             @out_fd fputs
+            "    pop rsi\n"             @out_fd fputs
+            "    pop rdx\n"             @out_fd fputs
+            "    syscall\n"             @out_fd fputs
+            "    push rax\n"            @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_SYSCALL4 = if
+            "    ;; -- syscall4 --\n"   @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    pop rdi\n"             @out_fd fputs
+            "    pop rsi\n"             @out_fd fputs
+            "    pop rdx\n"             @out_fd fputs
+            "    pop r10\n"             @out_fd fputs
+            "    syscall\n"             @out_fd fputs
+            "    push rax\n"            @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_SYSCALL5 = if
+            "    ;; -- syscall5 --\n"   @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    pop rdi\n"             @out_fd fputs
+            "    pop rsi\n"             @out_fd fputs
+            "    pop rdx\n"             @out_fd fputs
+            "    pop r10\n"             @out_fd fputs
+            "    pop r8\n"              @out_fd fputs
+            "    syscall\n"             @out_fd fputs
+            "    push rax\n"            @out_fd fputs
+        orelse dup @Op.operand INTRINSIC_SYSCALL6 = if
+            "    ;; -- syscall6 --\n"   @out_fd fputs
+            "    pop rax\n"             @out_fd fputs
+            "    pop rdi\n"             @out_fd fputs
+            "    pop rsi\n"             @out_fd fputs
+            "    pop rdx\n"             @out_fd fputs
+            "    pop r10\n"             @out_fd fputs
+            "    pop r8\n"              @out_fd fputs
+            "    pop r9\n"              @out_fd fputs
+            "    syscall\n"             @out_fd fputs
+            "    push rax\n"            @out_fd fputs
+        else
+          here eputs ": unreachable.\n" eputs
+          1 exit
+        end
     else
-       here eputs ": unreachable\n" eputs 1 exit
+      here eputs ": unreachable.\n" eputs
+      1 exit
     end
 
     drop
@@ -293,45 +564,189 @@ proc compile-ops // --
   nasm_argv cmd_echoed
   ld_argv cmd_echoed
   output_argv cmd_echoed
-end  
+end
 
 proc simulate-ops // --
   0 while dup ops-count @64 < do
     dup sizeof(Op) * ops +
 
-    COUNT_OPS 7 != if
+    COUNT_OPS 2 != if
       here eputs ": Assertion Failed: Exhaustive handling of Op types in simulate-ops\n" eputs
       1 exit
     end
 
     dup @Op.type OP_PUSH_INT = if
        dup @Op.operand sim-stack-push
-    orelse dup @Op.type OP_PLUS = if
-       sim-stack-pop
-       sim-stack-pop
-       +
-       sim-stack-push
-    orelse dup @Op.type OP_MINUS = if
-       sim-stack-pop
-       sim-stack-pop
-       swap
-       -
-       sim-stack-push
-    orelse dup @Op.type OP_MUL = if
-       sim-stack-pop
-       sim-stack-pop
-       *
-       sim-stack-push
-    orelse dup @Op.type OP_PRINT = if
-       sim-stack-pop print
-    orelse dup @Op.type OP_DUP = if
-       sim-stack-pop
-       dup
-       sim-stack-push
-       sim-stack-push
-    orelse dup @Op.type OP_DROP = if
-       sim-stack-pop
-       drop
+    orelse dup @Op.type OP_INTRINSIC = if
+      COUNT_INTRINSICS 42 != if
+        here eputs ": Assertion Failed: Exhaustive handling of Intrinsics in compile-ops\n" eputs
+        1 exit
+      end
+
+      dup @Op.operand INTRINSIC_PLUS = if
+        sim-stack-pop
+        sim-stack-pop
+        +
+        sim-stack-push
+      orelse dup @Op.operand INTRINSIC_MINUS = if
+        sim-stack-pop
+        sim-stack-pop
+        swap
+        -
+        sim-stack-push
+      orelse dup @Op.operand INTRINSIC_MUL = if
+        sim-stack-pop
+        sim-stack-pop
+        *
+        sim-stack-push
+      orelse dup @Op.operand INTRINSIC_DIVMOD = if
+        sim-stack-pop
+        sim-stack-pop
+        swap
+        divmod
+        swap
+        sim-stack-push
+        sim-stack-push
+      orelse dup @Op.operand INTRINSIC_SHR = if
+        sim-stack-pop
+        sim-stack-pop
+        swap
+        shr
+        sim-stack-push
+      orelse dup @Op.operand INTRINSIC_SHL = if
+        sim-stack-pop
+        sim-stack-pop
+        swap
+        shl
+        sim-stack-push
+      orelse dup @Op.operand INTRINSIC_OR = if
+        sim-stack-pop
+        sim-stack-pop
+        or
+        sim-stack-push
+      orelse dup @Op.operand INTRINSIC_AND = if
+        sim-stack-pop
+        sim-stack-pop
+        and
+        sim-stack-push
+      orelse dup @Op.operand INTRINSIC_NOT = if
+        sim-stack-pop
+        not
+        sim-stack-push
+      orelse dup @Op.operand INTRINSIC_PRINT = if
+        sim-stack-pop
+        print
+      orelse dup @Op.operand INTRINSIC_EQ = if
+        sim-stack-pop
+        sim-stack-pop
+        =
+        sim-stack-push
+      orelse dup @Op.operand INTRINSIC_GT = if
+        sim-stack-pop
+        sim-stack-pop
+        swap
+        >
+        sim-stack-push
+      orelse dup @Op.operand INTRINSIC_LT = if
+        sim-stack-pop
+        sim-stack-pop
+        swap
+        <
+        sim-stack-push
+      orelse dup @Op.operand INTRINSIC_GE = if
+        sim-stack-pop
+        sim-stack-pop
+        swap
+        >=
+        sim-stack-push
+      orelse dup @Op.operand INTRINSIC_LE = if
+        sim-stack-pop
+        sim-stack-pop
+        swap
+        <=
+        sim-stack-push
+      orelse dup @Op.operand INTRINSIC_NE = if
+        sim-stack-pop
+        sim-stack-pop
+        !=
+        sim-stack-push
+      orelse dup @Op.operand INTRINSIC_DUP = if
+        sim-stack-pop
+        dup
+        sim-stack-push
+        sim-stack-push
+      orelse dup @Op.operand INTRINSIC_SWAP = if
+        sim-stack-pop
+        sim-stack-pop
+        swap
+        sim-stack-push
+        sim-stack-push
+      orelse dup @Op.operand INTRINSIC_DROP = if
+        sim-stack-pop
+        drop
+      orelse dup @Op.operand INTRINSIC_OVER = if
+        sim-stack-pop
+        sim-stack-pop
+        dup
+        sim-stack-push
+        swap
+        sim-stack-push
+        sim-stack-push
+      orelse dup @Op.operand INTRINSIC_ROT = if
+        sim-stack-pop
+        sim-stack-pop
+        sim-stack-pop
+        swap
+        sim-stack-push
+        swap
+        sim-stack-push
+        sim-stack-push
+      orelse dup @Op.operand INTRINSIC_LOAD8 = if
+        here eputs ": TODO: `@8` is not implemented yet" eputs 1 exit
+      orelse dup @Op.operand INTRINSIC_STORE8 = if
+        here eputs ": TODO: `!8` is not implemented yet" eputs 1 exit
+      orelse dup @Op.operand INTRINSIC_LOAD16 = if
+        here eputs ": TODO: `@16` is not implemented yet" eputs 1 exit
+      orelse dup @Op.operand INTRINSIC_STORE16 = if
+        here eputs ": TODO: `!16` is not implemented yet" eputs 1 exit
+      orelse dup @Op.operand INTRINSIC_LOAD32 = if
+        here eputs ": TODO: `@32` is not implemented yet" eputs 1 exit
+      orelse dup @Op.operand INTRINSIC_STORE32 = if
+        here eputs ": TODO: `!32` is not implemented yet" eputs 1 exit
+      orelse dup @Op.operand INTRINSIC_LOAD64 = if
+        here eputs ": TODO: `@64` is not implemented yet" eputs 1 exit
+      orelse dup @Op.operand INTRINSIC_STORE64 = if
+        here eputs ": TODO: `!64` is not implemented yet" eputs 1 exit
+      orelse dup @Op.operand INTRINSIC_ARGC = if
+        here eputs ": TODO: `argc` is not implemented yet" eputs 1 exit
+      orelse dup @Op.operand INTRINSIC_ARGV = if
+        here eputs ": TODO: `argv` is not implemented yet" eputs 1 exit
+      orelse dup @Op.operand INTRINSIC_HERE = if
+        here eputs ": TODO: `here` is not implemented yet" eputs
+      orelse dup @Op.operand INTRINSIC_CAST_PTR = if
+        nop
+      orelse dup @Op.operand INTRINSIC_CAST_INT = if
+        nop
+      orelse dup @Op.operand INTRINSIC_CAST_BOOL = if
+        nop
+      orelse dup @Op.operand INTRINSIC_SYSCALL0 = if
+        here eputs ": TODO: `syscall0` is not implemented yet" eputs
+      orelse dup @Op.operand INTRINSIC_SYSCALL1 = if
+        here eputs ": TODO: `syscall1` is not implemented yet" eputs
+      orelse dup @Op.operand INTRINSIC_SYSCALL2 = if
+        here eputs ": TODO: `syscall2` is not implemented yet" eputs
+      orelse dup @Op.operand INTRINSIC_SYSCALL3 = if
+        here eputs ": TODO: `syscall3` is not implemented yet" eputs
+      orelse dup @Op.operand INTRINSIC_SYSCALL4 = if
+        here eputs ": TODO: `syscall4` is not implemented yet" eputs
+      orelse dup @Op.operand INTRINSIC_SYSCALL5 = if
+        here eputs ": TODO: `syscall5` is not implemented yet" eputs
+      orelse dup @Op.operand INTRINSIC_SYSCALL6 = if
+        here eputs ": TODO: `syscall6` is not implemented yet" eputs
+      else
+        here eputs ": unreachable.\n" eputs
+        1 exit
+      end
     else
        here eputs ": unreachable\n" eputs 1 exit
     end
@@ -383,29 +798,107 @@ proc parse_file_path_cstr_into_ops
     '\n' line content str-chop-by-delim
     line @Str.data line_start !64
     while line @Str.count 0 > do
-       line str-trim-left
-       ' ' word line str-chop-by-delim
+      line str-trim-left
+      ' ' word line str-chop-by-delim
 
-       COUNT_OPS 7 != if
-         here eputs ": Assertion Failed: Exhaustive handling of Op types in parse-file-path\n" eputs
-         1 exit
-       end
+      COUNT_OPS 2 != if
+        here eputs ": Assertion Failed: Exhaustive handling of Op types in parse-file-path\n" eputs
+        1 exit
+      end
 
-       word @Str "+" streq if
-         OP_PLUS 0 push-op
-       orelse word @Str "-" streq if
-         OP_MINUS 0 push-op
-       orelse word @Str "*" streq if
-         OP_MUL 0 push-op
-       orelse word @Str "print" streq if
-         OP_PRINT 0 push-op
-       orelse word @Str "dup" streq if
-         OP_DUP 0 push-op
-       orelse word @Str "drop" streq if
-         OP_DROP 0 push-op
-       else
-         OP_PUSH_INT try_to_parse_word_as_int_or_fail_as_unknown_word push-op
-       end
+      COUNT_INTRINSICS 42 != if
+        here eputs ": Assertion Failed: Exhaustive handling of Intrinsics in parse-file-path\n" eputs
+        1 exit
+      end
+
+      word @Str "+" streq if
+          OP_INTRINSIC INTRINSIC_PLUS push-op
+      orelse word @Str "-" streq if
+          OP_INTRINSIC INTRINSIC_MINUS push-op
+      orelse word @Str "*" streq if
+          OP_INTRINSIC INTRINSIC_MUL push-op
+      orelse word @Str "divmod" streq if
+          OP_INTRINSIC INTRINSIC_DIVMOD push-op
+      orelse word @Str "print" streq if
+          OP_INTRINSIC INTRINSIC_PRINT push-op
+      orelse word @Str "=" streq if
+          OP_INTRINSIC INTRINSIC_EQ push-op
+      orelse word @Str ">" streq if
+          OP_INTRINSIC INTRINSIC_GT push-op
+      orelse word @Str "<" streq if
+          OP_INTRINSIC INTRINSIC_LT push-op
+      orelse word @Str ">=" streq if
+          OP_INTRINSIC INTRINSIC_GE push-op
+      orelse word @Str "<=" streq if
+          OP_INTRINSIC INTRINSIC_LE push-op
+      orelse word @Str "!=" streq if
+          OP_INTRINSIC INTRINSIC_NE push-op
+      orelse word @Str "shr" streq if
+          OP_INTRINSIC INTRINSIC_SHR push-op
+      orelse word @Str "shl" streq if
+          OP_INTRINSIC INTRINSIC_SHL push-op
+      orelse word @Str "or" streq if
+          OP_INTRINSIC INTRINSIC_OR push-op
+      orelse word @Str "and" streq if
+          OP_INTRINSIC INTRINSIC_AND push-op
+      orelse word @Str "not" streq if
+          OP_INTRINSIC INTRINSIC_NOT push-op
+      orelse word @Str "dup" streq if
+          OP_INTRINSIC INTRINSIC_DUP push-op
+      orelse word @Str "swap" streq if
+          OP_INTRINSIC INTRINSIC_SWAP push-op
+      orelse word @Str "drop" streq if
+          OP_INTRINSIC INTRINSIC_DROP push-op
+      orelse word @Str "over" streq if
+          OP_INTRINSIC INTRINSIC_OVER push-op
+      orelse word @Str "rot" streq if
+          OP_INTRINSIC INTRINSIC_ROT push-op
+      orelse word @Str "!8" streq if
+          OP_INTRINSIC INTRINSIC_STORE8 push-op
+      orelse word @Str "@8" streq if
+          OP_INTRINSIC INTRINSIC_LOAD8 push-op
+      orelse word @Str "!16" streq if
+          OP_INTRINSIC INTRINSIC_STORE16 push-op
+      orelse word @Str "@16" streq if
+          OP_INTRINSIC INTRINSIC_LOAD16 push-op
+      orelse word @Str "!32" streq if
+          OP_INTRINSIC INTRINSIC_STORE32 push-op
+      orelse word @Str "@32" streq if
+          OP_INTRINSIC INTRINSIC_LOAD32 push-op
+      orelse word @Str "!64" streq if
+          OP_INTRINSIC INTRINSIC_STORE64 push-op
+      orelse word @Str "@64" streq if
+          OP_INTRINSIC INTRINSIC_LOAD64 push-op
+      orelse word @Str "cast(ptr)" streq if
+          OP_INTRINSIC INTRINSIC_CAST_PTR push-op
+      orelse word @Str "cast(int)" streq if
+          OP_INTRINSIC INTRINSIC_CAST_INT push-op
+      orelse word @Str "cast(bool)" streq if
+          OP_INTRINSIC INTRINSIC_CAST_BOOL push-op
+      orelse word @Str "argc" streq if
+          OP_INTRINSIC INTRINSIC_ARGC push-op
+      orelse word @Str "argv" streq if
+          OP_INTRINSIC INTRINSIC_ARGV push-op
+      orelse word @Str "here" streq if
+          OP_INTRINSIC INTRINSIC_HERE push-op
+      orelse word @Str "syscall0" streq if
+          OP_INTRINSIC INTRINSIC_SYSCALL0 push-op
+      orelse word @Str "syscall1" streq if
+          OP_INTRINSIC INTRINSIC_SYSCALL1 push-op
+      orelse word @Str "syscall2" streq if
+          OP_INTRINSIC INTRINSIC_SYSCALL2 push-op
+      orelse word @Str "syscall3" streq if
+          OP_INTRINSIC INTRINSIC_SYSCALL3 push-op
+      orelse word @Str "syscall4" streq if
+          OP_INTRINSIC INTRINSIC_SYSCALL4 push-op
+      orelse word @Str "syscall5" streq if
+          OP_INTRINSIC INTRINSIC_SYSCALL5 push-op
+      orelse word @Str "syscall6" streq if
+          OP_INTRINSIC INTRINSIC_SYSCALL6 push-op
+      else
+        OP_PUSH_INT try_to_parse_word_as_int_or_fail_as_unknown_word push-op
+      end
+
     end
     line_number inc64
   end
