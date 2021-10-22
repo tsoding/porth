@@ -6,8 +6,10 @@ macro MEM_CAPACITY 640000 end
 macro SIM_STACK_CAP 1024 end
 
 macro OP_PUSH_INT  0 end
-macro OP_INTRINSIC 1 end
-macro COUNT_OPS    2 end
+macro OP_IF        1 end
+macro OP_END       2 end
+macro OP_INTRINSIC 3 end
+macro COUNT_OPS    4 end
 
 macro INTRINSIC_PLUS       0 end
 macro INTRINSIC_MINUS      1 end
@@ -73,6 +75,7 @@ memory line_start      sizeof(ptr)                 end
 memory sim-stack-count sizeof(u64)                 end
 memory sim-stack       sizeof(u64) SIM_STACK_CAP * end
 memory ops-count       sizeof(u64)                 end
+macro @ops-count ops-count @64 end
 memory ops             sizeof(Op) OPS_CAP *        end
 
 memory out_fd sizeof(u64) end
@@ -169,14 +172,14 @@ end
 
 proc push-op // type operand --
   // TODO: assert OPS_CAP
-  ops-count @64 sizeof(Op) * ops +
+  @ops-count sizeof(Op) * ops +
   dup rot swap !Op.operand
   !Op.type
   ops-count inc64
 end
 
 proc print-op-type
-  COUNT_OPS 2 != if
+  COUNT_OPS 4 != if
     here eputs ": Assertion Failed: Exhaustive handling of Op types in print-op-type\n" eputs
     1 exit
   end
@@ -185,6 +188,10 @@ proc print-op-type
     "OP_PUSH_INT" puts
   orelse dup OP_INTRINSIC = if
     "OP_INTRINSIC" puts
+  orelse dup OP_IF = if
+    "OP_IF" puts
+  orelse dup OP_END = if
+    "OP_END" puts
   else
     here eputs ": Unknown op type\n" eputs 1 exit
   end
@@ -192,9 +199,10 @@ proc print-op-type
 end
 
 proc dump-ops // --
-  0 while dup ops-count @64 < do
+  0 while dup @ops-count < do
     // ptr ptr
     dup sizeof(Op) * ops +
+    "IP:      " puts over putd "\n" puts
     "Type:    " puts dup @Op.type print-op-type "\n" puts
     "Operand: " puts @Op.operand putd           "\n" puts
     "----------\n" puts
@@ -258,19 +266,31 @@ proc compile-ops // --
   "_start:\n"                              @out_fd fputs
   "    mov [args_ptr], rsp\n"              @out_fd fputs
 
-  0 while dup ops-count @64 < do
+  0 while dup @ops-count < do
     dup sizeof(Op) * ops +
 
     // TODO: compile time assertion
-    COUNT_OPS 2 != if
+    COUNT_OPS 4 != if
       here eputs ": Assertion Failed: Exhaustive handling of Op types in compile-ops\n" eputs
       1 exit
     end
+
+    "addr_" @out_fd fputs
+    over    @out_fd fputd
+    ":\n"   @out_fd fputs
 
     dup @Op.type OP_PUSH_INT = if
        "    ;; -- push int "  @out_fd fputs dup @Op.operand @out_fd fputd " --\n" @out_fd fputs
        "    mov rax, "        @out_fd fputs dup @Op.operand @out_fd fputd "\n"    @out_fd fputs
        "    push rax\n"       @out_fd fputs
+    orelse dup @Op.type OP_IF = if
+       "    ;; -- if --\n"   @out_fd fputs
+       "    pop rax\n"       @out_fd fputs
+       "    test rax, rax\n" @out_fd fputs
+       "    jz addr_"        @out_fd fputs dup @Op.operand @out_fd fputd "\n" @out_fd fputs
+    orelse dup @Op.type OP_END = if
+       "    ;; -- end --\n"  @out_fd fputs
+       "    jmp addr_"       @out_fd fputs dup @Op.operand @out_fd fputd "\n" @out_fd fputs
     orelse dup @Op.type OP_INTRINSIC = if
         COUNT_INTRINSICS 42 != if
           here eputs ": Assertion Failed: Exhaustive handling of Intrinsics in compile-ops\n" eputs
@@ -566,40 +586,58 @@ proc compile-ops // --
   output_argv cmd_echoed
 end
 
-proc simulate-ops // --
-  0 while dup ops-count @64 < do
-    dup sizeof(Op) * ops +
+memory sim-ip sizeof(u64) end
+macro @sim-ip sim-ip @64 end
+macro !sim-ip sim-ip !64 end
+memory sim-op sizeof(Op) end
 
-    COUNT_OPS 2 != if
+proc simulate-ops // --
+  0 !sim-ip
+  while @sim-ip @ops-count < do
+    sizeof(Op)
+    @sim-ip sizeof(Op) * ops +
+    sim-op
+    memcpy
+
+    COUNT_OPS 4 != if
       here eputs ": Assertion Failed: Exhaustive handling of Op types in simulate-ops\n" eputs
       1 exit
     end
 
-    dup @Op.type OP_PUSH_INT = if
-       dup @Op.operand sim-stack-push
-    orelse dup @Op.type OP_INTRINSIC = if
+    sim-op @Op.type OP_PUSH_INT = if
+       sim-op @Op.operand sim-stack-push
+       sim-ip inc64
+    orelse sim-op @Op.type OP_IF = if
+       sim-stack-pop cast(bool) if
+         sim-ip inc64
+       else
+         sim-op @Op.operand !sim-ip
+       end
+    orelse sim-op @Op.type OP_END = if
+      sim-op @Op.operand !sim-ip
+    orelse sim-op @Op.type OP_INTRINSIC = if
       COUNT_INTRINSICS 42 != if
         here eputs ": Assertion Failed: Exhaustive handling of Intrinsics in compile-ops\n" eputs
         1 exit
       end
 
-      dup @Op.operand INTRINSIC_PLUS = if
+      sim-op @Op.operand INTRINSIC_PLUS = if
         sim-stack-pop
         sim-stack-pop
         +
         sim-stack-push
-      orelse dup @Op.operand INTRINSIC_MINUS = if
+      orelse sim-op @Op.operand INTRINSIC_MINUS = if
         sim-stack-pop
         sim-stack-pop
         swap
         -
         sim-stack-push
-      orelse dup @Op.operand INTRINSIC_MUL = if
+      orelse sim-op @Op.operand INTRINSIC_MUL = if
         sim-stack-pop
         sim-stack-pop
         *
         sim-stack-push
-      orelse dup @Op.operand INTRINSIC_DIVMOD = if
+      orelse sim-op @Op.operand INTRINSIC_DIVMOD = if
         sim-stack-pop
         sim-stack-pop
         swap
@@ -607,84 +645,84 @@ proc simulate-ops // --
         swap
         sim-stack-push
         sim-stack-push
-      orelse dup @Op.operand INTRINSIC_SHR = if
+      orelse sim-op @Op.operand INTRINSIC_SHR = if
         sim-stack-pop
         sim-stack-pop
         swap
         shr
         sim-stack-push
-      orelse dup @Op.operand INTRINSIC_SHL = if
+      orelse sim-op @Op.operand INTRINSIC_SHL = if
         sim-stack-pop
         sim-stack-pop
         swap
         shl
         sim-stack-push
-      orelse dup @Op.operand INTRINSIC_OR = if
+      orelse sim-op @Op.operand INTRINSIC_OR = if
         sim-stack-pop
         sim-stack-pop
         or
         sim-stack-push
-      orelse dup @Op.operand INTRINSIC_AND = if
+      orelse sim-op @Op.operand INTRINSIC_AND = if
         sim-stack-pop
         sim-stack-pop
         and
         sim-stack-push
-      orelse dup @Op.operand INTRINSIC_NOT = if
+      orelse sim-op @Op.operand INTRINSIC_NOT = if
         sim-stack-pop
         not
         sim-stack-push
-      orelse dup @Op.operand INTRINSIC_PRINT = if
+      orelse sim-op @Op.operand INTRINSIC_PRINT = if
         sim-stack-pop
         print
-      orelse dup @Op.operand INTRINSIC_EQ = if
+      orelse sim-op @Op.operand INTRINSIC_EQ = if
         sim-stack-pop
         sim-stack-pop
         =
         sim-stack-push
-      orelse dup @Op.operand INTRINSIC_GT = if
+      orelse sim-op @Op.operand INTRINSIC_GT = if
         sim-stack-pop
         sim-stack-pop
         swap
         >
         sim-stack-push
-      orelse dup @Op.operand INTRINSIC_LT = if
+      orelse sim-op @Op.operand INTRINSIC_LT = if
         sim-stack-pop
         sim-stack-pop
         swap
         <
         sim-stack-push
-      orelse dup @Op.operand INTRINSIC_GE = if
+      orelse sim-op @Op.operand INTRINSIC_GE = if
         sim-stack-pop
         sim-stack-pop
         swap
         >=
         sim-stack-push
-      orelse dup @Op.operand INTRINSIC_LE = if
+      orelse sim-op @Op.operand INTRINSIC_LE = if
         sim-stack-pop
         sim-stack-pop
         swap
         <=
         sim-stack-push
-      orelse dup @Op.operand INTRINSIC_NE = if
+      orelse sim-op @Op.operand INTRINSIC_NE = if
         sim-stack-pop
         sim-stack-pop
         !=
         sim-stack-push
-      orelse dup @Op.operand INTRINSIC_DUP = if
+      orelse sim-op @Op.operand INTRINSIC_DUP = if
         sim-stack-pop
         dup
         sim-stack-push
         sim-stack-push
-      orelse dup @Op.operand INTRINSIC_SWAP = if
+      orelse sim-op @Op.operand INTRINSIC_SWAP = if
         sim-stack-pop
         sim-stack-pop
         swap
         sim-stack-push
         sim-stack-push
-      orelse dup @Op.operand INTRINSIC_DROP = if
+      orelse sim-op @Op.operand INTRINSIC_DROP = if
         sim-stack-pop
         drop
-      orelse dup @Op.operand INTRINSIC_OVER = if
+      orelse sim-op @Op.operand INTRINSIC_OVER = if
         sim-stack-pop
         sim-stack-pop
         dup
@@ -692,7 +730,7 @@ proc simulate-ops // --
         swap
         sim-stack-push
         sim-stack-push
-      orelse dup @Op.operand INTRINSIC_ROT = if
+      orelse sim-op @Op.operand INTRINSIC_ROT = if
         sim-stack-pop
         sim-stack-pop
         sim-stack-pop
@@ -701,61 +739,79 @@ proc simulate-ops // --
         swap
         sim-stack-push
         sim-stack-push
-      orelse dup @Op.operand INTRINSIC_LOAD8 = if
+      orelse sim-op @Op.operand INTRINSIC_LOAD8 = if
         here eputs ": TODO: `@8` is not implemented yet" eputs 1 exit
-      orelse dup @Op.operand INTRINSIC_STORE8 = if
+      orelse sim-op @Op.operand INTRINSIC_STORE8 = if
         here eputs ": TODO: `!8` is not implemented yet" eputs 1 exit
-      orelse dup @Op.operand INTRINSIC_LOAD16 = if
+      orelse sim-op @Op.operand INTRINSIC_LOAD16 = if
         here eputs ": TODO: `@16` is not implemented yet" eputs 1 exit
-      orelse dup @Op.operand INTRINSIC_STORE16 = if
+      orelse sim-op @Op.operand INTRINSIC_STORE16 = if
         here eputs ": TODO: `!16` is not implemented yet" eputs 1 exit
-      orelse dup @Op.operand INTRINSIC_LOAD32 = if
+      orelse sim-op @Op.operand INTRINSIC_LOAD32 = if
         here eputs ": TODO: `@32` is not implemented yet" eputs 1 exit
-      orelse dup @Op.operand INTRINSIC_STORE32 = if
+      orelse sim-op @Op.operand INTRINSIC_STORE32 = if
         here eputs ": TODO: `!32` is not implemented yet" eputs 1 exit
-      orelse dup @Op.operand INTRINSIC_LOAD64 = if
+      orelse sim-op @Op.operand INTRINSIC_LOAD64 = if
         here eputs ": TODO: `@64` is not implemented yet" eputs 1 exit
-      orelse dup @Op.operand INTRINSIC_STORE64 = if
+      orelse sim-op @Op.operand INTRINSIC_STORE64 = if
         here eputs ": TODO: `!64` is not implemented yet" eputs 1 exit
-      orelse dup @Op.operand INTRINSIC_ARGC = if
+      orelse sim-op @Op.operand INTRINSIC_ARGC = if
         here eputs ": TODO: `argc` is not implemented yet" eputs 1 exit
-      orelse dup @Op.operand INTRINSIC_ARGV = if
+      orelse sim-op @Op.operand INTRINSIC_ARGV = if
         here eputs ": TODO: `argv` is not implemented yet" eputs 1 exit
-      orelse dup @Op.operand INTRINSIC_HERE = if
+      orelse sim-op @Op.operand INTRINSIC_HERE = if
         here eputs ": TODO: `here` is not implemented yet" eputs
-      orelse dup @Op.operand INTRINSIC_CAST_PTR = if
+      orelse sim-op @Op.operand INTRINSIC_CAST_PTR = if
         nop
-      orelse dup @Op.operand INTRINSIC_CAST_INT = if
+      orelse sim-op @Op.operand INTRINSIC_CAST_INT = if
         nop
-      orelse dup @Op.operand INTRINSIC_CAST_BOOL = if
+      orelse sim-op @Op.operand INTRINSIC_CAST_BOOL = if
         nop
-      orelse dup @Op.operand INTRINSIC_SYSCALL0 = if
+      orelse sim-op @Op.operand INTRINSIC_SYSCALL0 = if
         here eputs ": TODO: `syscall0` is not implemented yet" eputs
-      orelse dup @Op.operand INTRINSIC_SYSCALL1 = if
+      orelse sim-op @Op.operand INTRINSIC_SYSCALL1 = if
         here eputs ": TODO: `syscall1` is not implemented yet" eputs
-      orelse dup @Op.operand INTRINSIC_SYSCALL2 = if
+      orelse sim-op @Op.operand INTRINSIC_SYSCALL2 = if
         here eputs ": TODO: `syscall2` is not implemented yet" eputs
-      orelse dup @Op.operand INTRINSIC_SYSCALL3 = if
+      orelse sim-op @Op.operand INTRINSIC_SYSCALL3 = if
         here eputs ": TODO: `syscall3` is not implemented yet" eputs
-      orelse dup @Op.operand INTRINSIC_SYSCALL4 = if
+      orelse sim-op @Op.operand INTRINSIC_SYSCALL4 = if
         here eputs ": TODO: `syscall4` is not implemented yet" eputs
-      orelse dup @Op.operand INTRINSIC_SYSCALL5 = if
+      orelse sim-op @Op.operand INTRINSIC_SYSCALL5 = if
         here eputs ": TODO: `syscall5` is not implemented yet" eputs
-      orelse dup @Op.operand INTRINSIC_SYSCALL6 = if
+      orelse sim-op @Op.operand INTRINSIC_SYSCALL6 = if
         here eputs ": TODO: `syscall6` is not implemented yet" eputs
       else
         here eputs ": unreachable.\n" eputs
         1 exit
       end
+
+      sim-ip inc64
     else
        here eputs ": unreachable\n" eputs 1 exit
     end
-
-    drop
-
-    1 +
   end
-  drop
+end
+
+macro PARSE_BLOCK_STACK_CAP 1024 end
+memory parse-block-stack-count sizeof(u64) end
+macro @parse-block-stack-count parse-block-stack-count @64 end
+memory parse-block-stack sizeof(u64) PARSE_BLOCK_STACK_CAP * end
+
+proc parse-block-stack-push
+  @parse-block-stack-count PARSE_BLOCK_STACK_CAP >= if
+    here eputs ": ERROR: parse block stack overflow\n" eputs 1 exit
+  end
+  parse-block-stack @parse-block-stack-count sizeof(u64) * + !64
+  parse-block-stack-count inc64
+end
+
+proc parse-block-stack-pop
+  @parse-block-stack-count 0 = if
+    here eputs ": ERROR: parse block stack underflow\n" eputs 1 exit
+  end
+  parse-block-stack-count dec64
+  parse-block-stack @parse-block-stack-count sizeof(u64) * + @64
 end
 
 proc parse_file_path_cstr_into_ops
@@ -801,7 +857,7 @@ proc parse_file_path_cstr_into_ops
       line str-trim-left
       ' ' word line str-chop-by-delim
 
-      COUNT_OPS 2 != if
+      COUNT_OPS 4 != if
         here eputs ": Assertion Failed: Exhaustive handling of Op types in parse-file-path\n" eputs
         1 exit
       end
@@ -811,90 +867,122 @@ proc parse_file_path_cstr_into_ops
         1 exit
       end
 
+      // Intrinsics
       word @Str "+" streq if
-          OP_INTRINSIC INTRINSIC_PLUS push-op
+        OP_INTRINSIC INTRINSIC_PLUS push-op
       orelse word @Str "-" streq if
-          OP_INTRINSIC INTRINSIC_MINUS push-op
+        OP_INTRINSIC INTRINSIC_MINUS push-op
       orelse word @Str "*" streq if
-          OP_INTRINSIC INTRINSIC_MUL push-op
+        OP_INTRINSIC INTRINSIC_MUL push-op
       orelse word @Str "divmod" streq if
-          OP_INTRINSIC INTRINSIC_DIVMOD push-op
+        OP_INTRINSIC INTRINSIC_DIVMOD push-op
       orelse word @Str "print" streq if
-          OP_INTRINSIC INTRINSIC_PRINT push-op
+        OP_INTRINSIC INTRINSIC_PRINT push-op
       orelse word @Str "=" streq if
-          OP_INTRINSIC INTRINSIC_EQ push-op
+        OP_INTRINSIC INTRINSIC_EQ push-op
       orelse word @Str ">" streq if
-          OP_INTRINSIC INTRINSIC_GT push-op
+        OP_INTRINSIC INTRINSIC_GT push-op
       orelse word @Str "<" streq if
-          OP_INTRINSIC INTRINSIC_LT push-op
+        OP_INTRINSIC INTRINSIC_LT push-op
       orelse word @Str ">=" streq if
-          OP_INTRINSIC INTRINSIC_GE push-op
+        OP_INTRINSIC INTRINSIC_GE push-op
       orelse word @Str "<=" streq if
-          OP_INTRINSIC INTRINSIC_LE push-op
+        OP_INTRINSIC INTRINSIC_LE push-op
       orelse word @Str "!=" streq if
-          OP_INTRINSIC INTRINSIC_NE push-op
+        OP_INTRINSIC INTRINSIC_NE push-op
       orelse word @Str "shr" streq if
-          OP_INTRINSIC INTRINSIC_SHR push-op
+        OP_INTRINSIC INTRINSIC_SHR push-op
       orelse word @Str "shl" streq if
-          OP_INTRINSIC INTRINSIC_SHL push-op
+        OP_INTRINSIC INTRINSIC_SHL push-op
       orelse word @Str "or" streq if
-          OP_INTRINSIC INTRINSIC_OR push-op
+        OP_INTRINSIC INTRINSIC_OR push-op
       orelse word @Str "and" streq if
-          OP_INTRINSIC INTRINSIC_AND push-op
+        OP_INTRINSIC INTRINSIC_AND push-op
       orelse word @Str "not" streq if
-          OP_INTRINSIC INTRINSIC_NOT push-op
+        OP_INTRINSIC INTRINSIC_NOT push-op
       orelse word @Str "dup" streq if
-          OP_INTRINSIC INTRINSIC_DUP push-op
+        OP_INTRINSIC INTRINSIC_DUP push-op
       orelse word @Str "swap" streq if
-          OP_INTRINSIC INTRINSIC_SWAP push-op
+        OP_INTRINSIC INTRINSIC_SWAP push-op
       orelse word @Str "drop" streq if
-          OP_INTRINSIC INTRINSIC_DROP push-op
+        OP_INTRINSIC INTRINSIC_DROP push-op
       orelse word @Str "over" streq if
-          OP_INTRINSIC INTRINSIC_OVER push-op
+        OP_INTRINSIC INTRINSIC_OVER push-op
       orelse word @Str "rot" streq if
-          OP_INTRINSIC INTRINSIC_ROT push-op
+        OP_INTRINSIC INTRINSIC_ROT push-op
       orelse word @Str "!8" streq if
-          OP_INTRINSIC INTRINSIC_STORE8 push-op
+        OP_INTRINSIC INTRINSIC_STORE8 push-op
       orelse word @Str "@8" streq if
-          OP_INTRINSIC INTRINSIC_LOAD8 push-op
+        OP_INTRINSIC INTRINSIC_LOAD8 push-op
       orelse word @Str "!16" streq if
-          OP_INTRINSIC INTRINSIC_STORE16 push-op
+        OP_INTRINSIC INTRINSIC_STORE16 push-op
       orelse word @Str "@16" streq if
-          OP_INTRINSIC INTRINSIC_LOAD16 push-op
+        OP_INTRINSIC INTRINSIC_LOAD16 push-op
       orelse word @Str "!32" streq if
-          OP_INTRINSIC INTRINSIC_STORE32 push-op
+        OP_INTRINSIC INTRINSIC_STORE32 push-op
       orelse word @Str "@32" streq if
-          OP_INTRINSIC INTRINSIC_LOAD32 push-op
+        OP_INTRINSIC INTRINSIC_LOAD32 push-op
       orelse word @Str "!64" streq if
-          OP_INTRINSIC INTRINSIC_STORE64 push-op
+        OP_INTRINSIC INTRINSIC_STORE64 push-op
       orelse word @Str "@64" streq if
-          OP_INTRINSIC INTRINSIC_LOAD64 push-op
+        OP_INTRINSIC INTRINSIC_LOAD64 push-op
       orelse word @Str "cast(ptr)" streq if
-          OP_INTRINSIC INTRINSIC_CAST_PTR push-op
+        OP_INTRINSIC INTRINSIC_CAST_PTR push-op
       orelse word @Str "cast(int)" streq if
-          OP_INTRINSIC INTRINSIC_CAST_INT push-op
+        OP_INTRINSIC INTRINSIC_CAST_INT push-op
       orelse word @Str "cast(bool)" streq if
-          OP_INTRINSIC INTRINSIC_CAST_BOOL push-op
+        OP_INTRINSIC INTRINSIC_CAST_BOOL push-op
       orelse word @Str "argc" streq if
-          OP_INTRINSIC INTRINSIC_ARGC push-op
+        OP_INTRINSIC INTRINSIC_ARGC push-op
       orelse word @Str "argv" streq if
-          OP_INTRINSIC INTRINSIC_ARGV push-op
+        OP_INTRINSIC INTRINSIC_ARGV push-op
       orelse word @Str "here" streq if
-          OP_INTRINSIC INTRINSIC_HERE push-op
+        OP_INTRINSIC INTRINSIC_HERE push-op
       orelse word @Str "syscall0" streq if
-          OP_INTRINSIC INTRINSIC_SYSCALL0 push-op
+        OP_INTRINSIC INTRINSIC_SYSCALL0 push-op
       orelse word @Str "syscall1" streq if
-          OP_INTRINSIC INTRINSIC_SYSCALL1 push-op
+        OP_INTRINSIC INTRINSIC_SYSCALL1 push-op
       orelse word @Str "syscall2" streq if
-          OP_INTRINSIC INTRINSIC_SYSCALL2 push-op
+        OP_INTRINSIC INTRINSIC_SYSCALL2 push-op
       orelse word @Str "syscall3" streq if
-          OP_INTRINSIC INTRINSIC_SYSCALL3 push-op
+        OP_INTRINSIC INTRINSIC_SYSCALL3 push-op
       orelse word @Str "syscall4" streq if
-          OP_INTRINSIC INTRINSIC_SYSCALL4 push-op
+        OP_INTRINSIC INTRINSIC_SYSCALL4 push-op
       orelse word @Str "syscall5" streq if
-          OP_INTRINSIC INTRINSIC_SYSCALL5 push-op
+        OP_INTRINSIC INTRINSIC_SYSCALL5 push-op
       orelse word @Str "syscall6" streq if
-          OP_INTRINSIC INTRINSIC_SYSCALL6 push-op
+        OP_INTRINSIC INTRINSIC_SYSCALL6 push-op
+
+      // Keywords
+      orelse word @Str "if" streq if
+        @ops-count parse-block-stack-push
+        OP_IF 0 push-op
+      orelse word @Str "end" streq if
+        @parse-block-stack-count 0 <= if
+          file_path_cstr @64 cast(ptr) cstr-to-str eputs
+          ":" puts line_number @64 putd
+          ":" puts word @Str.data cast(int) line_start @64 - 1 + putd
+          ": ERROR: `end` can only close `if` for now\n" eputs
+          1 exit
+        end
+
+        parse-block-stack-pop
+
+        ops over sizeof(Op) * +
+
+        dup @Op.type OP_IF != if
+          file_path_cstr @64 cast(ptr) cstr-to-str eputs
+          ":" puts line_number @64 putd
+          ":" puts word @Str.data cast(int) line_start @64 - 1 + putd
+          ": ERROR: `end` can only close `if` for now\n" eputs
+          1 exit
+        end
+
+        @ops-count swap !Op.operand
+
+        drop // ip
+
+        OP_END @ops-count 1 + push-op
       else
         OP_PUSH_INT try_to_parse_word_as_int_or_fail_as_unknown_word push-op
       end
