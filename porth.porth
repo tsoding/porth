@@ -169,9 +169,11 @@ proc try_to_parse_word_as_int_or_fail_as_unknown_word // n1 s1 - ret
   end drop
 end
 
-
 proc push-op // type operand --
-  // TODO: assert OPS_CAP
+  @ops-count OPS_CAP >= if
+    here eputs ": ERROR: ops overflow\n" eputs 1 exit
+  end
+
   @ops-count sizeof(Op) * ops +
   dup rot swap !Op.operand
   !Op.type
