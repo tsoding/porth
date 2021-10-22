@@ -64,10 +64,13 @@ macro !Op.type      Op.type !64 end
 macro @Op.operand   Op.operand @64 end
 macro !Op.operand   Op.operand !64 end
 
+memory comment sizeof(Str) end "//" comment !Str
+
 memory file_path_cstr  sizeof(ptr)                 end
 memory fd              sizeof(u64)                 end
 memory statbuf         sizeof(stat)                end
 memory content         sizeof(Str)                 end
+memory line-with-comment sizeof(Str)               end
 memory line            sizeof(Str)                 end
 memory word            sizeof(Str)                 end
 memory line_number     sizeof(u64)                 end
@@ -816,6 +819,40 @@ proc parse-block-stack-pop
   parse-block-stack @parse-block-stack-count sizeof(u64) * + @64
 end
 
+proc str-starts-with // prefix-count prefix-data input-count input-data
+  memory ssw-prefix sizeof(Str) end
+  memory ssw-input sizeof(Str) end
+  ssw-input  !Str
+  ssw-prefix !Str
+
+  ssw-prefix @Str.count
+  ssw-input  @Str.count
+  <= if
+    0 while
+      dup ssw-prefix @Str.count < if
+        dup  ssw-input  @Str.data + @8
+        over ssw-prefix @Str.data + @8
+        =
+      else false end
+    do 1 + end
+    ssw-prefix @Str.count >=
+  else false end
+end
+
+proc remove-comment // output input
+  over 0 swap !Str.count
+  2dup @Str.data swap !Str.data
+  while
+    dup @Str.count 0 > if
+      dup comment @Str rot @Str str-starts-with lnot
+    else false end
+  do
+    dup str-chop-one-left
+    over Str.count inc64
+  end
+  2drop
+end
+
 proc parse_file_path_cstr_into_ops
   0                            // mode
   O_RDONLY                     // flags
@@ -853,7 +890,8 @@ proc parse_file_path_cstr_into_ops
 
   1 line_number !64
   while content @Str.count 0 > do
-    '\n' line content str-chop-by-delim
+    '\n' line-with-comment content str-chop-by-delim
+    line line-with-comment remove-comment
     line @Str.data line_start !64
     while line @Str.count 0 > do
       line str-trim-left
