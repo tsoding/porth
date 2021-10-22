@@ -1767,6 +1767,10 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                     program.ops.append(Op(typ=OpType.END, token=token))
                     program.ops[block_ip].operand = ip
                     program.ops[ip].operand = ip + 1
+
+                    if len(stack) > 0 and program.ops[stack[-1]].typ == OpType.ORELSE:
+                        orelse_ip = stack.pop()
+                        program.ops[orelse_ip].operand = ip
                 else:
                     # NOTE: the closing of `macro` blocks is handled in its own separate place, not here
                     compiler_error_with_expansion_stack(program.ops[block_ip].token, '`end` can only close `if`, `else`, `do`, `macro` or `proc` blocks for now')
