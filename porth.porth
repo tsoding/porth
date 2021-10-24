@@ -2,67 +2,67 @@
 
 include "std.porth"
 
-macro MEM_CAPACITY 640000 end
-macro SIM_STACK_CAP 1024 end
+const MEM_CAPACITY 640000 end
+const SIM_STACK_CAP 1024 end
 
-macro OP_PUSH_INT  0 end
-macro OP_IF        1 end
-macro OP_END       2 end
-macro OP_INTRINSIC 3 end
-macro COUNT_OPS    4 end
+const OP_PUSH_INT  0 end
+const OP_IF        1 end
+const OP_END       2 end
+const OP_INTRINSIC 3 end
+const COUNT_OPS    4 end
 
-macro INTRINSIC_PLUS       0 end
-macro INTRINSIC_MINUS      1 end
-macro INTRINSIC_MUL        2 end
-macro INTRINSIC_DIVMOD     3 end
-macro INTRINSIC_EQ         4 end
-macro INTRINSIC_GT         5 end
-macro INTRINSIC_LT         6 end
-macro INTRINSIC_GE         7 end
-macro INTRINSIC_LE         8 end
-macro INTRINSIC_NE         9 end
-macro INTRINSIC_SHR       10 end
-macro INTRINSIC_SHL       11 end
-macro INTRINSIC_OR        12 end
-macro INTRINSIC_AND       13 end
-macro INTRINSIC_NOT       14 end
-macro INTRINSIC_PRINT     15 end
-macro INTRINSIC_DUP       16 end
-macro INTRINSIC_SWAP      17 end
-macro INTRINSIC_DROP      18 end
-macro INTRINSIC_OVER      19 end
-macro INTRINSIC_ROT       20 end
-macro INTRINSIC_LOAD8     21 end
-macro INTRINSIC_STORE8    22 end
-macro INTRINSIC_LOAD16    23 end
-macro INTRINSIC_STORE16   24 end
-macro INTRINSIC_LOAD32    25 end
-macro INTRINSIC_STORE32   26 end
-macro INTRINSIC_LOAD64    27 end
-macro INTRINSIC_STORE64   28 end
-macro INTRINSIC_CAST_PTR  29 end
-macro INTRINSIC_CAST_INT  30 end
-macro INTRINSIC_CAST_BOOL 31 end
-macro INTRINSIC_ARGC      32 end
-macro INTRINSIC_ARGV      33 end
-macro INTRINSIC_HERE      34 end
-macro INTRINSIC_SYSCALL0  35 end
-macro INTRINSIC_SYSCALL1  36 end
-macro INTRINSIC_SYSCALL2  37 end
-macro INTRINSIC_SYSCALL3  38 end
-macro INTRINSIC_SYSCALL4  39 end
-macro INTRINSIC_SYSCALL5  40 end
-macro INTRINSIC_SYSCALL6  41 end
-macro COUNT_INTRINSICS    42 end
+const INTRINSIC_PLUS       0 end
+const INTRINSIC_MINUS      1 end
+const INTRINSIC_MUL        2 end
+const INTRINSIC_DIVMOD     3 end
+const INTRINSIC_EQ         4 end
+const INTRINSIC_GT         5 end
+const INTRINSIC_LT         6 end
+const INTRINSIC_GE         7 end
+const INTRINSIC_LE         8 end
+const INTRINSIC_NE         9 end
+const INTRINSIC_SHR       10 end
+const INTRINSIC_SHL       11 end
+const INTRINSIC_OR        12 end
+const INTRINSIC_AND       13 end
+const INTRINSIC_NOT       14 end
+const INTRINSIC_PRINT     15 end
+const INTRINSIC_DUP       16 end
+const INTRINSIC_SWAP      17 end
+const INTRINSIC_DROP      18 end
+const INTRINSIC_OVER      19 end
+const INTRINSIC_ROT       20 end
+const INTRINSIC_LOAD8     21 end
+const INTRINSIC_STORE8    22 end
+const INTRINSIC_LOAD16    23 end
+const INTRINSIC_STORE16   24 end
+const INTRINSIC_LOAD32    25 end
+const INTRINSIC_STORE32   26 end
+const INTRINSIC_LOAD64    27 end
+const INTRINSIC_STORE64   28 end
+const INTRINSIC_CAST_PTR  29 end
+const INTRINSIC_CAST_INT  30 end
+const INTRINSIC_CAST_BOOL 31 end
+const INTRINSIC_ARGC      32 end
+const INTRINSIC_ARGV      33 end
+const INTRINSIC_HERE      34 end
+const INTRINSIC_SYSCALL0  35 end
+const INTRINSIC_SYSCALL1  36 end
+const INTRINSIC_SYSCALL2  37 end
+const INTRINSIC_SYSCALL3  38 end
+const INTRINSIC_SYSCALL4  39 end
+const INTRINSIC_SYSCALL5  40 end
+const INTRINSIC_SYSCALL6  41 end
+const COUNT_INTRINSICS    42 end
 
-macro OPS_CAP       1024 end
-macro sizeof(Op)    16 end
-macro Op.type       0 + end
-macro Op.operand    8 + end
-macro @Op.type      Op.type @64 end
-macro !Op.type      Op.type !64 end
-macro @Op.operand   Op.operand @64 end
-macro !Op.operand   Op.operand !64 end
+const OPS_CAP       1024 end
+const sizeof(Op)    16 end
+proc Op.type       0 + end
+proc Op.operand    8 + end
+proc @Op.type      Op.type @64 end
+proc !Op.type      Op.type !64 end
+proc @Op.operand   Op.operand @64 end
+proc !Op.operand   Op.operand !64 end
 
 memory comment sizeof(Str) end "//" comment !Str
 
@@ -78,12 +78,12 @@ memory line_start      sizeof(ptr)                 end
 memory sim-stack-count sizeof(u64)                 end
 memory sim-stack       sizeof(u64) SIM_STACK_CAP * end
 memory ops-count       sizeof(u64)                 end
-macro @ops-count ops-count @64 end
+proc @ops-count ops-count @64 end
 memory ops             sizeof(Op) OPS_CAP *        end
 
 memory out_fd sizeof(u64) end
-macro @out_fd out_fd @64 end
-macro !out_fd out_fd !64 end
+proc @out_fd out_fd @64 end
+proc !out_fd out_fd !64 end
 
 memory empty_envp sizeof(ptr) end
 memory nasm_argv sizeof(ptr) 4 * end
@@ -151,25 +151,6 @@ proc sim-stack-pop // -- u64
   end
   sim-stack-count dec64
   sim-stack sim-stack-count @64 8 * + @64
-end
-
-proc try_to_parse_word_as_int_or_fail_as_unknown_word // n1 s1 - ret
-  0 0 while dup word @Str.count < do
-    dup word @Str.data + @8
-
-    dup isdigit lnot if
-      file_path_cstr @64 cast(ptr) cstr-to-str eputs
-      ":" puts line_number @64 putd
-      ":" puts word @Str.data cast(int) line_start @64 - 1 + putd
-      ": ERROR: `" eputs word @Str eputs "` is unknown word\n" eputs
-      1 exit
-    end
-
-    '0' -
-    rot 10 * +
-    swap
-    1 +
-  end drop
 end
 
 proc push-op // type operand --
@@ -592,8 +573,8 @@ proc compile-ops // --
 end
 
 memory sim-ip sizeof(u64) end
-macro @sim-ip sim-ip @64 end
-macro !sim-ip sim-ip !64 end
+proc @sim-ip sim-ip @64 end
+proc !sim-ip sim-ip !64 end
 memory sim-op sizeof(Op) end
 
 proc simulate-ops // --
@@ -798,9 +779,9 @@ proc simulate-ops // --
   end
 end
 
-macro PARSE_BLOCK_STACK_CAP 1024 end
+const PARSE_BLOCK_STACK_CAP 1024 end
 memory parse-block-stack-count sizeof(u64) end
-macro @parse-block-stack-count parse-block-stack-count @64 end
+proc @parse-block-stack-count parse-block-stack-count @64 end
 memory parse-block-stack sizeof(u64) PARSE_BLOCK_STACK_CAP * end
 
 proc parse-block-stack-push
@@ -1024,7 +1005,15 @@ proc parse_file_path_cstr_into_ops
 
         OP_END @ops-count 1 + push-op
       else
-        OP_PUSH_INT try_to_parse_word_as_int_or_fail_as_unknown_word push-op
+        OP_PUSH_INT
+        word @Str try-parse-int lnot if
+          file_path_cstr @64 cast(ptr) cstr-to-str eputs
+          ":" puts line_number @64 putd
+          ":" puts word @Str.data cast(int) line_start @64 - 1 + putd
+          ": ERROR: `" eputs word @Str eputs "` is unknown word\n" eputs
+          1 exit
+        end
+        push-op
       end
 
     end

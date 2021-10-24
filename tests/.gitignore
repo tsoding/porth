@@ -19,3 +19,4 @@ intrinsics
 if-orelse
 consts
 2swap
+try-parse-int

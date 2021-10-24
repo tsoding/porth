@@ -15,7 +15,7 @@ import traceback
 PORTH_EXT = '.porth'
 DEFAULT_EXPANSION_LIMIT=1000
 EXPANSION_DIAGNOSTIC_LIMIT=10
-X86_64_RET_STACK_CAP=4096
+X86_64_RET_STACK_CAP=8192
 SIM_NULL_POINTER_PADDING = 1 # just a little bit of a padding at the beginning of the memory to make 0 an invalid address
 SIM_STR_CAPACITY  = 640_000
 SIM_ARGV_CAPACITY = 640_000
