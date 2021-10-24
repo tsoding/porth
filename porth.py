@@ -1169,7 +1169,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
             op = program.ops[ip]
             assert len(OpType) == 16, "Exhaustive ops handling in generate_nasm_linux_x86_64"
             out.write("addr_%d:\n" % ip)
-            out.write("    ;; -- %s --\n" % op)
+            out.write("    ;; -- %s:%d:%d: %s (%s) --\n" % (op.token.loc + (repr(op.token.text), op.typ)))
             if op.typ == OpType.PUSH_INT:
                 assert isinstance(op.operand, int), "This could be a bug in the parsing step"
                 out.write("    mov rax, %d\n" % op.operand)
