@@ -15,6 +15,10 @@ Porth is planned to be
 
 (these are not the selling points, but rather milestones of the development)
 
+## The Use Case for The Language
+
+Porth is a Computer [Programming Language](https://en.wikipedia.org/wiki/Programming_language). It's designed to write programs for [Computers](https://en.wikipedia.org/wiki/Computer).
+
 ## Examples
 
 Hello, World:
