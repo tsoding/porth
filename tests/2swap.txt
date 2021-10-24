@@ -1,0 +1,17 @@
+:i argc 0
+:b stdin 0
+
+:i returncode 0
+:b stdout 47
+4
+3
+2
+1
+------------------------------
+2
+1
+4
+3
+
+:b stderr 0
+
