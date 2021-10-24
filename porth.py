@@ -19,6 +19,7 @@ X86_64_RET_STACK_CAP=4096
 SIM_NULL_POINTER_PADDING = 1 # just a little bit of a padding at the beginning of the memory to make 0 an invalid address
 SIM_STR_CAPACITY  = 640_000
 SIM_ARGV_CAPACITY = 640_000
+SIM_LOCAL_MEMORY_CAPACITY = 640_000
 
 debug=False
 
@@ -151,8 +152,9 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
     CLOCK_MONOTONIC=1
 
     stack: List[int] = []
+    # TODO: I think ret_stack should be located in the local memory just like on x86_64
     ret_stack: List[OpAddr] = []
-    mem = bytearray(SIM_NULL_POINTER_PADDING + SIM_STR_CAPACITY + SIM_ARGV_CAPACITY + program.memory_capacity)
+    mem = bytearray(SIM_NULL_POINTER_PADDING + SIM_STR_CAPACITY + SIM_ARGV_CAPACITY + SIM_LOCAL_MEMORY_CAPACITY + program.memory_capacity)
 
     str_buf_ptr  = SIM_NULL_POINTER_PADDING
     str_ptrs: Dict[int, int] = {}
@@ -161,7 +163,10 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
     argv_buf_ptr = SIM_NULL_POINTER_PADDING + SIM_STR_CAPACITY
     argc = 0
 
-    mem_buf_ptr  = SIM_NULL_POINTER_PADDING + SIM_STR_CAPACITY + SIM_ARGV_CAPACITY
+    local_memory_ptr = SIM_NULL_POINTER_PADDING + SIM_STR_CAPACITY + SIM_ARGV_CAPACITY
+    local_memory_rsp = local_memory_ptr + SIM_LOCAL_MEMORY_CAPACITY
+
+    mem_buf_ptr  = SIM_NULL_POINTER_PADDING + SIM_STR_CAPACITY + SIM_ARGV_CAPACITY + SIM_LOCAL_MEMORY_CAPACITY
 
     fds: List[BinaryIO] = [sys.stdin.buffer, sys.stdout.buffer, sys.stderr.buffer]
 
@@ -219,7 +224,9 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                 stack.append(mem_buf_ptr + op.operand)
                 ip += 1
             elif op.typ == OpType.PUSH_LOCAL_MEM:
-                assert False, "Not implemented"
+                assert isinstance(op.operand, MemAddr)
+                stack.append(local_memory_rsp + op.operand)
+                ip += 1
             elif op.typ == OpType.IF:
                 a = stack.pop()
                 if a == 0:
@@ -249,10 +256,12 @@ def simulate_little_endian_linux(program: Program, argv: List[str]):
                 assert isinstance(op.operand, OpAddr), "This could be a bug in the parsing step"
                 ip = op.operand
             elif op.typ == OpType.PREP_PROC:
-                assert False, "TODO: not implemented yet"
+                assert isinstance(op.operand, int)
+                local_memory_rsp -= op.operand
                 ip += 1
             elif op.typ == OpType.RET:
-                assert False, "TODO: not implemented yet"
+                assert isinstance(op.operand, int)
+                local_memory_rsp += op.operand
                 ip = ret_stack.pop()
             elif op.typ == OpType.CALL:
                 assert isinstance(op.operand, OpAddr), "This could be a bug in the parsing step"
@@ -1799,6 +1808,7 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                     program.ops[ip].operand = while_ip
                     program.ops[block_ip].operand = ip + 1
                 elif program.ops[block_ip].typ == OpType.PREP_PROC:
+                    assert current_proc is not None
                     program.ops[block_ip].operand = current_proc.local_memory_capacity
                     block_ip = stack.pop()
                     assert program.ops[block_ip].typ == OpType.SKIP_PROC

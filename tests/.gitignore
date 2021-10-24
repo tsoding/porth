@@ -18,3 +18,4 @@ while-procs
 intrinsics
 if-orelse
 consts
+2swap
