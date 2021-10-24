@@ -4,6 +4,6 @@
 :i returncode 1
 :b stdout 0
 
-:b stderr 104
-./tests/memory-unsupported-token-type.porth:1:14: ERROR: strings are not supported in memory definition
+:b stderr 110
+./tests/memory-unsupported-token-type.porth:1:14: ERROR: strings are not supported in compile time evaluation
 

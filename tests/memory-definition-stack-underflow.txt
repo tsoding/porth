@@ -4,6 +4,6 @@
 :i returncode 1
 :b stdout 0
 
-:b stderr 121
-./tests/memory-definition-stack-underflow.porth:1:11: ERROR: not enough arguments for `+` intrinsic in memory definition
+:b stderr 100
+./tests/memory-definition-stack-underflow.porth:1:11: ERROR: not enough arguments for `+` intrinsic
 

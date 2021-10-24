@@ -1,0 +1,7 @@
+const N 69 end
+const M 420 end
+const K N M + end
+
+N print
+M print
+K print

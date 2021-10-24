@@ -35,6 +35,7 @@ class Keyword(Enum):
     INCLUDE=auto()
     MEMORY=auto()
     PROC=auto()
+    CONST=auto()
 
 class DataType(IntEnum):
     INT=auto()
@@ -1519,7 +1520,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
         out.write("ret_stack_end:\n")
         out.write("mem: resb %d\n" % program.memory_capacity)
 
-assert len(Keyword) == 10, "Exhaustive KEYWORD_NAMES definition."
+assert len(Keyword) == 11, "Exhaustive KEYWORD_NAMES definition."
 KEYWORD_BY_NAMES: Dict[str, Keyword] = {
     'if': Keyword.IF,
     'orelse': Keyword.ORELSE,
@@ -1531,6 +1532,7 @@ KEYWORD_BY_NAMES: Dict[str, Keyword] = {
     'memory': Keyword.MEMORY,
     'proc': Keyword.PROC,
     'end': Keyword.END,
+    'const': Keyword.CONST,
 }
 KEYWORD_NAMES: Dict[Keyword, str] = {v: k for k, v in KEYWORD_BY_NAMES.items()}
 
@@ -1645,7 +1647,12 @@ class Proc:
     addr: OpAddr
     loc: Loc
 
-def check_word_redefinition(token: Token, memories: Dict[str, Memory], macros: Dict[str, Macro], procs: Dict[str, Proc]):
+@dataclass
+class Const:
+    value: int
+    loc: Loc
+
+def check_word_redefinition(token: Token, memories: Dict[str, Memory], macros: Dict[str, Macro], procs: Dict[str, Proc], consts: Dict[str, Const]):
     assert token.typ == TokenType.WORD
     assert isinstance(token.value, str)
     name: str = token.value
@@ -1664,6 +1671,58 @@ def check_word_redefinition(token: Token, memories: Dict[str, Memory], macros: D
         compiler_error_with_expansion_stack(token, "redefinition of a proc `%s`" % (name, ))
         compiler_note(procs[name].loc, "the original definition is located here")
         exit(1)
+    if name in consts:
+        compiler_error_with_expansion_stack(token, "redefinition of a constant `%s`" % (name, ))
+        compiler_note(consts[name].loc, "the original definition is located here")
+        exit(1)
+
+def eval_const_value(rtokens: List[Token], macros: Dict[str, Macro], consts: Dict[str, Const]) -> int:
+    stack: List[int] = []
+    while len(rtokens) > 0:
+        token = rtokens.pop()
+        if token.typ == TokenType.KEYWORD:
+            assert isinstance(token.value, Keyword)
+            if token.value == Keyword.END:
+                break
+            else:
+                compiler_error_with_expansion_stack(token, f"unsupported keyword `{KEYWORD_NAMES[token.value]}` in compile time evaluation")
+                exit(1)
+        elif token.typ == TokenType.INT:
+            assert isinstance(token.value, int)
+            stack.append(token.value)
+        elif token.typ == TokenType.WORD:
+            assert isinstance(token.value, str)
+            if token.value == INTRINSIC_NAMES[Intrinsic.PLUS]:
+                if len(stack) < 2:
+                    compiler_error_with_expansion_stack(token, f"not enough arguments for `{token.value}` intrinsic")
+                    exit(1)
+                a = stack.pop()
+                b = stack.pop()
+                stack.append(a + b)
+            elif token.value == INTRINSIC_NAMES[Intrinsic.MUL]:
+                if len(stack) < 2:
+                    compiler_error_with_expansion_stack(token, f"not enough arguments for `{token.value}` intrinsic")
+                    exit(1)
+                a = stack.pop()
+                b = stack.pop()
+                stack.append(a * b)
+            elif token.value in macros:
+                if token.expanded_count >= expansion_limit:
+                    compiler_error_with_expansion_stack(token, "the macro exceeded the expansion limit (it expanded %d times)" % token.expanded_count)
+                    exit(1)
+                rtokens += reversed(expand_macro(macros[token.value], token))
+            elif token.value in consts:
+                stack.append(consts[token.value].value)
+            else:
+                compiler_error_with_expansion_stack(token, f"unsupported word `{token.value}` in compile time evaluation")
+                exit(1)
+        else:
+            compiler_error_with_expansion_stack(token, f"{human(token.typ, HumanNumber.Plural)} are not supported in compile time evaluation")
+            exit(1)
+    if len(stack) != 1:
+        compiler_error_with_expansion_stack(token, "The result of expression in compile time evaluation must be a single number")
+        exit(1)
+    return stack.pop()
 
 def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], expansion_limit: int) -> Program:
     stack: List[OpAddr] = []
@@ -1672,7 +1731,9 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
     macros: Dict[str, Macro] = {}
     memories: Dict[str, Memory] = {}
     procs: Dict[str, Proc] = {}
+    consts: Dict[str, Const] = {}
     current_proc: Optional[OpAddr] = None
+    # TODO: consider getting rid of the ip variable in parse_program_from_tokens()
     ip: OpAddr = 0;
     while len(rtokens) > 0:
         token = rtokens.pop()
@@ -1692,6 +1753,9 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                 ip += 1
             elif token.value in procs:
                 program.ops.append(Op(typ=OpType.CALL, token=token, operand=procs[token.value].addr))
+                ip += 1
+            elif token.value in consts:
+                program.ops.append(Op(typ=OpType.PUSH_INT, token=token, operand=consts[token.value].value))
                 ip += 1
             else:
                 compiler_error_with_expansion_stack(token, "unknown word `%s`" % token.value)
@@ -1713,7 +1777,7 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
             program.ops.append(Op(typ=OpType.PUSH_INT, operand=token.value, token=token));
             ip += 1
         elif token.typ == TokenType.KEYWORD:
-            assert len(Keyword) == 10, "Exhaustive keywords handling in parse_program_from_tokens()"
+            assert len(Keyword) == 11, "Exhaustive keywords handling in parse_program_from_tokens()"
             if token.value == Keyword.IF:
                 program.ops.append(Op(typ=OpType.IF, token=token))
                 stack.append(ip)
@@ -1821,6 +1885,20 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                 if not file_included:
                     compiler_error_with_expansion_stack(token, "file `%s` not found" % token.value)
                     exit(1)
+            elif token.value == Keyword.CONST:
+                if len(rtokens) == 0:
+                    compiler_error_with_expansion_stack(token, "expected const name but found nothing")
+                    exit(1)
+                token = rtokens.pop()
+                if token.typ != TokenType.WORD:
+                    compiler_error_with_expansion_stack(token, "expected const name to be %s but found %s" % (human(TokenType.WORD), human(token.typ)))
+                    exit(1)
+                assert isinstance(token.value, str), "This is probably a bug in the lexer"
+                const_name = token.value
+                const_loc = token.loc
+                check_word_redefinition(token, memories, macros, procs, consts)
+                const_value = eval_const_value(rtokens, macros, consts)
+                consts[const_name] = Const(value=const_value, loc=const_loc)
             elif token.value == Keyword.MEMORY:
                 if len(rtokens) == 0:
                     compiler_error_with_expansion_stack(token, "expected memory name but found nothing")
@@ -1832,51 +1910,8 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                 assert isinstance(token.value, str), "This is probably a bug in the lexer"
                 memory_name = token.value
                 memory_loc = token.loc
-                check_word_redefinition(token, memories, macros, procs)
-                mem_size_stack: List[int] = []
-                while len(rtokens) > 0:
-                    token = rtokens.pop()
-                    if token.typ == TokenType.KEYWORD:
-                        assert isinstance(token.value, Keyword)
-                        if token.value == Keyword.END:
-                            break
-                        else:
-                            compiler_error_with_expansion_stack(token, f"unsupported keyword `{KEYWORD_NAMES[token.value]}` in memory definition")
-                            exit(1)
-                    elif token.typ == TokenType.INT:
-                        assert isinstance(token.value, int)
-                        mem_size_stack.append(token.value)
-                    elif token.typ == TokenType.WORD:
-                        assert isinstance(token.value, str)
-                        if token.value == INTRINSIC_NAMES[Intrinsic.PLUS]:
-                            if len(mem_size_stack) < 2:
-                                compiler_error_with_expansion_stack(token, f"not enough arguments for `{INTRINSIC_NAMES[Intrinsic.PLUS]}` intrinsic in memory definition")
-                                exit(1)
-                            a = mem_size_stack.pop()
-                            b = mem_size_stack.pop()
-                            mem_size_stack.append(a + b)
-                        elif token.value == INTRINSIC_NAMES[Intrinsic.MUL]:
-                            if len(mem_size_stack) < 2:
-                                compiler_error_with_expansion_stack(token, f"not enough arguments for `{INTRINSIC_NAMES[Intrinsic.PLUS]}` intrinsic in memory definition")
-                                exit(1)
-                            a = mem_size_stack.pop()
-                            b = mem_size_stack.pop()
-                            mem_size_stack.append(a * b)
-                        elif token.value in macros:
-                            if token.expanded_count >= expansion_limit:
-                                compiler_error_with_expansion_stack(token, "the macro exceeded the expansion limit (it expanded %d times)" % token.expanded_count)
-                                exit(1)
-                            rtokens += reversed(expand_macro(macros[token.value], token))
-                        else:
-                            compiler_error_with_expansion_stack(token, f"unsupported word in memory definition {token.value}")
-                            exit(1)
-                    else:
-                        compiler_error_with_expansion_stack(token, f"{human(token.typ, HumanNumber.Plural)} are not supported in memory definition")
-                        exit(1)
-                if len(mem_size_stack) != 1:
-                    compiler_error_with_expansion_stack(token, "The result of expression in the memory definition must be a single number")
-                    exit(1)
-                memory_size = mem_size_stack.pop()
+                check_word_redefinition(token, memories, macros, procs, consts)
+                memory_size = eval_const_value(rtokens, macros, consts)
                 memories[memory_name] = Memory(offset=program.memory_capacity, loc=memory_loc)
                 program.memory_capacity += memory_size
             elif token.value == Keyword.MACRO:
@@ -1888,7 +1923,7 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                     compiler_error_with_expansion_stack(token, "expected macro name to be %s but found %s" % (human(TokenType.WORD), human(token.typ)))
                     exit(1)
                 assert isinstance(token.value, str), "This is probably a bug in the lexer"
-                check_word_redefinition(token, memories, macros, procs)
+                check_word_redefinition(token, memories, macros, procs, consts)
                 macro = Macro(token.loc, [])
                 macros[token.value] = macro
                 nesting_depth = 0
@@ -1899,8 +1934,8 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                     else:
                         macro.tokens.append(token)
                         if token.typ == TokenType.KEYWORD:
-                            assert len(Keyword) == 10, "Exhaustive handling of keywords in parsing macro body"
-                            if token.value in [Keyword.IF, Keyword.WHILE, Keyword.MACRO, Keyword.MEMORY, Keyword.PROC]:
+                            assert len(Keyword) == 11, "Exhaustive handling of keywords in parsing macro body"
+                            if token.value in [Keyword.IF, Keyword.WHILE, Keyword.MACRO, Keyword.MEMORY, Keyword.PROC, Keyword.CONST]:
                                 nesting_depth += 1
                             elif token.value == Keyword.END:
                                 nesting_depth -= 1
@@ -1926,7 +1961,7 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                         exit(1)
                     assert isinstance(token.value, str), "This is probably a bug in the lexer"
                     proc_name = token.value
-                    check_word_redefinition(token, memories, macros, procs)
+                    check_word_redefinition(token, memories, macros, procs, consts)
                     procs[proc_name] = Proc(addr=current_proc + 1, loc=token.loc)
                 else:
                     compiler_error_with_expansion_stack(token, "defining procedures inside of procedures is not allowed")
@@ -2022,6 +2057,8 @@ def lex_lines(file_path: str, lines: List[str]) -> Generator[Token, None, None]:
                     if text_of_token in KEYWORD_BY_NAMES:
                         yield Token(TokenType.KEYWORD, text_of_token, loc, KEYWORD_BY_NAMES[text_of_token])
                     else:
+                        # TODO: `69//` is recognized as a single word
+                        # And not a number plus a comment
                         if text_of_token.startswith("//"):
                             break
                         yield Token(TokenType.WORD, text_of_token, loc, text_of_token)
