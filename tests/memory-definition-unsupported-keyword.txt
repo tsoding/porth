@@ -4,6 +4,6 @@
 :i returncode 1
 :b stdout 0
 
-:b stderr 110
-./tests/memory-definition-unsupported-keyword.porth:2:3: ERROR: unsupported keyword `if` in memory definition
+:b stderr 116
+./tests/memory-definition-unsupported-keyword.porth:2:3: ERROR: unsupported keyword `if` in compile time evaluation
 

@@ -4,6 +4,6 @@
 :i returncode 1
 :b stdout 0
 
-:b stderr 122
-./tests/memory-single-number.porth:1:14: ERROR: The result of expression in the memory definition must be a single number
+:b stderr 124
+./tests/memory-single-number.porth:1:14: ERROR: The result of expression in compile time evaluation must be a single number
 

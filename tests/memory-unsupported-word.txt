@@ -4,6 +4,6 @@
 :i returncode 1
 :b stdout 0
 
-:b stderr 94
-./tests/memory-unsupported-word.porth:1:14: ERROR: unsupported word in memory definition word
+:b stderr 102
+./tests/memory-unsupported-word.porth:1:14: ERROR: unsupported word `word` in compile time evaluation
 
