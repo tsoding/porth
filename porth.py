@@ -573,6 +573,8 @@ CallPath=Tuple[OpAddr, ...]
 
 # TODO: better error reporting on type checking errors of intrinsics
 # Reported expected and actual types with the location that introduced the actual type
+# TODO: better error reporting on type checking errors of procs
+# Show the call path and stuff (like for macros)
 def type_check_program(program: Program):
     visited_dos: Dict[CallPath, DataStack] = {}
     contexts: List[Context] = [Context(stack=[], ip=0, ret_stack=[])]
@@ -1638,7 +1640,12 @@ class Memory:
     offset: MemAddr
     loc: Loc
 
-def check_word_redefinition(token: Token, memories: Dict[str, Memory], macros: Dict[str, Macro], procs: Dict[str, OpAddr]):
+@dataclass
+class Proc:
+    addr: OpAddr
+    loc: Loc
+
+def check_word_redefinition(token: Token, memories: Dict[str, Memory], macros: Dict[str, Macro], procs: Dict[str, Proc]):
     assert token.typ == TokenType.WORD
     assert isinstance(token.value, str)
     name: str = token.value
@@ -1655,8 +1662,7 @@ def check_word_redefinition(token: Token, memories: Dict[str, Memory], macros: D
         exit(1)
     if name in procs:
         compiler_error_with_expansion_stack(token, "redefinition of a proc `%s`" % (name, ))
-        # TODO: report the location of the original proc definition
-        # compiler_note(procs[name].loc, "the original definition is located here")
+        compiler_note(procs[name].loc, "the original definition is located here")
         exit(1)
 
 def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], expansion_limit: int) -> Program:
@@ -1665,7 +1671,7 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
     rtokens: List[Token] = list(reversed(tokens))
     macros: Dict[str, Macro] = {}
     memories: Dict[str, Memory] = {}
-    procs: Dict[str, OpAddr] = {}
+    procs: Dict[str, Proc] = {}
     current_proc: Optional[OpAddr] = None
     ip: OpAddr = 0;
     while len(rtokens) > 0:
@@ -1685,7 +1691,7 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                 program.ops.append(Op(typ=OpType.PUSH_MEM, token=token, operand=memories[token.value].offset))
                 ip += 1
             elif token.value in procs:
-                program.ops.append(Op(typ=OpType.CALL, token=token, operand=procs[token.value]))
+                program.ops.append(Op(typ=OpType.CALL, token=token, operand=procs[token.value].addr))
                 ip += 1
             else:
                 compiler_error_with_expansion_stack(token, "unknown word `%s`" % token.value)
@@ -1921,7 +1927,7 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                     assert isinstance(token.value, str), "This is probably a bug in the lexer"
                     proc_name = token.value
                     check_word_redefinition(token, memories, macros, procs)
-                    procs[proc_name] = current_proc + 1
+                    procs[proc_name] = Proc(addr=current_proc + 1, loc=token.loc)
                 else:
                     compiler_error_with_expansion_stack(token, "defining procedures inside of procedures is not allowed")
                     compiler_note(program.ops[current_proc].token.loc, "the current procedure starts here")
