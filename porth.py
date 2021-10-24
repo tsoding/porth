@@ -1714,6 +1714,9 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                     compiler_error_with_expansion_stack(token, "the macro exceeded the expansion limit (it expanded %d times)" % token.expanded_count)
                     exit(1)
                 rtokens += reversed(expand_macro(macros[token.value], token))
+            elif current_proc is not None and token.value in current_proc.local_memories:
+                program.ops.append(Op(typ=OpType.PUSH_LOCAL_MEM, token=token, operand=current_proc.local_memories[token.value].offset))
+                ip += 1
             elif token.value in memories:
                 program.ops.append(Op(typ=OpType.PUSH_MEM, token=token, operand=memories[token.value].offset))
                 ip += 1
@@ -1722,9 +1725,6 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                 ip += 1
             elif token.value in consts:
                 program.ops.append(Op(typ=OpType.PUSH_INT, token=token, operand=consts[token.value].value))
-                ip += 1
-            elif current_proc is not None and token.value in current_proc.local_memories:
-                program.ops.append(Op(typ=OpType.PUSH_LOCAL_MEM, token=token, operand=current_proc.local_memories[token.value].offset))
                 ip += 1
             else:
                 compiler_error_with_expansion_stack(token, "unknown word `%s`" % token.value)
