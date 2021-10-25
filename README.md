@@ -294,9 +294,9 @@ TBD
 ```porth
 <condition> if
   <body>
-orelse <condition> if
+else <condition> if*
   <body>
-orelse <condition> if
+else <condition> if*
   <body>
 else
   <body>
