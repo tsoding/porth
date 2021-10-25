@@ -5,70 +5,72 @@ include "std.porth"
 const MEM_CAPACITY 640000 end
 const SIM_STACK_CAP 1024 end
 
-const OP_PUSH_INT  0 end
-const OP_IF        1 end
-const OP_END       2 end
-const OP_INTRINSIC 3 end
-const COUNT_OPS    4 end
+const OP_PUSH_INT  1 offset end
+const OP_IF        1 offset end
+const OP_END       1 offset end
+const OP_INTRINSIC 1 offset end
+const COUNT_OPS       reset end
 
-const INTRINSIC_PLUS       0 end
-const INTRINSIC_MINUS      1 end
-const INTRINSIC_MUL        2 end
-const INTRINSIC_DIVMOD     3 end
-const INTRINSIC_EQ         4 end
-const INTRINSIC_GT         5 end
-const INTRINSIC_LT         6 end
-const INTRINSIC_GE         7 end
-const INTRINSIC_LE         8 end
-const INTRINSIC_NE         9 end
-const INTRINSIC_SHR       10 end
-const INTRINSIC_SHL       11 end
-const INTRINSIC_OR        12 end
-const INTRINSIC_AND       13 end
-const INTRINSIC_NOT       14 end
-const INTRINSIC_PRINT     15 end
-const INTRINSIC_DUP       16 end
-const INTRINSIC_SWAP      17 end
-const INTRINSIC_DROP      18 end
-const INTRINSIC_OVER      19 end
-const INTRINSIC_ROT       20 end
-const INTRINSIC_LOAD8     21 end
-const INTRINSIC_STORE8    22 end
-const INTRINSIC_LOAD16    23 end
-const INTRINSIC_STORE16   24 end
-const INTRINSIC_LOAD32    25 end
-const INTRINSIC_STORE32   26 end
-const INTRINSIC_LOAD64    27 end
-const INTRINSIC_STORE64   28 end
-const INTRINSIC_CAST_PTR  29 end
-const INTRINSIC_CAST_INT  30 end
-const INTRINSIC_CAST_BOOL 31 end
-const INTRINSIC_ARGC      32 end
-const INTRINSIC_ARGV      33 end
-const INTRINSIC_HERE      34 end
-const INTRINSIC_SYSCALL0  35 end
-const INTRINSIC_SYSCALL1  36 end
-const INTRINSIC_SYSCALL2  37 end
-const INTRINSIC_SYSCALL3  38 end
-const INTRINSIC_SYSCALL4  39 end
-const INTRINSIC_SYSCALL5  40 end
-const INTRINSIC_SYSCALL6  41 end
-const COUNT_INTRINSICS    42 end
+const INTRINSIC_PLUS      1 offset end
+const INTRINSIC_MINUS     1 offset end
+const INTRINSIC_MUL       1 offset end
+const INTRINSIC_DIVMOD    1 offset end
+const INTRINSIC_EQ        1 offset end
+const INTRINSIC_GT        1 offset end
+const INTRINSIC_LT        1 offset end
+const INTRINSIC_GE        1 offset end
+const INTRINSIC_LE        1 offset end
+const INTRINSIC_NE        1 offset end
+const INTRINSIC_SHR       1 offset end
+const INTRINSIC_SHL       1 offset end
+const INTRINSIC_OR        1 offset end
+const INTRINSIC_AND       1 offset end
+const INTRINSIC_NOT       1 offset end
+const INTRINSIC_PRINT     1 offset end
+const INTRINSIC_DUP       1 offset end
+const INTRINSIC_SWAP      1 offset end
+const INTRINSIC_DROP      1 offset end
+const INTRINSIC_OVER      1 offset end
+const INTRINSIC_ROT       1 offset end
+const INTRINSIC_LOAD8     1 offset end
+const INTRINSIC_STORE8    1 offset end
+const INTRINSIC_LOAD16    1 offset end
+const INTRINSIC_STORE16   1 offset end
+const INTRINSIC_LOAD32    1 offset end
+const INTRINSIC_STORE32   1 offset end
+const INTRINSIC_LOAD64    1 offset end
+const INTRINSIC_STORE64   1 offset end
+const INTRINSIC_CAST_PTR  1 offset end
+const INTRINSIC_CAST_INT  1 offset end
+const INTRINSIC_CAST_BOOL 1 offset end
+const INTRINSIC_ARGC      1 offset end
+const INTRINSIC_ARGV      1 offset end
+const INTRINSIC_HERE      1 offset end
+const INTRINSIC_SYSCALL0  1 offset end
+const INTRINSIC_SYSCALL1  1 offset end
+const INTRINSIC_SYSCALL2  1 offset end
+const INTRINSIC_SYSCALL3  1 offset end
+const INTRINSIC_SYSCALL4  1 offset end
+const INTRINSIC_SYSCALL5  1 offset end
+const INTRINSIC_SYSCALL6  1 offset end
+const COUNT_INTRINSICS       reset end
 
-const OPS_CAP       1024 end
-const sizeof(Op)    16 end
-proc Op.type       0 + end
-proc Op.operand    8 + end
-proc @Op.type      Op.type @64 end
-proc !Op.type      Op.type !64 end
-proc @Op.operand   Op.operand @64 end
-proc !Op.operand   Op.operand !64 end
+const offsetof(Op.type) sizeof(u64) offset end
+const offsetof(Op.operand) sizeof(u64) offset end
+const sizeof(Op) reset end
+proc Op.type offsetof(Op.type) + end
+proc @Op.type Op.type @64 end
+proc !Op.type Op.type !64 end
+proc Op.operand offsetof(Op.operand) + end
+proc @Op.operand Op.operand @64 end
+proc !Op.operand Op.operand !64 end
 
-memory sim-stack-count sizeof(u64)                 end
-memory sim-stack       sizeof(u64) SIM_STACK_CAP * end
-memory ops-count       sizeof(u64)                 end
+memory sim-stack-count sizeof(u64) end
+memory sim-stack sizeof(u64) SIM_STACK_CAP * end
+const OPS_CAP 1024 end
+memory ops-count sizeof(u64) end
 proc @ops-count ops-count @64 end
-memory ops             sizeof(Op) OPS_CAP *        end
+memory ops sizeof(Op) OPS_CAP * end
 
 proc cmd-echoed // argv
   memory wstatus sizeof(u64) end

@@ -467,13 +467,16 @@ macro eputs
   stderr fputs
 end
 
-macro sizeof(Str) 16 end
-macro Str.count   0 + end
-macro Str.data    8 + end
-macro @Str.count  Str.count @64 end
-macro @Str.data   Str.data  @64 cast(ptr) end
-macro !Str.count  Str.count !64 end
-macro !Str.data   Str.data  !64 end
+const offsetof(Str.count) sizeof(u64) offset end
+const offsetof(Str.data) sizeof(ptr) offset end
+const sizeof(Str) reset end
+
+proc Str.count offsetof(Str.count) + end
+proc Str.data offsetof(Str.data) + end
+proc @Str.count Str.count @64 end
+proc @Str.data Str.data  @64 cast(ptr) end
+proc !Str.count Str.count !64 end
+proc !Str.data Str.data  !64 end
 
 macro @Str
   dup @Str.count

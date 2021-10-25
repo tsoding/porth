@@ -37,6 +37,8 @@ class Keyword(Enum):
     MEMORY=auto()
     PROC=auto()
     CONST=auto()
+    OFFSET=auto()
+    RESET=auto()
 
 class DataType(IntEnum):
     INT=auto()
@@ -1493,7 +1495,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
         out.write("ret_stack_end:\n")
         out.write("mem: resb %d\n" % program.memory_capacity)
 
-assert len(Keyword) == 11, "Exhaustive KEYWORD_NAMES definition."
+assert len(Keyword) == 13, "Exhaustive KEYWORD_NAMES definition."
 KEYWORD_BY_NAMES: Dict[str, Keyword] = {
     'if': Keyword.IF,
     'orelse': Keyword.ORELSE,
@@ -1506,6 +1508,8 @@ KEYWORD_BY_NAMES: Dict[str, Keyword] = {
     'proc': Keyword.PROC,
     'end': Keyword.END,
     'const': Keyword.CONST,
+    'offset': Keyword.OFFSET,
+    'reset': Keyword.RESET,
 }
 KEYWORD_NAMES: Dict[Keyword, str] = {v: k for k, v in KEYWORD_BY_NAMES.items()}
 
@@ -1651,7 +1655,7 @@ def check_word_redefinition(token: Token, memories: Dict[str, Memory], macros: D
         compiler_note(consts[name].loc, "the original definition is located here")
         exit(1)
 
-def eval_const_value(rtokens: List[Token], macros: Dict[str, Macro], consts: Dict[str, Const]) -> int:
+def eval_const_value(rtokens: List[Token], macros: Dict[str, Macro], consts: Dict[str, Const], iota: List[int]) -> int:
     stack: List[int] = []
     while len(rtokens) > 0:
         token = rtokens.pop()
@@ -1659,6 +1663,16 @@ def eval_const_value(rtokens: List[Token], macros: Dict[str, Macro], consts: Dic
             assert isinstance(token.value, Keyword)
             if token.value == Keyword.END:
                 break
+            elif token.value == Keyword.OFFSET:
+                if len(stack) < 1:
+                    compiler_error_with_expansion_stack(token, f"not enough arguments for `{KEYWORD_NAMES[token.value]}` keyword")
+                    exit(1)
+                offset = stack.pop()
+                stack.append(iota[0])
+                iota[0] += offset
+            elif token.value == Keyword.RESET:
+                stack.append(iota[0])
+                iota[0] = 0
             else:
                 compiler_error_with_expansion_stack(token, f"unsupported keyword `{KEYWORD_NAMES[token.value]}` in compile time evaluation")
                 exit(1)
@@ -1721,6 +1735,7 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
     procs: Dict[str, Proc] = {}
     consts: Dict[str, Const] = {}
     current_proc: Optional[Proc] = None
+    iota: List[int] = [0]
     # TODO: consider getting rid of the ip variable in parse_program_from_tokens()
     ip: OpAddr = 0;
     while len(rtokens) > 0:
@@ -1768,7 +1783,7 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
             program.ops.append(Op(typ=OpType.PUSH_INT, operand=token.value, token=token));
             ip += 1
         elif token.typ == TokenType.KEYWORD:
-            assert len(Keyword) == 11, "Exhaustive keywords handling in parse_program_from_tokens()"
+            assert len(Keyword) == 13, "Exhaustive keywords handling in parse_program_from_tokens()"
             if token.value == Keyword.IF:
                 program.ops.append(Op(typ=OpType.IF, token=token))
                 stack.append(ip)
@@ -1892,7 +1907,7 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                 const_name = token.value
                 const_loc = token.loc
                 check_word_redefinition(token, memories, macros, procs, consts)
-                const_value = eval_const_value(rtokens, macros, consts)
+                const_value = eval_const_value(rtokens, macros, consts, iota)
                 consts[const_name] = Const(value=const_value, loc=const_loc)
             elif token.value == Keyword.MEMORY:
 
@@ -1906,7 +1921,7 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                 assert isinstance(token.value, str), "This is probably a bug in the lexer"
                 memory_name = token.value
                 memory_loc = token.loc
-                memory_size = eval_const_value(rtokens, macros, consts)
+                memory_size = eval_const_value(rtokens, macros, consts, iota)
                 if current_proc is None:
                     check_word_redefinition(token, memories, macros, procs, consts)
                     memories[memory_name] = Memory(offset=program.memory_capacity, loc=memory_loc)
@@ -1937,7 +1952,7 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                     else:
                         macro.tokens.append(token)
                         if token.typ == TokenType.KEYWORD:
-                            assert len(Keyword) == 11, "Exhaustive handling of keywords in parsing macro body"
+                            assert len(Keyword) == 13, "Exhaustive handling of keywords in parsing macro body"
                             if token.value in [Keyword.IF, Keyword.WHILE, Keyword.MACRO, Keyword.MEMORY, Keyword.PROC, Keyword.CONST]:
                                 nesting_depth += 1
                             elif token.value == Keyword.END:
@@ -1973,6 +1988,9 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                 else:
                     compiler_error_with_expansion_stack(token, "defining procedures inside of procedures is not allowed")
                     compiler_note(current_proc.loc, "the current procedure starts here")
+            elif token.value in [Keyword.OFFSET, Keyword.RESET]:
+                compiler_error_with_expansion_stack(token, f"keyword `{token.text}` is supported only in compile time evaluation context")
+                exit(1)
             else:
                 assert False, 'unreachable';
         else:
