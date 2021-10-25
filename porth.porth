@@ -742,11 +742,8 @@ proc simulate-ops // --
       else sim-op @Op.operand INTRINSIC_HERE = if*
         here eputs ": TODO: `here` is not implemented yet" eputs
       else sim-op @Op.operand INTRINSIC_CAST_PTR = if*
-        nop
       else sim-op @Op.operand INTRINSIC_CAST_INT = if*
-        nop
       else sim-op @Op.operand INTRINSIC_CAST_BOOL = if*
-        nop
       else sim-op @Op.operand INTRINSIC_SYSCALL0 = if*
         here eputs ": TODO: `syscall0` is not implemented yet" eputs
       else sim-op @Op.operand INTRINSIC_SYSCALL1 = if*

@@ -1,4 +1,4 @@
-// Deprecated Words
+// Deprecated Words //////////
 macro .64 swap !64 end
 macro ,64 @64 end
 macro ! !8 end
@@ -7,10 +7,10 @@ macro . swap ! end
 macro , @ end
 macro cstr-to-pstr cstr-to-str end
 memory mem 640000 end
+macro nop end
+//////////////////////////////
 
 const NULL 0 end
-
-macro nop end
 
 macro true  1 cast(bool) end
 macro false 0 cast(bool) end
