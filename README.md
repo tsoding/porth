@@ -23,7 +23,7 @@ Porth is a Computer [Programming Language](https://en.wikipedia.org/wiki/Program
 
 Hello, World:
 
-```pascal
+```porth
 include "std.porth"
 
 "Hello, World\n" puts
@@ -31,7 +31,7 @@ include "std.porth"
 
 Simple program that prints numbers from 0 to 99 in an ascending order:
 
-```pascal
+```porth
 include "std.porth"
 
 100 0 while 2dup > do
@@ -125,7 +125,7 @@ Currently an integer is anything that is parsable by [int](https://docs.python.o
 
 Example:
 
-```pascal
+```porth
 10 20 +
 ```
 
@@ -144,7 +144,7 @@ Those, a single string pushes two values onto the data stack: the size and the p
 
 Example:
 
-```
+```porth
 include "std.porth"
 "Hello, World" puts
 ```
@@ -159,7 +159,7 @@ The size and the pointer are provided by the string `"Hello, World"`.
 
 It's like a regular string but it does not push its size on the stack and implicitly ends with [NULL-terminator](https://en.wikipedia.org/wiki/Null-terminated_string). Designed specifically to interact with C code or any other kind of code that expects NULL-terminated strings.
 
-```
+```porth
 include "std.porth"
 
 0 O_RDONLY "input.txt"c AT_FDCWD openat
@@ -187,7 +187,7 @@ When compiler encounters a character it pushes its value as an integer onto the 
 
 Example:
 
-```
+```porth
 'E' print
 ```
 
@@ -256,7 +256,8 @@ This program pushes integer `69` onto the stack (since the ASCII code of letter 
 #### System
 
 - `syscall<n>` - perform a syscall with n arguments where n is in range `[0..6]`. (`syscall1`, `syscall2`, etc)
-```
+
+```porth
 syscall_number = pop()
 <move syscall_number to the corresponding register>
 for i in range(n):
@@ -269,24 +270,54 @@ for i in range(n):
 
 - `here (-- [len: int] [str: ptr])` - pushes a string `"<file-path>:<row>:<col>"` where `<file-path>` is the path to the file where `here` is located, `<row>` is the row on which `here` is located and `<col>` is the column from which `here` starts. It is useful for reporting developer errors:
 
-```pascal
+```porth
 include "std.porth"
 
 here puts ": TODO: not implemented\n" puts 1 exit
 ```
+
 - `argc (-- [argc: int])`
 - `argv (-- [argv: ptr])`
 
+### std.porth
+
+TBD
+
+<!-- TODO: Document Standard Library Properly -->
+
 ### Control Flow
 
-- `<condition> if <then-branch> else <else-branch> end` - pops the element on top of the stack and if the element is not `0` executes the `<then-branch>`, otherwise `<else-branch>`.
-- `while <condition> do <body> end` - keeps executing both `<condition>` and `<body>` until `<condition>` produces `0` at the top of the stack. Checking the result of the `<condition>` removes it from the stack.
+#### if-condition
+
+<!-- TODO: document if-conditions -->
+
+```porth
+<condition> if
+  <body>
+orelse <condition> if
+  <body>
+orelse <condition> if
+  <body>
+else
+  <body>
+end
+```
+
+#### while-loop
+
+<!-- TODO: document while-loops properly -->
+
+```porth
+while <condition> do
+   <body>
+end
+```
 
 ### Macros
 
 Define a new word `write` that expands into a sequence of tokens `stdout SYS_write syscall3` during the compilation.
 
-```
+```porth
 macro write
     stdout SYS_write syscall3
 end
@@ -296,8 +327,102 @@ end
 
 Include tokens of file `file.porth`
 
-```
+```porth
 include "file.porth"
+```
+
+### Procedures
+
+<!-- TODO: Document Procedures Properly -->
+
+```porth
+proc seq // n --
+  while dup 0 > do
+    dup print
+    1 -
+  end drop
+end
+```
+
+### Constants
+
+<!-- TODO: Document Constants Properly -->
+
+```porth
+const N 69 end
+const M 420 end
+const K M N / end
+```
+
+### Memory
+
+<!-- TODO: Document Memory properly -->
+
+#### Global Memory
+
+```porth
+include "std.porth"
+
+const N 26 end
+memory buffer N end
+
+0 while dup N < do
+  dup 'a' +
+  over buffer +
+  !8
+
+  1 +
+end drop
+
+N buffer puts
+```
+
+#### Local Memory
+
+```porth
+include "std.porth"
+
+proc fib // n --
+  memory a sizeof(u64) end
+  memory b sizeof(u64) end
+
+  dup 1 > if
+    dup 1 - fib a !64
+    dup 2 - fib b !64
+    a @64 b @64 +
+  end
+end
+```
+
+### offset/reset
+
+<!-- TODO: Document offset/reset properly -->
+
+#### Enums
+
+```porth
+include "std.porth"
+
+const MON 1 offset end
+const TUE 1 offset end
+const WED 1 offset end
+const THU 1 offset end
+const FRI 1 offset end
+const SAT 1 offset end
+const SUN 1 offset end
+const WEEK_DAYS reset end
+
+"There is " puts WEEK_DAYS putd " days in a week\n" puts
+```
+
+#### Structs
+
+```porth
+include "std.porth"
+
+const offsetof(Str.count) sizeof(u64) offset end
+const offsetof(Str.data) sizeof(ptr) offset end
+const sizeof(Str) reset end
 ```
 
 ### Type Checking
@@ -306,10 +431,10 @@ TBD
 
 <!-- TODO: Document Type Checking process -->
 
-### Conventions
+#### Types of Porth
 
-#### Structures
+- `int` - 64 bit integer
+- `bool` - boolean
+- `ptr` - pointer
 
 TBD
-
-<!-- TODO: Document Structure Conventions -->

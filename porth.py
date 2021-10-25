@@ -1986,6 +1986,8 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                     procs[proc_name] = Proc(addr=proc_addr + 1, loc=token.loc, local_memories={}, local_memory_capacity=0)
                     current_proc = procs[proc_name]
                 else:
+                    # TODO: forbid constant definition inside of proc
+                    # TODO: forbid macro definition inside of proc
                     compiler_error_with_expansion_stack(token, "defining procedures inside of procedures is not allowed")
                     compiler_note(current_proc.loc, "the current procedure starts here")
             elif token.value in [Keyword.OFFSET, Keyword.RESET]:
