@@ -522,20 +522,21 @@ proc str-chop-by-delim // delim line input
   2drop
 end
 
-memory streq_a sizeof(Str) end
-memory streq_b sizeof(Str) end
 proc streq // n1 s1 n2 s2
-  streq_a !Str
-  streq_b !Str
-  streq_a @Str.count streq_b @Str.count = if
+  memory a sizeof(Str) end
+  a !Str
+  memory b sizeof(Str) end
+  b !Str
+
+  a @Str.count b @Str.count = if
     0 while
-      dup streq_a @Str.count < if
-        dup streq_a @Str.data + @8
-        over streq_b @Str.data + @8
+      dup a @Str.count < if
+        dup a @Str.data + @8
+        over b @Str.data + @8
         =
       else false end
     do 1 + end
-    streq_a @Str.count >=
+    a @Str.count >=
   else false end
 end
 
