@@ -24,3 +24,4 @@ streq
 memcpy
 fputd
 offset-reset
+str-chop-by-delim
