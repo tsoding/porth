@@ -66,7 +66,6 @@ proc !Op.operand   Op.operand !64 end
 
 memory comment sizeof(Str) end "//" comment !Str
 
-memory file_path_cstr  sizeof(ptr)                 end
 memory fd              sizeof(u64)                 end
 memory statbuf         sizeof(stat)                end
 memory content         sizeof(Str)                 end
@@ -836,22 +835,25 @@ proc remove-comment // output input
   2drop
 end
 
-proc parse_file_path_cstr_into_ops
+proc parse_file_path_cstr_into_ops // file-path-cstr
+  memory file-path-cstr sizeof(ptr) end
+  file-path-cstr !64
+
   0                            // mode
   O_RDONLY                     // flags
-  file_path_cstr @64 cast(ptr) // pathname
+  file-path-cstr @64 cast(ptr) // pathname
   AT_FDCWD                     // dirfd
   openat
 
   dup 0 < if
-    "ERROR: could not open file " eputs file_path_cstr @64 cast(ptr) cstr-to-str eputs "\n" eputs
+    "ERROR: could not open file " eputs file-path-cstr @64 cast(ptr) cstr-to-str eputs "\n" eputs
     1 exit
   end
 
   fd !64
 
   statbuf fd @64 fstat 0 < if
-    "ERROR: could not determine the size of file " eputs file_path_cstr @64 cast(ptr) cstr-to-str eputs "\n" eputs
+    "ERROR: could not determine the size of file " eputs file-path-cstr @64 cast(ptr) cstr-to-str eputs "\n" eputs
     1 exit
   end
 
@@ -867,7 +869,7 @@ proc parse_file_path_cstr_into_ops
   content !Str.data
 
   content @Str.data cast(int) 0 < if
-    "ERROR: could not memory map file " eputs file_path_cstr @64 cast(ptr) cstr-to-str eputs "\n" eputs
+    "ERROR: could not memory map file " eputs file-path-cstr @64 cast(ptr) cstr-to-str eputs "\n" eputs
     1 exit
   end
 
@@ -982,7 +984,7 @@ proc parse_file_path_cstr_into_ops
         OP_IF 0 push-op
       orelse word @Str "end" streq if
         @parse-block-stack-count 0 <= if
-          file_path_cstr @64 cast(ptr) cstr-to-str eputs
+          file-path-cstr @64 cast(ptr) cstr-to-str eputs
           ":" puts line_number @64 putd
           ":" puts word @Str.data cast(int) line_start @64 - 1 + putd
           ": ERROR: `end` can only close `if` for now\n" eputs
@@ -994,7 +996,7 @@ proc parse_file_path_cstr_into_ops
         ops over sizeof(Op) * +
 
         dup @Op.type OP_IF != if
-          file_path_cstr @64 cast(ptr) cstr-to-str eputs
+          file-path-cstr @64 cast(ptr) cstr-to-str eputs
           ":" puts line_number @64 putd
           ":" puts word @Str.data cast(int) line_start @64 - 1 + putd
           ": ERROR: `end` can only close `if` for now\n" eputs
@@ -1009,7 +1011,7 @@ proc parse_file_path_cstr_into_ops
       else
         OP_PUSH_INT
         word @Str try-parse-int lnot if
-          file_path_cstr @64 cast(ptr) cstr-to-str eputs
+          file-path-cstr @64 cast(ptr) cstr-to-str eputs
           ":" puts line_number @64 putd
           ":" puts word @Str.data cast(int) line_start @64 - 1 + putd
           ": ERROR: `" eputs word @Str eputs "` is unknown word\n" eputs
@@ -1050,9 +1052,7 @@ proc main // --
       1 exit
     end
 
-    2 nth_argv file_path_cstr !64
-
-    parse_file_path_cstr_into_ops
+    2 nth_argv parse_file_path_cstr_into_ops
 
     simulate-ops
   orelse dup "com"c cstreq if
@@ -1062,9 +1062,7 @@ proc main // --
       1 exit
     end
 
-    2 nth_argv file_path_cstr !64
-
-    parse_file_path_cstr_into_ops
+    2 nth_argv parse_file_path_cstr_into_ops
 
     compile-ops
   orelse dup "help"c cstreq if
@@ -1077,9 +1075,7 @@ proc main // --
       1 exit
     end
 
-    2 nth_argv file_path_cstr !64
-
-    parse_file_path_cstr_into_ops
+    2 nth_argv parse_file_path_cstr_into_ops
 
     dump-ops
   else
