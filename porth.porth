@@ -65,6 +65,8 @@ proc Op.operand offsetof(Op.operand) + end
 proc @Op.operand Op.operand @64 end
 proc !Op.operand Op.operand !64 end
 
+// TODO: implement reusable stack data structure
+
 memory sim-stack-count sizeof(u64) end
 memory sim-stack sizeof(u64) SIM_STACK_CAP * end
 const OPS_CAP 1024 end
@@ -565,16 +567,15 @@ proc compile-ops // --
   output-argv cmd-echoed
 end
 
-memory sim-ip sizeof(u64) end
-proc @sim-ip sim-ip @64 end
-proc !sim-ip sim-ip !64 end
-memory sim-op sizeof(Op) end
 
 proc simulate-ops // --
-  0 !sim-ip
-  while @sim-ip @ops-count < do
+  memory sim-ip sizeof(u64) end
+  memory sim-op sizeof(Op) end
+
+  0 sim-ip !64
+  while sim-ip @64 @ops-count < do
     sizeof(Op)
-    @sim-ip sizeof(Op) * ops +
+    sim-ip @64 sizeof(Op) * ops +
     sim-op
     memcpy
 
@@ -590,10 +591,10 @@ proc simulate-ops // --
        sim-stack-pop cast(bool) if
          sim-ip inc64
        else
-         sim-op @Op.operand !sim-ip
+         sim-op @Op.operand sim-ip !64
        end
     orelse sim-op @Op.type OP_END = if
-      sim-op @Op.operand !sim-ip
+      sim-op @Op.operand sim-ip !64
     orelse sim-op @Op.type OP_INTRINSIC = if
       COUNT_INTRINSICS 42 != if
         here eputs ": Assertion Failed: Exhaustive handling of Intrinsics in compile-ops\n" eputs
