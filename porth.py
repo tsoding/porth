@@ -1815,17 +1815,17 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                     program.ops.append(Op(typ=OpType.ELSE, token=token))
                     ip += 1
                 elif program.ops[if_ip].typ == OpType.IFSTAR:
-                    else_ip = None if len(stack) == 0 else stack.pop()
-                    assert else_ip is not None and program.ops[else_ip].typ == OpType.ELSE, "At this point we should've already checked that `if*` comes after `else`. Otherwise this is a compiler bug."
+                    else_before_ifstar_ip = None if len(stack) == 0 else stack.pop()
+                    assert else_before_ifstar_ip is not None and program.ops[else_before_ifstar_ip].typ == OpType.ELSE, "At this point we should've already checked that `if*` comes after `else`. Otherwise this is a compiler bug."
 
                     program.ops[if_ip].operand = ip + 1
-                    program.ops[else_ip].operand = ip
+                    program.ops[else_before_ifstar_ip].operand = ip
 
                     stack.append(ip)
                     program.ops.append(Op(typ=OpType.ELSE, token=token))
                     ip += 1
                 else:
-                    compiler_error_with_expansion_stack(if_program.ops[if_ip].token, f'`else` can only come after `if` or `if*`')
+                    compiler_error_with_expansion_stack(program.ops[if_ip].token, f'`else` can only come after `if` or `if*`')
                     exit(1)
             elif token.value == Keyword.END:
                 block_ip = stack.pop()
@@ -1855,7 +1855,13 @@ def parse_program_from_tokens(tokens: List[Token], include_paths: List[str], exp
                     program.ops[block_ip].operand = ip + 1
                     current_proc = None
                 elif program.ops[block_ip].typ == OpType.IFSTAR:
-                    assert False, "TODO: implement"
+                    else_before_ifstar_ip = None if len(stack) == 0 else stack.pop()
+                    assert else_before_ifstar_ip is not None and program.ops[else_before_ifstar_ip].typ == OpType.ELSE, "At this point we should've already checked that `if*` comes after `else`. Otherwise this is a compiler bug."
+
+                    program.ops.append(Op(typ=OpType.END, token=token))
+                    program.ops[block_ip].operand = ip
+                    program.ops[else_before_ifstar_ip].operand = ip
+                    program.ops[ip].operand = ip + 1
                 elif program.ops[block_ip].typ == OpType.IF:
                     program.ops.append(Op(typ=OpType.END, token=token))
                     program.ops[block_ip].operand = ip
@@ -2118,6 +2124,8 @@ def cmd_call_echoed(cmd: List[str], silent: bool) -> int:
         print("[CMD] %s" % " ".join(map(shlex.quote, cmd)))
     return subprocess.call(cmd)
 
+# TODO: with a lot of procs the control flow graphs becomes useless even on small programs
+# Maybe we should eliminate unreachable code or something
 # TODO: test.py never touches generate_control_flow_graph_as_dot_file
 # Which leads to constantly forgetting to update the implementation
 def generate_control_flow_graph_as_dot_file(program: Program, dot_path: str):
