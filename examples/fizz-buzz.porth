@@ -3,9 +3,9 @@ include "std.porth"
 1 while dup 100 < do
   dup 15 mod 0 = if
     "FizzBuzz\n" puts
-  orelse dup 3 mod 0 = if
+  else dup 3 mod 0 = if*
     "Fizz\n" puts
-  orelse dup 5 mod 0 = if
+  else dup 5 mod 0 = if*
     "Buzz\n" puts
   else 
     dup print
