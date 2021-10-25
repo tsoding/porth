@@ -85,24 +85,11 @@ memory out_fd sizeof(u64) end
 proc @out_fd out_fd @64 end
 proc !out_fd out_fd !64 end
 
-memory empty_envp sizeof(ptr) end
-memory nasm_argv sizeof(ptr) 4 * end
-// TODO: search for external utilities in $PATH
-"/usr/bin/nasm"c nasm_argv 0 8 * + !64
-"-felf64"c       nasm_argv 1 8 * + !64
-"output.asm"c    nasm_argv 2 8 * + !64
+proc cmd-echoed // argv
+  memory wstatus sizeof(u64) end
+  memory empty_envp sizeof(ptr) end
+  0 empty_envp !64
 
-memory ld_argv sizeof(ptr) 5 * end
-"/usr/bin/ld"c ld_argv 0 8 * + !64
-"-o"c          ld_argv 1 8 * + !64
-"output"c      ld_argv 2 8 * + !64
-"output.o"c    ld_argv 3 8 * + !64
-
-memory output_argv sizeof(ptr) 2 * end
-"./output"c output_argv 0 8 * + !64
-
-memory wstatus sizeof(u64) end
-proc cmd_echoed // argv
   "[CMD]" puts
   dup while dup @64 0 != do
     " " puts
@@ -567,9 +554,26 @@ proc compile-ops // --
 
   @out_fd close drop
 
-  nasm_argv cmd_echoed
-  ld_argv cmd_echoed
-  output_argv cmd_echoed
+  memory nasm-argv sizeof(ptr) 4 * end
+  // TODO: search for external utilities in $PATH
+  "/usr/bin/nasm"c nasm-argv 0 8 * + !64
+  "-felf64"c       nasm-argv 1 8 * + !64
+  "output.asm"c    nasm-argv 2 8 * + !64
+  NULL             nasm-argv 3 8 * + !64
+  nasm-argv cmd-echoed
+
+  memory ld-argv sizeof(ptr) 5 * end
+  "/usr/bin/ld"c ld-argv 0 8 * + !64
+  "-o"c          ld-argv 1 8 * + !64
+  "output"c      ld-argv 2 8 * + !64
+  "output.o"c    ld-argv 3 8 * + !64
+  NULL           ld-argv 4 8 * + !64
+  ld-argv cmd-echoed
+
+  memory output-argv sizeof(ptr) 2 * end
+  "./output"c output-argv 0 8 * + !64
+  NULL        output-argv 1 8 * + !64
+  output-argv cmd-echoed
 end
 
 memory sim-ip sizeof(u64) end
