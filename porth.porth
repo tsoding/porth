@@ -64,16 +64,6 @@ proc !Op.type      Op.type !64 end
 proc @Op.operand   Op.operand @64 end
 proc !Op.operand   Op.operand !64 end
 
-memory comment sizeof(Str) end "//" comment !Str
-
-memory fd              sizeof(u64)                 end
-memory statbuf         sizeof(stat)                end
-memory content         sizeof(Str)                 end
-memory line-with-comment sizeof(Str)               end
-memory line            sizeof(Str)                 end
-memory word            sizeof(Str)                 end
-memory line_number     sizeof(u64)                 end
-memory line_start      sizeof(ptr)                 end
 memory sim-stack-count sizeof(u64)                 end
 memory sim-stack       sizeof(u64) SIM_STACK_CAP * end
 memory ops-count       sizeof(u64)                 end
@@ -822,6 +812,8 @@ proc str-starts-with // prefix-count prefix-data input-count input-data
 end
 
 proc remove-comment // output input
+  memory comment sizeof(Str) end "//" comment !Str
+
   over 0 swap !Str.count
   2dup @Str.data swap !Str.data
   while
@@ -850,13 +842,16 @@ proc parse_file_path_cstr_into_ops // file-path-cstr
     1 exit
   end
 
+  memory fd sizeof(u64) end
   fd !64
 
+  memory statbuf sizeof(stat) end
   statbuf fd @64 fstat 0 < if
     "ERROR: could not determine the size of file " eputs file-path-cstr @64 cast(ptr) cstr-to-str eputs "\n" eputs
     1 exit
   end
 
+  memory content sizeof(Str) end
   statbuf @stat.st_size content !Str.count
 
   0                        // offset
@@ -872,6 +867,12 @@ proc parse_file_path_cstr_into_ops // file-path-cstr
     "ERROR: could not memory map file " eputs file-path-cstr @64 cast(ptr) cstr-to-str eputs "\n" eputs
     1 exit
   end
+
+  memory line_number sizeof(u64) end
+  memory line-with-comment sizeof(Str) end
+  memory line sizeof(Str) end
+  memory word sizeof(Str) end
+  memory line_start sizeof(ptr) end
 
   1 line_number !64
   while content @Str.count 0 > do
