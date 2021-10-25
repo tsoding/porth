@@ -21,3 +21,4 @@ consts
 2swap
 try-parse-int
 streq
+memcpy

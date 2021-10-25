@@ -594,16 +594,16 @@ end
 macro putd stdout fputd end
 macro eputd stderr fputd end
 
-memory memcpy-size sizeof(u64) end
-memory memcpy-src sizeof(ptr) end
-memory memcpy-dst sizeof(ptr) end
-proc memcpy // size src dst
-  memcpy-dst !64
-  memcpy-src !64
-  memcpy-size !64
-  0 while dup memcpy-size @64 < do
-    dup  memcpy-src @64 cast(ptr) + @8
-    over memcpy-dst @64 cast(ptr) + !8
-    1 +
+proc memcpy // size src dst --
+  memory src sizeof(ptr) end
+  memory dst sizeof(ptr) end
+  dst !64
+  src !64
+  while dup 0 > do
+    src @64 cast(ptr) @8
+    dst @64 cast(ptr) !8
+    src inc64
+    dst inc64
+    1 -
   end drop
 end

@@ -1180,7 +1180,7 @@ def generate_nasm_linux_x86_64(program: Program, out_file_path: str):
             out.write("addr_%d:\n" % ip)
             out.write("    ;; -- %s:%d:%d: %s (%s) --\n" % (op.token.loc + (repr(op.token.text), op.typ)))
             if op.typ == OpType.PUSH_INT:
-                assert isinstance(op.operand, int), "This could be a bug in the parsing step"
+                assert isinstance(op.operand, int), f"This could be a bug in the parsing step {op.operand}"
                 out.write("    mov rax, %d\n" % op.operand)
                 out.write("    push rax\n")
             elif op.typ == OpType.PUSH_STR:
@@ -1681,6 +1681,19 @@ def eval_const_value(rtokens: List[Token], macros: Dict[str, Macro], consts: Dic
                 a = stack.pop()
                 b = stack.pop()
                 stack.append(a * b)
+            elif token.value == INTRINSIC_NAMES[Intrinsic.DIVMOD]:
+                if len(stack) < 2:
+                    compiler_error_with_expansion_stack(token, f"not enough arguments for `{token.value}` intrinsic")
+                    exit(1)
+                a = stack.pop()
+                b = stack.pop()
+                stack.append(b//a)
+                stack.append(b%a)
+            elif token.value == INTRINSIC_NAMES[Intrinsic.DROP]:
+                if len(stack) < 1:
+                    compiler_error_with_expansion_stack(token, f"not enough arguments for `{token.value}` intrinsic")
+                    exit(1)
+                stack.pop()
             elif token.value in macros:
                 if token.expanded_count >= expansion_limit:
                     compiler_error_with_expansion_stack(token, "the macro exceeded the expansion limit (it expanded %d times)" % token.expanded_count)

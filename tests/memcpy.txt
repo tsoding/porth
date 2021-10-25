@@ -1,0 +1,16 @@
+:i argc 0
+:b stdin 0
+
+:i returncode 0
+:b stdout 264
+abcdabcdabcdabcdabcdabcdabcdabcd
+abcdabcdabcdabcdabcdabcdabcdabcd
+abcdabcdabcdabcdabcdabcdabcdabcd
+abcdabcdabcdabcdabcdabcdabcdabcd
+abcdabcdabcdabcdabcdabcdabcdabcd
+abcdabcdabcdabcdabcdabcdabcdabcd
+abcdabcdabcdabcdabcdabcdabcdabcd
+abcdabcdabcdabcdabcdabcdabcdabcd
+
+:b stderr 0
+
