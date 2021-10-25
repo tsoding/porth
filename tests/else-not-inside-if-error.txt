@@ -4,6 +4,6 @@
 :i returncode 1
 :b stdout 0
 
-:b stderr 83
-./tests/else-not-inside-if-error.porth:2:1: ERROR: `else` can only come after `if`
+:b stderr 92
+./tests/else-not-inside-if-error.porth:2:1: ERROR: `else` can only come after `if` or `if*`
 
