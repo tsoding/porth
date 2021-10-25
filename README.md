@@ -313,9 +313,3 @@ TBD
 TBD
 
 <!-- TODO: Document Structure Conventions -->
-
-#### Arrays
-
-TBD
-
-<!-- TODO: Document Arrays Conventions -->
