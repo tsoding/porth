@@ -568,17 +568,18 @@ macro lnot
   cast(int) 1 - cast(bool)
 end
 
-macro PUTD_BUFFER_CAP 32 end
-memory putd-buffer PUTD_BUFFER_CAP end
-memory putd-fd sizeof(u64) end
+const PUTD_BUFFER_CAP 32 end
 // TODO: fputd should fail if write call fails
+// TODO: fputd does not print negative numbers
 proc fputd // value fd --
-  putd-fd !64
+  memory buffer PUTD_BUFFER_CAP end
+  memory fd sizeof(u64) end
+  fd !64
 
   dup 0 = if
-    "0" putd-fd @64 fputs
+    "0" fd @64 fputs
   else
-    putd-buffer PUTD_BUFFER_CAP +
+    buffer PUTD_BUFFER_CAP +
     while over 0 > do
       1 - dup rot
       10 divmod
@@ -586,7 +587,7 @@ proc fputd // value fd --
     end
 
     dup
-    putd-buffer PUTD_BUFFER_CAP + swap - swap putd-fd @64 fputs
+    buffer PUTD_BUFFER_CAP + swap - swap fd @64 fputs
   end
   drop
 end
