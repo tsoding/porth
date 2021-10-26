@@ -1,8 +1,8 @@
 include "std.porth"
 
-const N 32    end
-const K 8     end
-const M N K / end
+const N 32              end
+const K 8               end
+const M N K divmod drop end
 
 memory a N end
 memory b M end

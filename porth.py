@@ -50,6 +50,8 @@ class Intrinsic(Enum):
     PLUS=auto()
     MINUS=auto()
     MUL=auto()
+    # TODO: split divmod intrinsic into div and mod back
+    # It was never useful
     DIVMOD=auto()
     EQ=auto()
     GT=auto()
