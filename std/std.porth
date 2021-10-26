@@ -407,7 +407,6 @@ macro getpid SYS_getpid syscall0 end
 macro execve SYS_execve syscall3 end
 macro wait4 SYS_wait4 syscall4 end
 
-
 macro 2dup over over end
 macro 2drop drop drop end
 

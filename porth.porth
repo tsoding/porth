@@ -1087,16 +1087,4 @@ proc main // --
   drop
 end
 
-macro O_WRONLY
-  1
-end
-
-macro O_TRUNC
-  512
-end
-
-macro O_CREAT
-  64
-end
-
 main
