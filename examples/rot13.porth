@@ -1,20 +1,20 @@
 include "std.porth"
 
 macro BUFFER_CAP 1024 end
-macro buffer mem end
+memory buffer BUFFER_CAP end
 
 while BUFFER_CAP buffer stdin read dup 0 > do
   0 while 2dup > do
-    dup buffer + ,
+    dup buffer + @8
 
-    if dup 'a' >= over 'z' <= and do
+    dup 'a' >= over 'z' <= and if
       2dup 'a' - 13 + 26 mod 'a' +
-      swap buffer + swap .
+      swap buffer + !8
     end
 
-    if dup 'A' >= over 'Z' <= and do
+    dup 'A' >= over 'Z' <= and if
       2dup 'A' - 13 + 26 mod 'A' +
-      swap buffer + swap .
+      swap buffer + !8
     end
 
     drop

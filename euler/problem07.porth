@@ -2,34 +2,34 @@ include "std.porth"
 
 macro N 10001 end
 
-macro primes-count mem end
-macro primes primes-count 8 + end
+memory primes-count sizeof(u64) end
+memory primes sizeof(u64) N * 10 + end
 
 macro is-prime
   0
   while
-    if 2dup 8 * primes + ,64 dup * >= do
-       2dup 8 * primes + ,64 mod 0 !=
+    2dup 8 * primes + @64 dup * >= if
+       2dup 8 * primes + @64 mod 0 !=
     else
        false
     end
   do 1 + end
-  8 * primes + ,64 dup * <
+  8 * primes + @64 dup * <
 end
 
 macro add-prime
-  primes primes-count ,64 8 * + swap .64
+  primes primes-count @64 8 * + !64
   primes-count inc64
 end
 
 2 add-prime
 
-3 while primes-count ,64 N < do
-  if dup is-prime do
+3 while primes-count @64 N < do
+  dup is-prime if
     dup add-prime
   end
   1 +
 end drop
 
-primes N 1 - 8 * + ,64 print
+primes N 1 - 8 * + @64 print
 

@@ -1,30 +1,33 @@
 include "./std.porth"
 
-macro ,node/value ,64 end
-macro ,node/prev 8 + ,64 end
-macro .node/value .64 end
-macro .node/prev swap 8 + swap .64 end
-macro sizeof(node) 16 end
+macro sizeof(Node) 16 end
+macro Node.value 0 + end
+macro Node.prev  8 + end
+macro @Node.value Node.value @64 end
+macro @Node.prev  Node.prev  @64 end
+macro !Node.value Node.value !64 end
+macro !Node.prev  Node.prev  !64 end
 
-macro list_a mem end
-macro list_b list_a 8 + end
+memory list_a sizeof(ptr) end
+memory list_b sizeof(ptr) end
 
-macro nodes_count list_b 8 + end
-macro nodes nodes_count 8 + end
+macro NODES_CAP 1024 end
+memory nodes_count sizeof(u64) end
+memory nodes sizeof(Node) NODES_CAP * end
 
 macro alloc_node
-  nodes_count ,64 sizeof(node) * nodes +
-  nodes_count dup ,64 1 + .64
+  nodes_count @64 sizeof(Node) * nodes +
+  nodes_count dup @64 1 + swap !64
 end
 
 macro push_node
-  over alloc_node 2dup swap ,64 .node/prev .64
-  swap ,64 cast(ptr) swap .node/value
+  over alloc_node 2dup swap @64 swap !Node.prev swap !64
+  swap @64 cast(ptr) !Node.value
 end
 
 macro pop_node
-  dup ,64 cast(ptr) ,node/value swap
-  dup ,64 cast(ptr) ,node/prev .64
+  dup @64 cast(ptr) @Node.value swap
+  dup @64 cast(ptr) @Node.prev swap !64
 end
 
 // initialize list_a
@@ -34,11 +37,11 @@ end
 end drop
 
 // reverse list_a into list_b
-while list_a ,64 0 != do
+while list_a @64 0 != do
   list_a pop_node list_b swap push_node
 end
 
 // print list_b
-while list_b ,64 0 != do
+while list_b @64 0 != do
   list_b pop_node print
 end

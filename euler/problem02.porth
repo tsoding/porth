@@ -1,12 +1,12 @@
 include "std.porth"
 
-macro acc mem end
+memory acc sizeof(u64) end
 
 1 2 while over 4000000 < do
-  if over 2 mod 0 = do
-    over acc ,64 + acc swap .64
+  over 2 mod 0 = if
+    over acc @64 + acc !64
   end
 
   swap over +
 end 2drop
-acc ,64 print
+acc @64 print

@@ -1,0 +1,38 @@
+include "std.porth"
+
+// TODO: this solution is too slow for simulation mode even with pypy
+// It takes ~1min with `pypy ./test.py run ./euler/problem10.porth` on my machine
+// It's actually relatively slow even in the compilation mode (~1sec).
+// Maybe we could come up with a faster method of computer prime numbers?
+// We could precompute them and save the to a file I guess.
+
+memory ans sizeof(u64) end
+memory primes-count sizeof(u64) end
+memory primes sizeof(u32) 1000000 * end
+
+macro push-prime // value --
+  primes-count @32 sizeof(u32) * primes + !32
+  primes-count inc32
+end
+
+macro is-prime // [value: int] -> [ret: bool]
+  0 while
+    2dup sizeof(u32) * primes + @32 dup * >= if
+      2dup sizeof(u32) * primes + @32 mod 0 !=
+    else false end
+  do 1 + end
+  sizeof(u32) * primes + @32 dup * <
+end
+
+2 push-prime
+2 ans !64
+
+3 while dup 2000000 < do
+  dup is-prime if
+    dup push-prime
+    dup ans @64 + ans !64
+  end
+  1 +
+end drop
+
+ans @64 print

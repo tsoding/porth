@@ -1,0 +1,9 @@
+:i argc 0
+:b stdin 0
+
+:i returncode 1
+:b stdout 0
+
+:b stderr 124
+./tests/memory-single-number.porth:1:14: ERROR: The result of expression in compile time evaluation must be a single number
+

@@ -1,7 +1,7 @@
 // WARNING! This problem is extremely slow in Simulation Mode with CPython! Use PyPy or Compilation Mode!
 include "std.porth"
 
-macro ans mem end
+memory ans sizeof(u64) end
 
 100 while dup 1000 < do
   100 while dup 1000 < do
@@ -16,9 +16,9 @@ macro ans mem end
     swap drop
 
     // a b
-    if 2dup = do
-      if dup ans ,64 > do
-        ans over .64
+    2dup = if
+      dup ans @64 > if
+        ans over swap !64
       end
     end
 
@@ -29,4 +29,4 @@ macro ans mem end
 
   1 +
 end drop
-ans ,64 print
+ans @64 print

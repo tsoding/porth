@@ -4,6 +4,6 @@
 :i returncode 1
 :b stdout 0
 
-:b stderr 107
-./tests/end-cant-close-error.porth:1:1: ERROR: `end` can only close `else`, `do` or `macro` blocks for now
+:b stderr 121
+./tests/end-cant-close-error.porth:1:1: ERROR: `end` can only close `if`, `else`, `do`, `macro` or `proc` blocks for now
 

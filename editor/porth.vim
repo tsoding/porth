@@ -13,7 +13,7 @@ endif
 syntax keyword porthTodos TODO XXX FIXME NOTE
 
 " Language keywords
-syntax keyword porthKeywords if elif else end while do macro include
+syntax keyword porthKeywords if else while do macro include memory proc const end offset reset
 
 " Comments
 syntax region porthCommentLine start="//" end="$"   contains=porthTodos
@@ -24,7 +24,7 @@ syntax region porthString start=/\v'/ skip=/\v\\./ end=/\v'/
 
 " Set highlights
 highlight default link porthTodos Todo
-highlight default link porthKeywords Identifier
+highlight default link porthKeywords Keyword
 highlight default link porthCommentLine Comment
 highlight default link porthString String
 

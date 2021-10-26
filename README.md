@@ -1,6 +1,6 @@
 # Porth
 
-**WARNING! THE DEVELOPMENT IS MOVED TO GITLAB: https://gitlab.com/tsoding/porth**
+**WARNING! THIS LANGUAGE IS A WORK IN PROGRESS! ANYTHING CAN CHANGE AT ANY MOMENT WITHOUT ANY NOTICE! USE THIS LANGUAGE AT YOUR OWN RISK!**
 
 It's like [Forth](https://en.wikipedia.org/wiki/Forth_(programming_language)) but written in [Python](https://www.python.org/). But I don't actually know for sure since I never programmed in Forth, I only heard that it's some sort of stack-based programming language. Porth is also stack-based programming language. Which makes it just like Forth am I rite?
 
@@ -9,16 +9,21 @@ Porth is planned to be
 - [x] Native
 - [x] Stack-based (just like Forth)
 - [x] [Turing-complete](./examples/rule110.porth)
-- [x] Statically typed (the type checking is probably gonna be similar to the [WASM validation](https://binji.github.io/posts/webassembly-type-checking/))
-- [ ] Self-hosted (Python is used only as an initial bootstrap, once the language is mature enough we gonna rewrite it in itself)
+- [x] Statically typed (the type checking is similar to [WASM validation](https://binji.github.io/posts/webassembly-type-checking/))
+- [ ] Self-hosted (See [./porth.porth](./porth.porth) for the current progress)
+- [ ] Optimized
 
 (these are not the selling points, but rather milestones of the development)
+
+## The Use Case for The Language
+
+Porth is a Computer [Programming Language](https://en.wikipedia.org/wiki/Programming_language). It's designed to write programs for [Computers](https://en.wikipedia.org/wiki/Computer).
 
 ## Examples
 
 Hello, World:
 
-```pascal
+```porth
 include "std.porth"
 
 "Hello, World\n" puts
@@ -26,7 +31,7 @@ include "std.porth"
 
 Simple program that prints numbers from 0 to 99 in an ascending order:
 
-```pascal
+```porth
 include "std.porth"
 
 100 0 while 2dup > do
@@ -112,7 +117,7 @@ By default the compiler searches files to include in `./` and `./std/`. You can 
 
 This is what the language supports so far. **Since the language is a work in progress everything in this section is the subject to change.**
 
-### Data Types
+### Literals
 
 #### Integer
 
@@ -120,7 +125,7 @@ Currently an integer is anything that is parsable by [int](https://docs.python.o
 
 Example:
 
-```pascal
+```porth
 10 20 +
 ```
 
@@ -139,7 +144,7 @@ Those, a single string pushes two values onto the data stack: the size and the p
 
 Example:
 
-```
+```porth
 include "std.porth"
 "Hello, World" puts
 ```
@@ -154,13 +159,13 @@ The size and the pointer are provided by the string `"Hello, World"`.
 
 It's like a regular string but it does not push its size on the stack and implicitly ends with [NULL-terminator](https://en.wikipedia.org/wiki/Null-terminated_string). Designed specifically to interact with C code or any other kind of code that expects NULL-terminated strings.
 
-```
+```porth
 include "std.porth"
 
-O_RDONLY "input.txt"c AT_FDCWD openat
-//                  ^
-//                  |
-//                  postfix that indicates a C-style string
+0 O_RDONLY "input.txt"c AT_FDCWD openat
+//                    ^
+//                    |
+//                    postfix that indicates a C-style string
 
 if dup 0 < do
     "ERROR: could not open the file\n" eputs
@@ -182,195 +187,77 @@ When compiler encounters a character it pushes its value as an integer onto the 
 
 Example:
 
-```
+```porth
 'E' print
 ```
 
 This program pushes integer `69` onto the stack (since the ASCII code of letter `E` is `69`) and prints it with the `print` operation.
 
-### Built-in Words
+### Intrinsics (Built-in Words)
 
 #### Stack Manipulation
 
-- `dup` - duplicate an element on top of the stack.
-```
-a = pop()
-push(a)
-push(a)
-```
-- `swap` - swap 2 elements on the top of the stack.
-```
-a = pop()
-b = pop()
-push(a)
-push(b)
-```
-- `drop` - drops the top element of the stack.
-```
-pop()
-```
-- `print` - print the element on top of the stack in a free form to stdout and remove it from the stack.
-```
-a = pop()
-print(a)
-```
-- `over`
-```
-a = pop()
-b = pop()
-push(b)
-push(a)
-push(b)
-```
-- `rot` - rotate the top three stack elements.
-```
-a = pop()
-b = pop()
-c = pop()
-push(b)
-push(a)
-push(c)
-```
+| Name    | Signature        | Description                                                                                  |
+| ---     | ---              | ---                                                                                          |
+| `dup`   | `a -- a a`       | duplicate an element on top of the stack.                                                    |
+| `swap`  | `a b -- b a`     | swap 2 elements on the top of the stack.                                                     |
+| `drop`  | `a b -- a`       | drops the top element of the stack.                                                          |
+| `print` | `a b -- a`       | print the element on top of the stack in a free form to stdout and remove it from the stack. |
+| `over`  | `a b -- a b a`   | copy the element below the top of the stack                                                  |
+| `rot`   | `a b c -- b c a` | rotate the top three stack elements.                                                         |
 
 #### Comparison
 
-- `=` - checks if two elements on top of the stack are equal. Removes the elements from the stack and pushes `1` if they are equal and `0` if they are not.
-```
-a = pop()
-b = pop()
-push(int(a == b))
-```
-- `!=` - checks if two elements on top of the stack are not equal.
-```
-a = pop()
-b = pop()
-push(int(a != b))
-```
-- `>` - checks if the element below the top greater than the top.
-```
-b = pop()
-a = pop()
-push(int(a > b))
-```
-- `<` - checks if the element below the top less than the top.
-```
-b = pop()
-a = pop()
-push(int(a < b))
-```
-- `>=`
-```
-b = pop()
-a = pop()
-push(int(a >= b))
-```
-- `<=`
-```
-b = pop()
-a = pop()
-push(int(a >= b))
-```
+| Name | Signature                              | Description                                                  |
+| ---  | ---                                    | ---                                                          |
+| `= ` | `[a: int] [b: int] -- [a == b : bool]` | checks if two elements on top of the stack are equal.        |
+| `!=` | `[a: int] [b: int] -- [a != b : bool]` | checks if two elements on top of the stack are not equal.    |
+| `> ` | `[a: int] [b: int] -- [a > b  : bool]` | applies the greater comparison on top two elements.          |
+| `< ` | `[a: int] [b: int] -- [a < b  : bool]` | applies the less comparison on top two elements.             |
+| `>=` | `[a: int] [b: int] -- [a >= b : bool]` | applies the greater or equal comparison on top two elements  |
+| `<=` | `[a: int] [b: int] -- [a <= b : bool]` | applies the greater or equal comparison on top two elements. |
 
 #### Arithmetic
 
-- `+` - sums up two elements on the top of the stack.
-```
-a = pop()
-b = pop()
-push(a + b)
-```
-- `-` - subtracts the top of the stack from the element below.
-```
-a = pop()
-b = pop()
-push(b - a)
-```
-- `*` - multiples the top of the stack with the element below the top of the stack
-```
-a = pop()
-b = pop()
-push(b * a)
-```
-- `divmod`
-```
-a = pop()
-b = pop()
-push(b // a)
-push(b % a)
-```
+| Name     | Signature                                        | Description                                                                                                              |
+| ---      | ---                                              | ---                                                                                                                      |
+| `+`      | `[a: int] [b: int] -- [a + b: int]`              | sums up two elements on the top of the stack.                                                                            |
+| `-`      | `[a: int] [b: int] -- [a - b: int]`              | subtracts two elements on the top of the stack                                                                           |
+| `*`      | `[a: int] [b: int] -- [a * b: int]`              | multiples two elements on top of the stack                                                                               |
+| `divmod` | `[a: int] [b: int] -- [a / b: int] [a % b: int]` | perform [Euclidean division](https://en.wikipedia.org/wiki/Euclidean_division) between two elements on top of the stack. |
 
 #### Bitwise
 
-- `shr`
-```
-a = pop()
-b = pop()
-push(b >> a)
-```
-- `shl`
-```
-a = pop()
-b = pop()
-push(b << a)
-```
-- `or`
-```
-a = pop()
-b = pop()
-push(b | a)
-```
-- `and`
-```
-a = pop()
-b = pop()
-push(b & a)
-```
-- `not`
-```
-a = pop()
-push(~a)
-```
-
-#### Control Flow
-
-- `if <condition> do <then-branch> else <else-branch> end` - pops the element on top of the stack and if the element is not `0` executes the `<then-branch>`, otherwise `<else-branch>`.
-- `while <condition> do <body> end` - keeps executing both `<condition>` and `<body>` until `<condition>` produces `0` at the top of the stack. Checking the result of the `<condition>` removes it from the stack.
+| Name  | Signature                            | Description                   |
+| ---   | ---                                  | ---                           |
+| `shr` | `[a: int] [b: int] -- [a >> b: int]` | right **unsigned** bit shift. |
+| `shl` | `[a: int] [b: int] -- [a << b: int]` | light bit shift.              |
+| `or`  | `[a: int] [b: int] -- [a \| b: int]` | bit `or`.                     |
+| `and` | `[a: int] [b: int] -- [a & b: int]`  | bit `and`.                    |
+| `not` | `[a: int] -- [~a: int]`              | bit `not`.                    |
 
 #### Memory
 
-- `mem` - pushes the address of the beginning of the memory where you can read and write onto the stack.
-```
-push(mem_addr)
-```
-- `.` - store a given byte at the address on the stack.
-```
-byte = pop()
-addr = pop()
-store(addr, byte)
-```
-- `,` - load a byte from the address on the stack.
-```
-addr = pop()
-byte = load(addr)
-push(byte)
-```
-- `.64` - store an 8-byte word at the address on the stack.
-```
-word = pop()
-addr = pop()
-store(addr, word)
-```
-- `,64` - load an 8-byte word from the address on the stack.
-```
-word = pop()
-byte = load(word)
-push(byte)
-```
+| Name         | Signature                      | Description                                                                                    |
+| ---          | ---                            | ---                                                                                            |
+| `mem`        | `-- [mem: ptr]`                | pushes the address of the beginning of the memory where you can read and write onto the stack. |
+| `!8`         | `[byte: int] [place: ptr] -- ` | store a given byte at the address on the stack.                                                |
+| `@8`         | `[place: ptr] -- [byte: int]`  | load a byte from the address on the stack.                                                     |
+| `!16`        | `[byte: int] [place: ptr] --`  | store an 2-byte word at the address on the stack.                                              |
+| `@16`        | `[place: ptr] -- [byte: int]`  | load an 2-byte word from the address on the stack.                                             |
+| `!32`        | `[byte: int] [place: ptr] --`  | store an 4-byte word at the address on the stack.                                              |
+| `@32`        | `[place: ptr] -- [byte: int]`  | load an 4-byte word from the address on the stack.                                             |
+| `!64`        | `[byte: int] [place: ptr] --`  | store an 8-byte word at the address on the stack.                                              |
+| `@64`        | `[place: ptr] -- [byte: int]`  | load an 8-byte word from the address on the stack.                                             |
+| `cast(int)`  | `[a: any] -- [a: int]`         | cast the element on top of the stack to `int`                                                  |
+| `cast(bool)` | `[a: any] -- [a: bool]`        | cast the element on top of the stack to `bool`                                                 |
+| `cast(ptr)`  | `[a: any] -- [a: ptr]`         | cast the element on top of the stack to `ptr`                                                  |
 
 #### System
 
 - `syscall<n>` - perform a syscall with n arguments where n is in range `[0..6]`. (`syscall1`, `syscall2`, etc)
-```
+
+```porth
 syscall_number = pop()
 <move syscall_number to the corresponding register>
 for i in range(n):
@@ -379,11 +266,58 @@ for i in range(n):
 <perform the syscall>
 ```
 
+#### Misc
+
+- `here (-- [len: int] [str: ptr])` - pushes a string `"<file-path>:<row>:<col>"` where `<file-path>` is the path to the file where `here` is located, `<row>` is the row on which `here` is located and `<col>` is the column from which `here` starts. It is useful for reporting developer errors:
+
+```porth
+include "std.porth"
+
+here puts ": TODO: not implemented\n" puts 1 exit
+```
+
+- `argc (-- [argc: int])`
+- `argv (-- [argv: ptr])`
+
+### std.porth
+
+TBD
+
+<!-- TODO: Document Standard Library Properly -->
+
+### Control Flow
+
+#### if-condition
+
+<!-- TODO: document if-conditions -->
+
+```porth
+<condition> if
+  <body>
+else <condition> if*
+  <body>
+else <condition> if*
+  <body>
+else
+  <body>
+end
+```
+
+#### while-loop
+
+<!-- TODO: document while-loops properly -->
+
+```porth
+while <condition> do
+   <body>
+end
+```
+
 ### Macros
 
 Define a new word `write` that expands into a sequence of tokens `stdout SYS_write syscall3` during the compilation.
 
-```
+```porth
 macro write
     stdout SYS_write syscall3
 end
@@ -393,16 +327,114 @@ end
 
 Include tokens of file `file.porth`
 
-```
+```porth
 include "file.porth"
 ```
 
-### Misc
+### Procedures
 
-- `here` - pushes a string `"<file-path>:<row>:<col>"` where `<file-path>` is the path to the file where `here` is located, `<row>` is the row on which `here` is located and `<col>` is the column from which `here` starts. It is useful for reporting developer errors:
+<!-- TODO: Document Procedures Properly -->
 
-```pascal
+```porth
+proc seq // n --
+  while dup 0 > do
+    dup print
+    1 -
+  end drop
+end
+```
+
+### Constants
+
+<!-- TODO: Document Constants Properly -->
+
+```porth
+const N 69 end
+const M 420 end
+const K M N / end
+```
+
+### Memory
+
+<!-- TODO: Document Memory properly -->
+
+#### Global Memory
+
+```porth
 include "std.porth"
 
-here puts ": TODO: not implemented\n" puts 1 exit
+const N 26 end
+memory buffer N end
+
+0 while dup N < do
+  dup 'a' +
+  over buffer +
+  !8
+
+  1 +
+end drop
+
+N buffer puts
 ```
+
+#### Local Memory
+
+```porth
+include "std.porth"
+
+proc fib // n --
+  memory a sizeof(u64) end
+  memory b sizeof(u64) end
+
+  dup 1 > if
+    dup 1 - fib a !64
+    dup 2 - fib b !64
+    a @64 b @64 +
+  end
+end
+```
+
+### offset/reset
+
+<!-- TODO: Document offset/reset properly -->
+
+#### Enums
+
+```porth
+include "std.porth"
+
+const MON 1 offset end
+const TUE 1 offset end
+const WED 1 offset end
+const THU 1 offset end
+const FRI 1 offset end
+const SAT 1 offset end
+const SUN 1 offset end
+const WEEK_DAYS reset end
+
+"There is " puts WEEK_DAYS putd " days in a week\n" puts
+```
+
+#### Structs
+
+```porth
+include "std.porth"
+
+const offsetof(Str.count) sizeof(u64) offset end
+const offsetof(Str.data) sizeof(ptr) offset end
+const sizeof(Str) reset end
+```
+
+### Type Checking
+
+TBD
+
+<!-- TODO: Document Type Checking process -->
+
+#### Types of Porth
+
+- `int` - 64 bit integer
+- `bool` - boolean
+- `ptr` - pointer
+
+TBD

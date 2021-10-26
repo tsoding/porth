@@ -1,0 +1,4 @@
+include "std.porth"
+
+"stderr: " stderr fputs 69  stderr fputu "\n" stderr fputs
+"stdout: " stdout fputs 420 stdout fputu "\n" stdout fputs

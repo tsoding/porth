@@ -1,0 +1,24 @@
+include "std.porth"
+
+memory a sizeof(u64) end
+memory b sizeof(u64) end
+memory c sizeof(u64) end
+
+1 while dup 1000 < do
+  dup a !64
+  1 while dup a @64 + 1000 < do
+    dup b !64
+    1000 a @64 - b @64 - c !64
+        
+    a @64 dup * b @64 dup * + c @64 dup * = if
+      a @64 b @64 * c @64 * print
+      0 exit
+    end
+      
+    1 +
+  end drop
+  1 +
+end drop
+
+here eputs ": unreachable\n" eputs
+1 exit

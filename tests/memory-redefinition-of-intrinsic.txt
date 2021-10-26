@@ -1,0 +1,9 @@
+:i argc 0
+:b stdin 0
+
+:i returncode 1
+:b stdout 0
+
+:b stderr 99
+./tests/memory-redefinition-of-intrinsic.porth:1:8: ERROR: redefinition of an intrinsic word `dup`
+

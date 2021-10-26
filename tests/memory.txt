@@ -2,12 +2,13 @@
 :b stdin 0
 
 :i returncode 0
-:b stdout 33
+:b stdout 39
 abc
 4
 bcd
 4
 18446744073709551615
+65535
 
 :b stderr 0
 

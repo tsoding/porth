@@ -1,0 +1,10 @@
+:i argc 0
+:b stdin 0
+
+:i returncode 1
+:b stdout 0
+
+:b stderr 170
+./tests/original-proc-def-error.porth:7:6: ERROR: redefinition of a proc `hello`
+./tests/original-proc-def-error.porth:3:6: NOTE: the original definition is located here
+

@@ -1,0 +1,10 @@
+:i argc 0
+:b stdin 0
+
+:i returncode 1
+:b stdout 0
+
+:b stderr 168
+./tests/memory-redefinition.porth:2:8: ERROR: redefinition of a memory region `xs`
+./tests/memory-redefinition.porth:1:8: NOTE: the original definition is located here
+

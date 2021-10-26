@@ -4,61 +4,42 @@ include "std.porth"
 macro ROWS 10 end
 macro COLS 20 end
 macro BOARD_SIZE ROWS COLS * end
-macro PUTD_BUFFER_CAP 32 end
 
 // memory layout
-macro putd_buffer mem end
-macro delta_time putd_buffer PUTD_BUFFER_CAP + end
-macro board_current_index delta_time 16 + end
-macro nbors board_current_index 8 + end
-macro value nbors 8 + end
-macro board_base value 8 + end
-macro display BOARD_SIZE 2 * board_base + end
+memory delta_time sizeof(timespec) end
+memory board_current_index sizeof(u64) end
+memory nbors sizeof(u64) end
+memory value sizeof(u64) end
+memory board_base BOARD_SIZE 2 * end
+memory display COLS 1 + end
 
-macro putd
-  if dup 0 = do
-    "0" puts
-  else
-    putd_buffer PUTD_BUFFER_CAP +
-    while over 0 > do
-      1 - dup rot
-      10 divmod
-      rot swap '0' + . swap
-    end
-
-    dup
-    putd_buffer PUTD_BUFFER_CAP + swap - swap puts
-  end
-  drop
+proc board_current
+  board_base board_current_index @64 BOARD_SIZE * +
 end
 
-macro board_current
-  board_base board_current_index ,64 BOARD_SIZE * +
+proc board_next
+  board_base 1 board_current_index @64 - BOARD_SIZE * +
 end
 
-macro board_next
-  board_base 1 board_current_index ,64 - BOARD_SIZE * +
+proc swap_boards
+  1 board_current_index @64 - board_current_index !64
 end
 
-macro swap_boards
-  board_current_index 1 board_current_index ,64 - .64
-end
-
-macro display_row
+proc display_row
   0 while dup COLS < do
-    if 2dup + , 0 = do
-      display over + '.' .
+    2dup + @8 0 = if
+      display over + '.' swap !8
     else
-      display over + '#' .
+      display over + '#' swap !8
     end
     1 +
   end drop
-  COLS display + '\n' .
+  COLS display + '\n' swap !8
   COLS 1 + display puts
   drop
 end
 
-macro display_board
+proc display_board
   0 while dup ROWS < do
     2dup COLS * + display_row
     1 +
@@ -66,79 +47,79 @@ macro display_board
   drop
 end
 
-macro display_current_board
+proc display_current_board
   board_current display_board
 end
 
-macro get_current_cell
-  swap COLS * + board_current + ,
+proc get_current_cell
+  swap COLS * + board_current + @8
 end
 
-macro set_next_cell
-  value swap .64
+proc set_next_cell
+  value !64
   swap COLS * + board_next +
-  value ,64
-  .
+  value @64
+  swap !8
 end
 
-macro in_bounds
+proc in_bounds
   dup 0 >= swap COLS < and
   swap
   dup 0 >= swap ROWS < and
   and
 end
 
-macro count_current_nbors
-  nbors 0 .64
+proc count_current_nbors
+  0 nbors !64
 
-  if 2dup 1 - swap 1 - swap 2dup in_bounds
-     rot rot swap COLS * + board_current + , 1 =
-     and do nbors inc64 end
+  2dup 1 - swap 1 - swap 2dup in_bounds
+  rot rot swap COLS * + board_current + @8 1 =
+  and if nbors inc64 end
 
-  if 2dup 1 - 2dup in_bounds
-     rot rot swap COLS * + board_current + , 1 =
-     and do nbors inc64 end
+  2dup 1 - 2dup in_bounds
+  rot rot swap COLS * + board_current + @8 1 =
+  and if nbors inc64 end
 
-  if 2dup 1 - swap 1 + swap 2dup in_bounds
-     rot rot swap COLS * + board_current + , 1 =
-     and do nbors inc64 end
+  2dup 1 - swap 1 + swap 2dup in_bounds
+  rot rot swap COLS * + board_current + @8 1 =
+  and if nbors inc64 end
 
-  if 2dup swap 1 - swap 2dup in_bounds
-     rot rot swap COLS * + board_current + , 1 =
-     and do nbors inc64 end
+  2dup swap 1 - swap 2dup in_bounds
+  rot rot swap COLS * + board_current + @8 1 =
+  and if nbors inc64 end
 
-  if 2dup swap 1 + swap 2dup in_bounds
-     rot rot swap COLS * + board_current + , 1 =
-     and do nbors inc64 end
+  2dup swap 1 + swap 2dup in_bounds
+  rot rot swap COLS * + board_current + @8 1 =
+  and if nbors inc64 end
 
-  if 2dup 1 + swap 1 - swap 2dup in_bounds
-     rot rot swap COLS * + board_current + , 1 =
-     and do nbors inc64 end
+  2dup 1 + swap 1 - swap 2dup in_bounds
+  rot rot swap COLS * + board_current + @8 1 =
+  and if nbors inc64 end
 
-  if 2dup 1 + 2dup in_bounds
-     rot rot swap COLS * + board_current + , 1 =
-     and do nbors inc64 end
+  2dup 1 + 2dup in_bounds
+  rot rot swap COLS * + board_current + @8 1 =
+  and if nbors inc64 end
 
-  if 2dup 1 + swap 1 + swap 2dup in_bounds
-     rot rot swap COLS * + board_current + , 1 =
-     and do nbors inc64 end
+  2dup 1 + swap 1 + swap 2dup in_bounds
+  rot rot swap COLS * + board_current + @8 1 =
+  and if nbors inc64 end
 
   2drop
-  nbors ,64
+  nbors @64
 end
 
-macro compute_next_board
+proc compute_next_board
   0 while dup ROWS < do
     0 while dup COLS < do
-      if 2dup get_current_cell 1 = do
+      2dup get_current_cell 1 = if
         2dup count_current_nbors
-        if dup 2 = swap 3 = or do
+        dup 2 = swap 3 = or if
           2dup 1 set_next_cell
         else
           2dup 0 set_next_cell
         end
       else
-        if 2dup count_current_nbors 3 = do
+        2dup count_current_nbors 3 = if
           2dup 1 set_next_cell
         else
           2dup 0 set_next_cell
@@ -154,17 +135,17 @@ end
 // .*.
 // ..*
 // ***
-macro put_glider
-   dup 0 COLS * 1 + + 1 .
-   dup 1 COLS * 2 + + 1 .
-   dup 2 COLS * 0 + + 1 .
-   dup 2 COLS * 1 + + 1 .
-   dup 2 COLS * 2 + + 1 .
+proc put_glider
+   dup 0 COLS * 1 + + 1 swap !8
+   dup 1 COLS * 2 + + 1 swap !8
+   dup 2 COLS * 0 + + 1 swap !8
+   dup 2 COLS * 1 + + 1 swap !8
+   dup 2 COLS * 2 + + 1 swap !8
    drop
 end
 
-macro main
-  delta_time 8 + 100000000 .64
+proc main
+  100000000 delta_time 8 + !64
 
   board_current put_glider
 
@@ -174,8 +155,8 @@ macro main
     swap_boards
 
     NULL delta_time 0 CLOCK_MONOTONIC clock_nanosleep drop
-    "\033[" puts ROWS putd "A" puts
-    "\033[" puts COLS putd "D" puts
+    "\033[" puts ROWS putu "A" puts
+    "\033[" puts COLS putu "D" puts
   end
 end
 

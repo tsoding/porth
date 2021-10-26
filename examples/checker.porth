@@ -1,0 +1,73 @@
+// $ ./porth.py com ./checker.porth
+// $ ./checker output.ppm
+// $ feh ./output.ppm
+
+include "std.porth"
+
+argc 2 < if
+  "Usage: ./checker <output.ppm>\n" eputs
+  "[ERROR] no output file path is provided\n" eputs
+  1 exit
+end
+
+macro WIDTH 512 end
+macro HEIGHT 512 end
+macro CELL_WIDTH 64 end
+macro CELL_HEIGHT 64 end
+macro sizeof(pixel) 3 end
+
+memory canvas sizeof(pixel) WIDTH * HEIGHT * end
+
+0 while dup HEIGHT < do
+  0 while dup WIDTH < do
+    2dup CELL_WIDTH /
+    swap CELL_HEIGHT /
+    + 
+    2 %
+    0 = if
+      2dup swap WIDTH * + sizeof(pixel) * canvas +
+      dup 255 swap !8 1 +
+      dup 0   swap !8 1 +
+      dup 255 swap !8 drop
+    else
+      2dup swap WIDTH * + sizeof(pixel) * canvas +
+      dup 0   swap !8 1 +
+      dup 0   swap !8 1 +
+      dup 0   swap !8 drop
+    end
+    1 +
+  end drop
+  1 + 
+end drop
+
+memory file_path_cstr sizeof(ptr) end
+macro @file_path_cstr file_path_cstr @64 cast(ptr) end
+macro @file_path @file_path_cstr cstr-to-str end
+1 nth_argv file_path_cstr !64
+
+memory fd sizeof(u64) end
+macro @fd fd @64 end
+macro !fd fd !64 end
+
+"[INFO] Generating " puts @file_path puts "\n" puts
+
+420
+O_CREAT O_WRONLY or
+@file_path_cstr
+AT_FDCWD
+openat
+!fd
+
+@fd 0 < if
+  "[ERROR] could not open file `" eputs
+  @file_path eputs
+  "`\n" eputs
+  1 exit
+end
+
+"P6\n"   @fd fputs
+WIDTH    @fd fputu
+" "      @fd fputs
+HEIGHT   @fd fputu
+" 255\n" @fd fputs
+WIDTH HEIGHT * sizeof(pixel) * canvas @fd fputs

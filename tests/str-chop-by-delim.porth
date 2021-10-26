@@ -1,0 +1,16 @@
+include "std.porth"
+
+memory content sizeof(Str) end
+memory line sizeof(Str) end
+memory word sizeof(Str) end
+
+"hello world\nfoo bar\n\n\ntest\n" content !Str
+
+while content @Str.count 0 > do
+  '\n' line content str-chop-by-delim
+  while line @Str.count 0 > do
+    line str-trim-left
+    ' ' word line str-chop-by-delim
+    "|" puts word @Str puts "|\n" puts
+  end
+end

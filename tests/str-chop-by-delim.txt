@@ -1,0 +1,13 @@
+:i argc 0
+:b stdin 0
+
+:i returncode 0
+:b stdout 35
+|hello|
+|world|
+|foo|
+|bar|
+|test|
+
+:b stderr 0
+

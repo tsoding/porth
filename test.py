@@ -186,6 +186,9 @@ def usage(exe_name: str):
     print("          file or folder with *.porth files. The default [TARGET] is")
     print("          './tests/'")
     print()
+    print("    full")
+    print("      Test and type check everything. (Should be run on CI)")
+    print()
     print("    help")
     print("      Print this message to stdout and exit with 0 code.")
 
@@ -236,7 +239,15 @@ if __name__ == '__main__':
         elif path.isfile(target):
             run_test_for_file(target)
         else:
+            # TODO: `./test.py run non-existing-file` fails with 'unreachable'
             assert False, 'unreachable'
+    elif subcommand == 'full':
+        cmd_run_echoed(['mypy', './porth.py', './test.py'])
+        run_test_for_folder('./tests/')
+        run_test_for_folder('./examples/')
+        run_test_for_folder('./euler/')
+        # TODO: do run_test_for_file on porth.porth with ./tests/intrinsics.porth
+        cmd_run_echoed([sys.executable, './porth.py', 'com', './porth.porth'])
     elif subcommand == 'help':
         usage(exe_name)
     else:

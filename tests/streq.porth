@@ -1,0 +1,4 @@
+include "std.porth"
+
+"foo" "foo" streq print
+"foo" "bar" streq print

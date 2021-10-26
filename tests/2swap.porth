@@ -1,0 +1,16 @@
+include "std.porth"
+ 
+proc 2swap
+  memory a sizeof(u64) end
+  memory b sizeof(u64) end
+  memory c sizeof(u64) end
+  memory d sizeof(u64) end
+  d !64 c !64 b !64 a !64
+  c @64 d @64 a @64 b @64
+end
+
+1 2 3 4
+print print print print
+"------------------------------\n" puts
+1 2 3 4 2swap
+print print print print
