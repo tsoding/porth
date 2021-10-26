@@ -66,8 +66,8 @@ openat
 end
 
 "P6\n"   @fd fputs
-WIDTH    @fd fputd
+WIDTH    @fd fputu
 " "      @fd fputs
-HEIGHT   @fd fputd
+HEIGHT   @fd fputu
 " 255\n" @fd fputs
 WIDTH HEIGHT * sizeof(pixel) * canvas @fd fputs

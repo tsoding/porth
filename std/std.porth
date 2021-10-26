@@ -8,8 +8,12 @@ macro , @ end
 macro cstr-to-pstr cstr-to-str end
 memory mem 640000 end
 macro nop end
+macro fputd fputu end
+macro eputd eputu end
+macro putd putu end
 //////////////////////////////
 
+// TODO: NULL should have type ptr
 const NULL 0 end
 
 macro true  1 cast(bool) end
@@ -18,6 +22,8 @@ macro false 0 cast(bool) end
 const sizeof(u64) 8 end
 const sizeof(u32) 4 end
 const sizeof(ptr) sizeof(u64) end
+
+proc @ptr @64 cast(ptr) end
 
 /// Standard streams
 const stdin  0 end
@@ -570,18 +576,18 @@ macro lnot
   cast(int) 1 - cast(bool)
 end
 
-const PUTD_BUFFER_CAP 32 end
-// TODO: fputd should fail if write call fails
-// TODO: fputd does not print negative numbers
-proc fputd // value fd --
-  memory buffer PUTD_BUFFER_CAP end
+const PUTU_BUFFER_CAP 32 end
+// TODO: fputu should fail if write call fails
+// TODO: fputu does not print negative numbers
+proc fputu // value fd --
+  memory buffer PUTU_BUFFER_CAP end
   memory fd sizeof(u64) end
   fd !64
 
   dup 0 = if
     "0" fd @64 fputs
   else
-    buffer PUTD_BUFFER_CAP +
+    buffer PUTU_BUFFER_CAP +
     while over 0 > do
       1 - dup rot
       10 divmod
@@ -589,13 +595,15 @@ proc fputd // value fd --
     end
 
     dup
-    buffer PUTD_BUFFER_CAP + swap - swap fd @64 fputs
+    buffer PUTU_BUFFER_CAP + swap - swap fd @64 fputs
   end
   drop
 end
 
-macro putd stdout fputd end
-macro eputd stderr fputd end
+proc putu stdout fputu end
+proc eputu stderr fputu end
+
+// TODO: there is no fputi function that would print signed integers
 
 proc memcpy // size src dst --
   memory src sizeof(ptr) end

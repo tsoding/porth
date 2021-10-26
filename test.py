@@ -246,6 +246,7 @@ if __name__ == '__main__':
         run_test_for_folder('./tests/')
         run_test_for_folder('./examples/')
         run_test_for_folder('./euler/')
+        # TODO: do run_test_for_file on porth.porth with ./tests/intrinsics.porth
         cmd_run_echoed([sys.executable, './porth.py', 'com', './porth.porth'])
     elif subcommand == 'help':
         usage(exe_name)
