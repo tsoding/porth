@@ -1,3 +1,0 @@
-include "std.porth"
-
-"Hello, World\n" puts

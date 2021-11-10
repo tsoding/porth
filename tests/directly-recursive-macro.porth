@@ -1,5 +1,0 @@
-macro directly-recursive-macro
-  directly-recursive-macro
-end
-
-directly-recursive-macro

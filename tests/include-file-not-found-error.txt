@@ -1,9 +1,0 @@
-:i argc 0
-:b stdin 0
-
-:i returncode 1
-:b stdout 0
-
-:b stderr 83
-./tests/include-file-not-found-error.porth:1:9: ERROR: file `aids.porth` not found
-

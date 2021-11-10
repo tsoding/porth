@@ -1,9 +1,0 @@
-:i argc 0
-:b stdin 0
-
-:i returncode 1
-:b stdout 0
-
-:b stderr 84
-./tests/no-macro-name-error.porth:1:1: ERROR: expected macro name but found nothing
-

@@ -1,9 +1,0 @@
-:i argc 0
-:b stdin 0
-
-:i returncode 1
-:b stdout 0
-
-:b stderr 107
-./tests/end-cant-close-error.porth:1:1: ERROR: `end` can only close `else`, `do` or `macro` blocks for now
-

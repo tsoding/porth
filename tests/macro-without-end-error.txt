@@ -1,9 +1,0 @@
-:i argc 0
-:b stdin 0
-
-:i returncode 1
-:b stdout 0
-
-:b stderr 124
-./tests/macro-without-end-error.porth:2:1: ERROR: expected `end` at the end of the macro definition but got `Keyword.MACRO`
-

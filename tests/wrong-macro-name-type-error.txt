@@ -1,9 +1,0 @@
-:i argc 0
-:b stdin 0
-
-:i returncode 1
-:b stdout 0
-
-:b stderr 108
-./tests/wrong-macro-name-type-error.porth:1:7: ERROR: expected macro name to be a word but found an integer
-

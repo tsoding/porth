@@ -1,9 +1,0 @@
-:i argc 0
-:b stdin 0
-
-:i returncode 1
-:b stdout 0
-
-:b stderr 126
-./tests/wrong-include-path-type-error.porth:1:9: ERROR: expected path to the include file to be a string but found an integer
-

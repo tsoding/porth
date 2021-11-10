@@ -1,9 +1,0 @@
-:i argc 0
-:b stdin 0
-
-:i returncode 1
-:b stdout 0
-
-:b stderr 90
-./tests/else-not-inside-if-error.porth:1:1: ERROR: `else` can only be used in `do` blocks
-

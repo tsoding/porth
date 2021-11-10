@@ -1,9 +1,0 @@
-:i argc 0
-:b stdin 0
-
-:i returncode 0
-:b stdout 16
-Hello, // World
-
-:b stderr 0
-

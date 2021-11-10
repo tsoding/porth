@@ -1,9 +1,0 @@
-:i argc 0
-:b stdin 0
-
-:i returncode 1
-:b stdout 0
-
-:b stderr 62
-./tests/unclosed-block-error.porth:1:1: ERROR: unclosed block
-

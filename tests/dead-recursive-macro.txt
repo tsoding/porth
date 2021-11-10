@@ -1,9 +1,0 @@
-:i argc 0
-:b stdin 0
-
-:i returncode 0
-:b stdout 85
-Dead recursive macros should not cause any problems. Because they are never expanded
-
-:b stderr 0
-
