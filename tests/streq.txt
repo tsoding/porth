@@ -1,0 +1,13 @@
+:i argc 0
+:b stdin 0
+
+:i returncode 0
+:b stdout 100
+"hello" == "hello" is 1
+"hello" == "world" is 0
+"hello" == "" is 0
+"" == "world" is 0
+"" == "" is 1
+
+:b stderr 0
+

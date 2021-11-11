@@ -1,0 +1,33 @@
+include "std.porth"
+
+macro debug_streq
+  "\"" puts
+  over dup strlen swap puts
+  "\" == \"" puts
+  dup dup strlen swap puts
+  "\" is " puts
+  streq print
+end
+
+macro str_as_ptr swap drop end
+
+
+"hello\0" str_as_ptr 
+"hello\0" str_as_ptr 
+debug_streq
+
+"hello\0" str_as_ptr 
+"world\0" str_as_ptr 
+debug_streq
+
+"hello\0" str_as_ptr 
+"\0" str_as_ptr 
+debug_streq
+
+"\0" str_as_ptr 
+"world\0" str_as_ptr 
+debug_streq
+
+"\0" str_as_ptr 
+"\0" str_as_ptr 
+debug_streq
