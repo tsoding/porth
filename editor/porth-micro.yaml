@@ -1,0 +1,42 @@
+# DO WHAT THE FUCK YOU WANT TO PUBLIC LICENCE
+# Version 2, December 2004
+#
+# Copyright (c) 2021 Leon Davis <leonskidev@pm.me>
+#
+# Everyone is permitted to copy and distribute verbatim or modified
+# copies of this license document, and changing it is allowed as long
+# as the name is changed.
+
+filetype: porth
+
+detect:
+  filename: "\\.porth$"
+
+rules:
+  - comment:
+      start: "//"
+      end: "$"
+      rules:
+        - todo: "(TODO|XXX|FIXME|NOTE):?"
+
+  - identifier: "\\b(?i)[a-z_]+"
+
+  - symbol.operator: "([-+/*=<>,]|[.]{2})"
+  - symbol.brackets: "(\\(|\\))"
+
+  - statement: "\\b(?i)(if|else|end|while|do|macro|include)"
+  - type.keyword: "\\b(?i)(macro|include)"
+
+  - constant.number: "\\b[0-9]+\\b"
+  - constant.string:
+      start: "\""
+      skip: "\\\\."
+      end: "\""
+      rules:
+        - constant.specialChar: "\\\\."
+  - constant.string:
+      start: "\'"
+      skip: "\\\\."
+      end: "\'"
+      rules:
+        - constant.specialChar: "\\\\."
